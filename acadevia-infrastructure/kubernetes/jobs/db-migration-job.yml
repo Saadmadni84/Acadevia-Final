@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  namespace: acadevia
+  labels:
+    app: db-migration
+    type: job
+spec:
+  template:
+    metadata:
+      labels:
+        app: db-migration
+    spec:
+      containers:
+        - name: flyway
+          image: flyway/flyway:10
+          args: ["migrate"]
+          env:
+            - name: FLYWAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: jdbc-url
+            - name: FLYWAY_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: username
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: password
+            - name: FLYWAY_SCHEMAS
+              value: "acadevia_auth,acadevia_course,acadevia_user,acadevia_content,acadevia_quiz,acadevia_game,acadevia_notification,acadevia_admin,acadevia_locale"
+            - name: FLYWAY_BASELINE_ON_MIGRATE
+              value: "true"
+            - name: FLYWAY_LOCATIONS
+              value: "filesystem:/flyway/sql"
+          volumeMounts:
+            - name: migration-scripts
+              mountPath: /flyway/sql
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: migration-scripts
+          configMap:
+            name: db-migration-scripts
+      restartPolicy: Never
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600

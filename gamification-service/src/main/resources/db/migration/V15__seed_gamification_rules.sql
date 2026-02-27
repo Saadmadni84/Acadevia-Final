@@ -1,0 +1,18 @@
+INSERT INTO gamification_rules (rule_name, action_type, display_name, description,
+                                 xp_value, credit_value, category, max_per_day) VALUES
+('quiz_complete',       'QUIZ_COMPLETE',      'Quiz Completion',        'XP for completing any quiz',                50,  5,  'Quiz',      0),
+('quiz_perfect',        'PERFECT_SCORE',      'Perfect Quiz Score',     'Bonus XP for 100% score',                   100, 10, 'Quiz',      0),
+('quiz_speed',          'SPEED_BONUS',        'Speed Bonus',            'Bonus for completing in half time',          20,  2,  'Quiz',      0),
+('course_complete',     'COURSE_COMPLETE',    'Course Completion',      'XP for completing a course',                200, 20, 'Course',    0),
+('lesson_complete',     'LESSON_COMPLETE',    'Lesson Completion',      'XP for completing a lesson',                10,  1,  'Course',    50),
+('course_enroll',       'COURSE_ENROLL',      'Course Enrollment',      'XP for enrolling in a course',              5,   0,  'Course',    10),
+('video_complete',      'VIDEO_COMPLETE',     'Video Completion',       'XP for watching a full video',              15,  1,  'Content',   0),
+('pop_question',        'POP_QUESTION',       'Pop Question Answer',    'XP for answering video pop question',       5,   0,  'Content',   100),
+('game_complete',       'GAME_COMPLETE',      'Game Completion',        'XP for completing a learning game',         30,  5,  'Game',      0),
+('game_win',            'MULTIPLAYER_WIN',    'Multiplayer Win',        'XP for winning multiplayer game',           75,  10, 'Game',      0),
+('daily_login',         'LOGIN_BONUS',        'Daily Login',            'XP for daily login',                        5,   1,  'Streak',    1),
+('daily_streak',        'DAILY_STREAK',       'Daily Streak Bonus',     'XP bonus for maintaining streak',           15,  2,  'Streak',    1),
+('streak_7_bonus',      'STREAK_BONUS',       '7-Day Streak Bonus',     'Bonus for 7-day streak',                    50,  5,  'Streak',    0),
+('streak_30_bonus',     'STREAK_BONUS',       '30-Day Streak Bonus',    'Bonus for 30-day streak',                   200, 20, 'Streak',    0),
+('daily_challenge',     'DAILY_CHALLENGE',    'Daily Challenge',        'XP for completing daily challenge',         30,  3,  'Challenge', 1),
+('first_action',        'FIRST_ACTION',       'First Action Bonus',     'Bonus for doing something the first time',  25,  2,  'Special',   0);

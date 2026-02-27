@@ -1,0 +1,116 @@
+server:
+  port: 8092
+  servlet:
+    context-path: /api/locale
+
+spring:
+  application:
+    name: locale-service
+  profiles:
+    active: dev
+  config:
+    import: optional:configserver:http://localhost:8888
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/acadevia_locale?useSSL=false&serverTimezone=Asia/Kolkata&createDatabaseIfNotExist=true&characterEncoding=UTF-8&useUnicode=true
+    username: root
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      pool-name: LocaleHikariPool
+      connection-init-sql: "SET NAMES utf8mb4"
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+        connection:
+          characterEncoding: utf-8
+          CharSet: utf-8
+          useUnicode: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 30
+          max-idle: 10
+          min-idle: 5
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
+      cache-null-values: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    consumer:
+      group-id: locale-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.acadevia.*
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.uuid}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+acadevia:
+  locale:
+    default-language: en
+    fallback-chain: "requested,state_default,hi,en"
+    cache:
+      language-pack-ttl: 3600
+      translation-ttl: 3600
+      content-translation-ttl: 1800
+    supported-scripts:
+      - Devanagari
+      - Tamil
+      - Telugu
+      - Bengali
+      - Gujarati
+      - Kannada
+      - Malayalam
+      - Gurmukhi
+      - Odia
+      - Nastaliq
+      - Latin
+      - Meetei_Mayek
+      - Ol_Chiki
+    auto-init: true

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: course-service-config
+  namespace: acadevia
+data:
+  SERVER_PORT: "8083"
+  DB_NAME: "acadevia_courses"
+  DB_USER: "acadevia_courses_user"
+  COURSE_MAX_MODULES: "50"
+  COURSE_MAX_LESSONS_PER_MODULE: "100"

@@ -1,0 +1,149 @@
+# ============================================================
+# Acadevia Prometheus Configuration
+# ============================================================
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+rule_files:
+  - "alert-rules.yml"
+
+scrape_configs:
+  # ==============================
+  #  Spring Boot Services (Actuator)
+  # ==============================
+
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8080']
+        labels:
+          service: 'api-gateway'
+
+  - job_name: 'auth-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['auth-service:8081']
+        labels:
+          service: 'auth-service'
+
+  - job_name: 'user-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['user-service:8082']
+        labels:
+          service: 'user-service'
+
+  - job_name: 'course-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['course-service:8083']
+        labels:
+          service: 'course-service'
+
+  - job_name: 'content-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['content-service:8084']
+        labels:
+          service: 'content-service'
+
+  - job_name: 'quiz-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['quiz-service:8085']
+        labels:
+          service: 'quiz-service'
+
+  - job_name: 'game-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['game-service:8086']
+        labels:
+          service: 'game-service'
+
+  - job_name: 'sync-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['sync-service:8087']
+        labels:
+          service: 'sync-service'
+
+  - job_name: 'gamification-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['gamification-service:8088']
+        labels:
+          service: 'gamification-service'
+
+  - job_name: 'leaderboard-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['leaderboard-service:8089']
+        labels:
+          service: 'leaderboard-service'
+
+  - job_name: 'notification-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['notification-service:8090']
+        labels:
+          service: 'notification-service'
+
+  - job_name: 'analytics-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['analytics-service:8091']
+        labels:
+          service: 'analytics-service'
+
+  - job_name: 'admin-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['admin-service:8092']
+        labels:
+          service: 'admin-service'
+
+  - job_name: 'i18n-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['i18n-service:8093']
+        labels:
+          service: 'i18n-service'
+
+  # ==============================
+  #  Infrastructure Exporters
+  # ==============================
+
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql-exporter:9104']
+        labels:
+          service: 'mysql'
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+        labels:
+          service: 'kafka'
+
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node'
+
+  # ==============================
+  #  Prometheus Self-Monitoring
+  # ==============================
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

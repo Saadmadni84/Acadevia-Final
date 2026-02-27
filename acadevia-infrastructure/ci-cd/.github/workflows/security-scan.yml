@@ -1,0 +1,170 @@
+name: Weekly Security Scan
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday 6 AM UTC
+  workflow_dispatch:
+
+env:
+  REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - user-service
+          - course-service
+          - content-service
+          - quiz-service
+          - game-service
+          - sync-service
+          - gamification-service
+          - leaderboard-service
+          - notification-service
+          - analytics-service
+          - admin-service
+          - locale-service
+          - config-server
+          - service-registry
+          - acadevia-frontend
+      fail-fast: false
+    steps:
+      - name: Login to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Pull latest image
+        run: |
+          docker pull ${{ env.REGISTRY }}/${{ matrix.service }}:latest || {
+            echo "::warning::Image ${{ matrix.service }}:latest not found, skipping"
+            exit 0
+          }
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ matrix.service }}:latest'
+          format: 'table'
+          output: 'trivy-${{ matrix.service }}.txt'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Run Trivy SARIF scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ matrix.service }}:latest'
+          format: 'sarif'
+          output: 'trivy-${{ matrix.service }}.sarif'
+
+      - name: Upload Trivy results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-weekly-${{ matrix.service }}
+          path: |
+            trivy-${{ matrix.service }}.txt
+            trivy-${{ matrix.service }}.sarif
+          retention-days: 30
+
+      - name: Upload to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-${{ matrix.service }}.sarif'
+          category: 'trivy-${{ matrix.service }}'
+        continue-on-error: true
+
+  owasp-dependency-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Cache OWASP NVD data
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp
+          key: ${{ runner.os }}-owasp-${{ github.run_number }}
+          restore-keys: |
+            ${{ runner.os }}-owasp-
+
+      - name: Run OWASP Dependency Check
+        run: |
+          mvn org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=9 \
+            -Dformats=HTML,JSON \
+            -DsuppressionFile=owasp-suppressions.xml \
+            -B || true
+
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-dependency-check
+          path: |
+            **/target/dependency-check-report.*
+          retention-days: 30
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  report:
+    needs: [trivy-scan, owasp-dependency-check, gitleaks]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🔒 Weekly Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy Image Scans | ${{ needs.trivy-scan.result == 'success' && '✅ Passed' || '❌ Issues Found' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| OWASP Dependency Check | ${{ needs.owasp-dependency-check.result == 'success' && '✅ Passed' || '⚠️ Issues Found' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Gitleaks Secret Scan | ${{ needs.gitleaks.result == 'success' && '✅ No Leaks' || '🚨 Secrets Detected!' }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on Slack
+        if: needs.trivy-scan.result == 'failure' || needs.gitleaks.result == 'failure'
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "🚨 Weekly Security Scan found issues!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🚨 *Weekly Security Scan — Issues Detected*\n\n• Trivy: ${{ needs.trivy-scan.result }}\n• OWASP: ${{ needs.owasp-dependency-check.result }}\n• Gitleaks: ${{ needs.gitleaks.result }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Report>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

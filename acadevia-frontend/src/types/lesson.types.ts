@@ -1,0 +1,3 @@
+export interface Lesson { id: string; courseId: string; moduleId: string; title: string; description: string; type: 'VIDEO' | 'QUIZ' | 'GAME' | 'TEXT'; videoUrl?: string; content?: string; duration?: number; orderIndex: number; xpReward: number; popupQuestions: PopupQuestion[]; isCompleted?: boolean; }
+export interface PopupQuestion { id: string; timestamp: number; question: string; options: string[]; correctIndex: number; explanation: string; xpReward: number; }
+export interface LessonProgress { lessonId: string; userId: string; completed: boolean; watchedSeconds: number; totalSeconds: number; lastWatchedAt: string; }

@@ -1,0 +1,4 @@
+export interface Quiz { id: string; title: string; courseId: string; lessonId?: string; questionsCount: number; timeLimit: number; passingScore: number; xpReward: number; difficulty: string; attemptsAllowed: number; }
+export interface QuizQuestion { id: string; text: string; options: string[]; correctIndex: number; explanation: string; difficulty: string; hint?: string; }
+export interface QuizAttempt { quizId: string; answers: { questionId: string; selectedIndex: number }[]; }
+export interface QuizResult { id: string; quizId: string; score: number; correctCount: number; wrongCount: number; skippedCount: number; xpEarned: number; timeTaken: number; answers: { questionId: string; selectedIndex: number; correctIndex: number; isCorrect: boolean }[]; classAverage: number; attemptNumber: number; completedAt: string; }

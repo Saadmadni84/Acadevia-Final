@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+  namespace: acadevia
+data:
+  SERVER_PORT: "8080"
+  SPRING_CLOUD_GATEWAY_GLOBALCORS_ENABLED: "true"
+  SPRING_CLOUD_GATEWAY_DEFAULT_FILTERS: "DedupeResponseHeader=Access-Control-Allow-Origin"
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_DEFAULT_REPLENISH_RATE: "50"
+  RATE_LIMIT_DEFAULT_BURST_CAPACITY: "100"

@@ -1,0 +1,125 @@
+{
+  "common": {
+    "loading": "లోడ్ అవుతోంది...",
+    "error": "ఏదో తప్పు జరిగింది",
+    "retry": "మళ్ళీ ప్రయత్నించండి",
+    "save": "సేవ్ చేయండి",
+    "cancel": "రద్దు చేయండి",
+    "search": "వెతకండి...",
+    "noResults": "ఫలితాలు కనుగొనబడలేదు",
+    "viewAll": "అన్నీ చూడండి",
+    "back": "వెనుకకు",
+    "next": "తదుపరి",
+    "submit": "సమర్పించండి",
+    "delete": "తొలగించండి",
+    "edit": "సవరించండి",
+    "close": "మూసివేయండి"
+  },
+  "nav": {
+    "home": "హోమ్",
+    "courses": "కోర్సులు",
+    "games": "గేమ్స్",
+    "leaderboard": "లీడర్‌బోర్డ్",
+    "profile": "ప్రొఫైల్",
+    "settings": "సెట్టింగ్స్",
+    "downloads": "డౌన్‌లోడ్స్",
+    "notifications": "నోటిఫికేషన్లు",
+    "logout": "లాగ్‌అవుట్"
+  },
+  "auth": {
+    "login": "లాగిన్",
+    "register": "ఖాతా సృష్టించండి",
+    "email": "ఇమెయిల్ చిరునామా",
+    "password": "పాస్‌వర్డ్",
+    "studentId": "విద్యార్థి ID",
+    "selectState": "మీ రాష్ట్రాన్ని ఎంచుకోండి",
+    "selectCity": "మీ నగరాన్ని ఎంచుకోండి",
+    "selectSchool": "మీ పాఠశాలను ఎంచుకోండి",
+    "selectLanguage": "భాషను ఎంచుకోండి",
+    "forgotPassword": "పాస్‌వర్డ్ మర్చిపోయారా?",
+    "rememberMe": "నన్ను గుర్తుంచుకో",
+    "noAccount": "ఖాతా లేదా?",
+    "hasAccount": "ఇప్పటికే ఖాతా ఉందా?"
+  },
+  "dashboard": {
+    "welcome": "తిరిగి స్వాగతం, {{name}}!",
+    "streak": "{{count}} రోజుల స్ట్రీక్ 🔥",
+    "todayGoal": "ఈ రోజు లక్ష్యం: {{completed}}/{{total}} పాఠాలు",
+    "continueLearning": "నేర్చుకోవడం కొనసాగించండి",
+    "xpEarned": "ఈ రోజు సంపాదించిన XP",
+    "lessonsCompleted": "పూర్తయిన పాఠాలు",
+    "quizzesTaken": "పూర్తి చేసిన క్విజ్‌లు",
+    "upcomingEvents": "రాబోయే ఈవెంట్‌లు",
+    "recommended": "మీ కోసం సిఫార్సు చేయబడినవి"
+  },
+  "gamification": {
+    "xpGained": "+{{amount}} XP",
+    "levelUp": "లెవెల్ అప్! మీరు ఇప్పుడు లెవెల్ {{level}}",
+    "badgeUnlocked": "బ్యాడ్జ్ అన్‌లాక్: {{badge}}",
+    "streakBonus": "స్ట్రీక్ బోనస్! +{{amount}} XP",
+    "keepStreak": "మీ స్ట్రీక్‌ను విచ్ఛిన్నం చేయకండి!",
+    "dailyReward": "దైనందిన బహుమతి",
+    "level": "లెవెల్ {{level}}"
+  },
+  "quiz": {
+    "startQuiz": "క్విజ్ ప్రారంభించండి",
+    "question": "ప్రశ్న {{current}}/{{total}}",
+    "timeRemaining": "మిగిలిన సమయం",
+    "submit": "సమాధానం సమర్పించండి",
+    "results": "క్విజ్ ఫలితాలు",
+    "score": "మీ స్కోర్: {{score}}%",
+    "correct": "సరైనది",
+    "incorrect": "తప్పు",
+    "skipped": "దాటవేయబడింది",
+    "review": "సమాధానాలు సమీక్షించండి",
+    "retry": "మళ్ళీ ప్రయత్నించండి",
+    "hint": "సూచన ఉపయోగించండి"
+  },
+  "video": {
+    "popupQuestion": "త్వరిత ప్రశ్న!",
+    "download": "డౌన్‌లోడ్",
+    "quality": "నాణ్యత",
+    "downloaded": "డౌన్‌లోడ్ అయింది ✓",
+    "offline": "ఆఫ్‌లైన్‌లో అందుబాటులో",
+    "speed": "వేగం"
+  },
+  "course": {
+    "enroll": "ఇప్పుడు నమోదు చేయండి",
+    "enrolled": "నమోదు చేయబడింది",
+    "continue": "నేర్చుకోవడం కొనసాగించండి",
+    "progress": "పురోగతి",
+    "modules": "మాడ్యూల్స్",
+    "lessons": "పాఠాలు",
+    "students": "విద్యార్థులు",
+    "rating": "రేటింగ్"
+  },
+  "leaderboard": {
+    "school": "పాఠశాల",
+    "city": "నగరం",
+    "state": "రాష్ట్రం",
+    "national": "జాతీయ",
+    "rank": "ర్యాంక్",
+    "myRank": "నా ర్యాంక్",
+    "xpToNext": "తదుపరి ర్యాంక్‌కు {{amount}} XP"
+  },
+  "settings": {
+    "language": "భాష",
+    "darkMode": "డార్క్ మోడ్",
+    "notifications": "నోటిఫికేషన్లు",
+    "sounds": "సౌండ్ ఎఫెక్ట్స్",
+    "dataSaver": "డేటా సేవర్",
+    "autoSync": "ఆటో సింక్",
+    "clearCache": "కాష్ క్లియర్ చేయండి",
+    "downloadQuality": "డౌన్‌లోడ్ నాణ్యత",
+    "account": "ఖాతా",
+    "changePassword": "పాస్‌వర్డ్ మార్చండి",
+    "devices": "పరికరాలను నిర్వహించండి"
+  },
+  "offline": {
+    "youAreOffline": "మీరు ఆఫ్‌లైన్‌లో ఉన్నారు",
+    "changesWillSync": "కనెక్ట్ అయినప్పుడు మార్పులు సింక్ అవుతాయి",
+    "backOnline": "తిరిగి ఆన్‌లైన్‌లో! సింక్ అవుతోంది...",
+    "allSynced": "అన్నీ సింక్ అయ్యాయి ✓",
+    "pendingItems": "{{count}} అంశాలు సింక్ కోసం వేచి ఉన్నాయి"
+  }
+}

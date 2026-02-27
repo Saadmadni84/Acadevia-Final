@@ -1,0 +1,248 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [develop]
+
+env:
+  REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+  K8S_CLUSTER: ${{ secrets.STAGING_K8S_CLUSTER }}
+  K8S_NAMESPACE: acadevia-staging
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - user-service
+          - course-service
+          - content-service
+          - quiz-service
+          - game-service
+          - sync-service
+          - gamification-service
+          - leaderboard-service
+          - notification-service
+          - analytics-service
+          - admin-service
+          - locale-service
+          - config-server
+          - service-registry
+          - acadevia-frontend
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Setup Java 17
+        if: matrix.service != 'acadevia-frontend'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Build service JAR
+        if: matrix.service != 'acadevia-frontend'
+        run: |
+          cd ${{ matrix.service }}
+          mvn package -DskipTests -B
+
+      - name: Setup Node.js 20
+        if: matrix.service == 'acadevia-frontend'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: acadevia-frontend/package-lock.json
+
+      - name: Build frontend
+        if: matrix.service == 'acadevia-frontend'
+        run: |
+          cd acadevia-frontend
+          npm ci
+          npm run build
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ matrix.service }}:stg-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ matrix.service }}:staging-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Set kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+
+      - name: Run database migrations
+        run: |
+          echo "Running database migrations for staging..."
+          kubectl apply -f acadevia-infrastructure/kubernetes/jobs/db-migration-job.yml \
+            -n ${{ env.K8S_NAMESPACE }} || true
+          kubectl wait --for=condition=complete job/db-migration \
+            -n ${{ env.K8S_NAMESPACE }} --timeout=120s || true
+
+      - name: Update image tags for all services
+        run: |
+          IMAGE_TAG="stg-${{ steps.sha.outputs.short }}"
+          SERVICES=(
+            api-gateway
+            auth-service
+            user-service
+            course-service
+            content-service
+            quiz-service
+            game-service
+            sync-service
+            gamification-service
+            leaderboard-service
+            notification-service
+            analytics-service
+            admin-service
+            locale-service
+            config-server
+            service-registry
+            acadevia-frontend
+          )
+
+          for SERVICE in "${SERVICES[@]}"; do
+            echo "Updating $SERVICE to $IMAGE_TAG..."
+            kubectl set image deployment/${SERVICE} \
+              ${SERVICE}=${{ env.REGISTRY }}/${SERVICE}:${IMAGE_TAG} \
+              -n ${{ env.K8S_NAMESPACE }} || echo "Warning: Failed to update $SERVICE"
+          done
+
+      - name: Wait for rollout completion
+        run: |
+          SERVICES=(
+            api-gateway
+            auth-service
+            user-service
+            course-service
+            content-service
+            quiz-service
+            game-service
+            sync-service
+            gamification-service
+            leaderboard-service
+            notification-service
+            analytics-service
+            admin-service
+            locale-service
+            config-server
+            service-registry
+            acadevia-frontend
+          )
+
+          FAILED=()
+          for SERVICE in "${SERVICES[@]}"; do
+            echo "Waiting for $SERVICE rollout..."
+            if ! kubectl rollout status deployment/${SERVICE} \
+              -n ${{ env.K8S_NAMESPACE }} --timeout=300s 2>/dev/null; then
+              FAILED+=("$SERVICE")
+              echo "::warning::Rollout for $SERVICE did not complete in time"
+            fi
+          done
+
+          if [ ${#FAILED[@]} -gt 0 ]; then
+            echo "::error::The following services failed rollout: ${FAILED[*]}"
+            exit 1
+          fi
+
+      - name: Run smoke tests
+        run: |
+          GATEWAY_URL=$(kubectl get svc api-gateway -n ${{ env.K8S_NAMESPACE }} \
+            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "localhost")
+
+          ENDPOINTS=(
+            "/actuator/health"
+            "/api/auth/health"
+            "/api/users/health"
+            "/api/courses/health"
+            "/api/content/health"
+            "/api/quiz/health"
+            "/api/game/health"
+            "/api/notifications/health"
+            "/api/leaderboard/health"
+          )
+
+          FAILED=()
+          for ENDPOINT in "${ENDPOINTS[@]}"; do
+            echo "Testing ${GATEWAY_URL}${ENDPOINT}..."
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              "http://${GATEWAY_URL}${ENDPOINT}" --max-time 10 || echo "000")
+            if [ "$HTTP_CODE" -ne 200 ]; then
+              FAILED+=("$ENDPOINT ($HTTP_CODE)")
+              echo "::warning::Smoke test failed for $ENDPOINT (HTTP $HTTP_CODE)"
+            else
+              echo "  ✓ $ENDPOINT OK"
+            fi
+          done
+
+          if [ ${#FAILED[@]} -gt 0 ]; then
+            echo "::warning::Some smoke tests failed: ${FAILED[*]}"
+          fi
+
+  notify:
+    needs: deploy
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "${{ needs.deploy.result == 'success' && '✅' || '❌' }} Staging Deployment ${{ needs.deploy.result }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "${{ needs.deploy.result == 'success' && '✅ *Staging deployment successful*' || '❌ *Staging deployment failed*' }}\n*Branch:* `${{ github.ref_name }}`\n*Commit:* `${{ github.sha }}`\n*Author:* ${{ github.actor }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

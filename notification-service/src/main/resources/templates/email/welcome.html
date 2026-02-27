@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Welcome to Acadevia</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #4A90E2;">Welcome to Acadevia!</h1>
+        
+        <p>Dear <span th:text="${name}">User</span>,</p>
+        
+        <p>We are thrilled to have you join our learning community. Acadevia is dedicated to making learning fun, engaging, and rewarding.</p>
+        
+        <p>Here's what you can do next:</p>
+        <ul>
+            <li>Complete your profile</li>
+            <li>Start your first course</li>
+            <li>Join a classroom</li>
+        </ul>
+        
+        <p>Happy Learning!</p>
+        <p>The Acadevia Team</p>
+    </div>
+</body>
+</html>

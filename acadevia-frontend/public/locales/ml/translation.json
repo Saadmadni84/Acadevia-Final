@@ -1,0 +1,125 @@
+{
+  "common": {
+    "loading": "ലോഡ് ചെയ്യുന്നു...",
+    "error": "എന്തോ കുഴപ്പം സംഭവിച്ചു",
+    "retry": "വീണ്ടും ശ്രമിക്കുക",
+    "save": "സേവ് ചെയ്യുക",
+    "cancel": "റദ്ദാക്കുക",
+    "search": "തിരയുക...",
+    "noResults": "ഫലങ്ങളൊന്നും കണ്ടെത്തിയില്ല",
+    "viewAll": "എല്ലാം കാണുക",
+    "back": "പിന്നോട്ട്",
+    "next": "അടുത്തത്",
+    "submit": "സമർപ്പിക്കുക",
+    "delete": "ഇല്ലാതാക്കുക",
+    "edit": "എഡിറ്റ് ചെയ്യുക",
+    "close": "അടയ്ക്കുക"
+  },
+  "nav": {
+    "home": "ഹോം",
+    "courses": "കോഴ്‌സുകൾ",
+    "games": "ഗെയിമുകൾ",
+    "leaderboard": "ലീഡർബോർഡ്",
+    "profile": "പ്രൊഫൈൽ",
+    "settings": "ക്രമീകരണങ്ങൾ",
+    "downloads": "ഡൗൺലോഡുകൾ",
+    "notifications": "അറിയിപ്പുകൾ",
+    "logout": "ലോഗൗട്ട്"
+  },
+  "auth": {
+    "login": "ലോഗിൻ",
+    "register": "അക്കൗണ്ട് സൃഷ്ടിക്കുക",
+    "email": "ഇമെയിൽ വിലാസം",
+    "password": "പാസ്‌വേഡ്",
+    "studentId": "വിദ്യാർത്ഥി ID",
+    "selectState": "നിങ്ങളുടെ സംസ്ഥാനം തിരഞ്ഞെടുക്കുക",
+    "selectCity": "നിങ്ങളുടെ നഗരം തിരഞ്ഞെടുക്കുക",
+    "selectSchool": "നിങ്ങളുടെ സ്‌കൂൾ തിരഞ്ഞെടുക്കുക",
+    "selectLanguage": "ഭാഷ തിരഞ്ഞെടുക്കുക",
+    "forgotPassword": "പാസ്‌വേഡ് മറന്നോ?",
+    "rememberMe": "എന്നെ ഓർക്കുക",
+    "noAccount": "അക്കൗണ്ട് ഇല്ലേ?",
+    "hasAccount": "ഇതിനകം അക്കൗണ്ട് ഉണ്ടോ?"
+  },
+  "dashboard": {
+    "welcome": "തിരികെ സ്വാഗതം, {{name}}!",
+    "streak": "{{count}} ദിവസത്തെ സ്ട്രീക്ക് 🔥",
+    "todayGoal": "ഇന്നത്തെ ലക്ഷ്യം: {{completed}}/{{total}} പാഠങ്ങൾ",
+    "continueLearning": "പഠനം തുടരുക",
+    "xpEarned": "ഇന്ന് നേടിയ XP",
+    "lessonsCompleted": "പൂർത്തിയായ പാഠങ്ങൾ",
+    "quizzesTaken": "എടുത്ത ക്വിസുകൾ",
+    "upcomingEvents": "വരാനിരിക്കുന്ന ഇവന്റുകൾ",
+    "recommended": "നിങ്ങൾക്കായി ശുപാർശ ചെയ്തവ"
+  },
+  "gamification": {
+    "xpGained": "+{{amount}} XP",
+    "levelUp": "ലെവൽ അപ്! നിങ്ങൾ ഇപ്പോൾ ലെവൽ {{level}}",
+    "badgeUnlocked": "ബാഡ്ജ് അൺലോക്ക്: {{badge}}",
+    "streakBonus": "സ്ട്രീക്ക് ബോണസ്! +{{amount}} XP",
+    "keepStreak": "നിങ്ങളുടെ സ്ട്രീക്ക് തകർക്കരുത്!",
+    "dailyReward": "ദൈനംദിന സമ്മാനം",
+    "level": "ലെവൽ {{level}}"
+  },
+  "quiz": {
+    "startQuiz": "ക്വിസ് ആരംഭിക്കുക",
+    "question": "ചോദ്യം {{current}}/{{total}}",
+    "timeRemaining": "ശേഷിക്കുന്ന സമയം",
+    "submit": "ഉത്തരം സമർപ്പിക്കുക",
+    "results": "ക്വിസ് ഫലങ്ങൾ",
+    "score": "നിങ്ങളുടെ സ്‌കോർ: {{score}}%",
+    "correct": "ശരി",
+    "incorrect": "തെറ്റ്",
+    "skipped": "ഒഴിവാക്കി",
+    "review": "ഉത്തരങ്ങൾ അവലോകനം ചെയ്യുക",
+    "retry": "വീണ്ടും ശ്രമിക്കുക",
+    "hint": "സൂചന ഉപയോഗിക്കുക"
+  },
+  "video": {
+    "popupQuestion": "ദ്രുത ചോദ്യം!",
+    "download": "ഡൗൺലോഡ്",
+    "quality": "ഗുണനിലവാരം",
+    "downloaded": "ഡൗൺലോഡ് ചെയ്തു ✓",
+    "offline": "ഓഫ്‌ലൈനിൽ ലഭ്യം",
+    "speed": "വേഗത"
+  },
+  "course": {
+    "enroll": "ഇപ്പോൾ ചേരുക",
+    "enrolled": "ചേർന്നു",
+    "continue": "പഠനം തുടരുക",
+    "progress": "പുരോഗതി",
+    "modules": "മൊഡ്യൂളുകൾ",
+    "lessons": "പാഠങ്ങൾ",
+    "students": "വിദ്യാർത്ഥികൾ",
+    "rating": "റേറ്റിംഗ്"
+  },
+  "leaderboard": {
+    "school": "സ്‌കൂൾ",
+    "city": "നഗരം",
+    "state": "സംസ്ഥാനം",
+    "national": "ദേശീയ",
+    "rank": "റാങ്ക്",
+    "myRank": "എന്റെ റാങ്ക്",
+    "xpToNext": "അടുത്ത റാങ്കിലേക്ക് {{amount}} XP"
+  },
+  "settings": {
+    "language": "ഭാഷ",
+    "darkMode": "ഡാർക്ക് മോഡ്",
+    "notifications": "അറിയിപ്പുകൾ",
+    "sounds": "ശബ്ദ ഇഫക്ടുകൾ",
+    "dataSaver": "ഡേറ്റ സേവർ",
+    "autoSync": "ഓട്ടോ സിങ്ക്",
+    "clearCache": "കാഷെ മായ്ക്കുക",
+    "downloadQuality": "ഡൗൺലോഡ് ഗുണനിലവാരം",
+    "account": "അക്കൗണ്ട്",
+    "changePassword": "പാസ്‌വേഡ് മാറ്റുക",
+    "devices": "ഉപകരണങ്ങൾ കൈകാര്യം ചെയ്യുക"
+  },
+  "offline": {
+    "youAreOffline": "നിങ്ങൾ ഓഫ്‌ലൈനിലാണ്",
+    "changesWillSync": "കണക്ട് ചെയ്യുമ്പോൾ മാറ്റങ്ങൾ സിങ്ക് ചെയ്യും",
+    "backOnline": "വീണ്ടും ഓൺലൈനിൽ! സിങ്ക് ചെയ്യുന്നു...",
+    "allSynced": "എല്ലാം സിങ്ക് ചെയ്തു ✓",
+    "pendingItems": "{{count}} ഇനങ്ങൾ സിങ്ക് ചെയ്യാൻ ബാക്കി"
+  }
+}

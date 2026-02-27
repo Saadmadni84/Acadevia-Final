@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: content-service-config
+  namespace: acadevia
+data:
+  SERVER_PORT: "8084"
+  DB_NAME: "acadevia_content"
+  DB_USER: "acadevia_content_user"
+  CONTENT_UPLOAD_MAX_SIZE: "104857600"
+  CONTENT_MINIO_BUCKET: "acadevia-content"
+  CONTENT_CDN_ENABLED: "true"

@@ -1,0 +1,220 @@
+name: Daily DB Backup
+
+on:
+  schedule:
+    - cron: '30 20 * * *'  # 2 AM IST daily (20:30 UTC)
+  workflow_dispatch:
+    inputs:
+      databases:
+        description: 'Databases to back up (comma-separated, or "all")'
+        required: false
+        default: 'all'
+      retention_days:
+        description: 'Backup retention in days'
+        required: false
+        default: '30'
+
+env:
+  K8S_NAMESPACE: acadevia-production
+  BACKUP_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Set kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+
+      - name: Set backup metadata
+        id: meta
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "backup_prefix=acadevia-backup-$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Trigger database backup
+        id: backup
+        run: |
+          TIMESTAMP="${{ steps.meta.outputs.timestamp }}"
+          BACKUP_PREFIX="${{ steps.meta.outputs.backup_prefix }}"
+
+          DATABASES=(
+            "acadevia_auth"
+            "acadevia_users"
+            "acadevia_courses"
+            "acadevia_content"
+            "acadevia_quiz"
+            "acadevia_game"
+            "acadevia_notifications"
+            "acadevia_leaderboard"
+            "acadevia_analytics"
+            "acadevia_admin"
+          )
+
+          # Filter databases if specific ones requested
+          INPUT_DBS="${{ github.event.inputs.databases || 'all' }}"
+          if [ "$INPUT_DBS" != "all" ]; then
+            IFS=',' read -ra DATABASES <<< "$INPUT_DBS"
+          fi
+
+          echo "Backing up databases: ${DATABASES[*]}"
+
+          FAILED=()
+          SUCCEEDED=()
+
+          for DB in "${DATABASES[@]}"; do
+            DB=$(echo "$DB" | xargs)  # trim whitespace
+            echo "::group::Backing up $DB"
+
+            BACKUP_FILE="${BACKUP_PREFIX}-${DB}.sql.gz"
+
+            # Create a temporary backup job
+            cat <<EOF | kubectl apply -f - -n ${{ env.K8S_NAMESPACE }}
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: db-backup-${DB}-${TIMESTAMP}
+            labels:
+              app: db-backup
+              database: ${DB}
+          spec:
+            ttlSecondsAfterFinished: 3600
+            backoffLimit: 2
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: backup
+                    image: postgres:15-alpine
+                    command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        pg_dump -h \$DB_HOST -U \$DB_USER -d ${DB} | gzip > /backup/${BACKUP_FILE}
+                        echo "Backup of ${DB} completed: \$(ls -lh /backup/${BACKUP_FILE})"
+                    env:
+                      - name: DB_HOST
+                        valueFrom:
+                          secretKeyRef:
+                            name: db-credentials
+                            key: host
+                      - name: DB_USER
+                        valueFrom:
+                          secretKeyRef:
+                            name: db-credentials
+                            key: username
+                      - name: PGPASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: db-credentials
+                            key: password
+                    volumeMounts:
+                      - name: backup-storage
+                        mountPath: /backup
+                volumes:
+                  - name: backup-storage
+                    persistentVolumeClaim:
+                      claimName: db-backup-pvc
+          EOF
+
+            # Wait for backup job to complete
+            if kubectl wait --for=condition=complete \
+              job/db-backup-${DB}-${TIMESTAMP} \
+              -n ${{ env.K8S_NAMESPACE }} --timeout=600s 2>/dev/null; then
+              SUCCEEDED+=("$DB")
+              echo "✓ Backup of $DB completed successfully"
+            else
+              FAILED+=("$DB")
+              echo "::error::Backup of $DB failed"
+              kubectl logs job/db-backup-${DB}-${TIMESTAMP} \
+                -n ${{ env.K8S_NAMESPACE }} 2>/dev/null || true
+            fi
+
+            echo "::endgroup::"
+          done
+
+          echo "succeeded=${SUCCEEDED[*]}" >> $GITHUB_OUTPUT
+          echo "failed=${FAILED[*]}" >> $GITHUB_OUTPUT
+          echo "total_succeeded=${#SUCCEEDED[@]}" >> $GITHUB_OUTPUT
+          echo "total_failed=${#FAILED[@]}" >> $GITHUB_OUTPUT
+
+          if [ ${#FAILED[@]} -gt 0 ]; then
+            echo "::error::Failed backups: ${FAILED[*]}"
+          fi
+
+      - name: Verify backups
+        run: |
+          echo "## Backup Verification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** ${{ steps.meta.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Database | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          for DB in ${{ steps.backup.outputs.succeeded }}; do
+            echo "| $DB | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          done
+
+          for DB in ${{ steps.backup.outputs.failed }}; do
+            echo "| $DB | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          done
+
+      - name: Clean old backups
+        run: |
+          RETENTION_DAYS="${{ github.event.inputs.retention_days || '30' }}"
+          echo "Cleaning backups older than $RETENTION_DAYS days..."
+
+          # Delete old backup jobs
+          kubectl get jobs -n ${{ env.K8S_NAMESPACE }} \
+            -l app=db-backup \
+            --sort-by=.metadata.creationTimestamp \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.metadata.creationTimestamp}{"\n"}{end}' | \
+          while read JOB_NAME CREATED_AT; do
+            if [ -n "$JOB_NAME" ]; then
+              CREATED_EPOCH=$(date -d "$CREATED_AT" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$CREATED_AT" +%s 2>/dev/null || echo "0")
+              CUTOFF_EPOCH=$(date -d "-${RETENTION_DAYS} days" +%s 2>/dev/null || date -v-${RETENTION_DAYS}d +%s 2>/dev/null || echo "0")
+
+              if [ "$CREATED_EPOCH" -lt "$CUTOFF_EPOCH" ] && [ "$CREATED_EPOCH" -ne 0 ]; then
+                echo "Deleting old backup job: $JOB_NAME"
+                kubectl delete job "$JOB_NAME" -n ${{ env.K8S_NAMESPACE }} || true
+              fi
+            fi
+          done
+
+          echo "Cleanup complete"
+
+  notify:
+    needs: backup
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send notification
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "${{ needs.backup.result == 'success' && '✅ Daily DB backup completed' || '⚠️ Daily DB backup had issues' }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "${{ needs.backup.result == 'success' && '✅ *Daily DB Backup Completed*' || '⚠️ *Daily DB Backup — Issues Detected*' }}\n*Time:* $(date +'%Y-%m-%d %H:%M:%S UTC')\n*Status:* ${{ needs.backup.result }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

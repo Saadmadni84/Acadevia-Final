@@ -1,0 +1,219 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - 'acadevia-frontend/**'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: acadevia-frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: acadevia-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  type-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: acadevia-frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: acadevia-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: acadevia-frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: acadevia-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest with coverage
+        run: npx vitest run --coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: acadevia-frontend/coverage/
+          retention-days: 7
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, unit-tests]
+    defaults:
+      run:
+        working-directory: acadevia-frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: acadevia-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check bundle size
+        run: |
+          echo "## Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Total uncompressed size
+          TOTAL_SIZE=$(du -sh dist/ | cut -f1)
+          echo "**Total:** ${TOTAL_SIZE}" >> $GITHUB_STEP_SUMMARY
+
+          # JS bundle sizes
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### JavaScript Bundles" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size | Gzipped |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          find dist -name '*.js' -type f | sort | while read file; do
+            SIZE=$(du -sh "$file" | cut -f1)
+            GZIP_SIZE=$(gzip -c "$file" | wc -c | awk '{printf "%.1fK", $1/1024}')
+            BASENAME=$(basename "$file")
+            echo "| ${BASENAME} | ${SIZE} | ${GZIP_SIZE} |" >> $GITHUB_STEP_SUMMARY
+          done
+
+          # Total gzipped size check
+          GZIP_TOTAL=$(find dist -type f \( -name '*.js' -o -name '*.css' \) -exec gzip -c {} \; | wc -c)
+          GZIP_TOTAL_MB=$(echo "scale=2; $GZIP_TOTAL / 1048576" | bc)
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total gzipped JS+CSS:** ${GZIP_TOTAL_MB}MB" >> $GITHUB_STEP_SUMMARY
+
+          THRESHOLD=2097152  # 2MB
+          if [ "$GZIP_TOTAL" -gt "$THRESHOLD" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Warning:** Bundle exceeds 2MB gzipped threshold!" >> $GITHUB_STEP_SUMMARY
+            echo "::warning::Bundle size (${GZIP_TOTAL_MB}MB gzipped) exceeds 2MB threshold"
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: acadevia-frontend/dist/
+          retention-days: 7
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: acadevia-frontend/dist/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install serve
+        run: npm install -g serve
+
+      - name: Start static server
+        run: |
+          serve -s acadevia-frontend/dist -l 3000 &
+          sleep 3
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            http://localhost:3000
+          configPath: .lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+        continue-on-error: true
+
+      - name: Post Lighthouse results to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Try to read Lighthouse results
+            let comment = '### 🔦 Lighthouse Results\n\n';
+            comment += '| Metric | Score |\n';
+            comment += '|--------|-------|\n';
+
+            try {
+              const results = JSON.parse(
+                fs.readFileSync('.lighthouseci/lhr-0-http_localhost_3000.json', 'utf8')
+              );
+              const categories = results.categories;
+              for (const [key, value] of Object.entries(categories)) {
+                const score = Math.round(value.score * 100);
+                const emoji = score >= 90 ? '🟢' : score >= 50 ? '🟡' : '🔴';
+                comment += `| ${emoji} ${value.title} | ${score} |\n`;
+              }
+            } catch (e) {
+              comment += '| ⚠️ | Could not parse Lighthouse results |\n';
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+        continue-on-error: true

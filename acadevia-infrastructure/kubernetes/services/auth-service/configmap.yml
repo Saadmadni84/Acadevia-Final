@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  namespace: acadevia
+data:
+  SERVER_PORT: "8081"
+  DB_NAME: "acadevia_auth"
+  DB_USER: "acadevia_auth_user"
+  JWT_ACCESS_TOKEN_VALIDITY: "900"
+  JWT_REFRESH_TOKEN_VALIDITY: "604800"
+  OAUTH2_ENABLED: "true"

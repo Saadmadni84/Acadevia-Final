@@ -1,0 +1,132 @@
+{
+  "app": {
+    "name": "Acadevia",
+    "tagline": "Learn Through Gaming"
+  },
+  "nav": {
+    "home": "Home",
+    "courses": "Courses",
+    "games": "Games",
+    "leaderboard": "Leaderboard",
+    "profile": "Profile",
+    "settings": "Settings",
+    "downloads": "Downloads",
+    "badges": "Badges",
+    "dashboard": "Dashboard",
+    "logout": "Logout"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Sign Up",
+    "forgotPassword": "Forgot Password",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "rememberMe": "Remember me",
+    "welcomeBack": "Welcome back!",
+    "signInContinue": "Sign in to continue your learning journey",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "createAccount": "Create your account"
+  },
+  "dashboard": {
+    "welcomeBack": "Welcome back, {{name}}!",
+    "continueLearning": "Continue Learning",
+    "dailyGoals": "Daily Goals",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions",
+    "thisWeek": "This Week"
+  },
+  "course": {
+    "courses": "Courses",
+    "browse": "Browse Courses",
+    "enroll": "Enroll Now",
+    "enrolled": "Enrolled",
+    "lessons": "lessons",
+    "duration": "Duration",
+    "difficulty": "Difficulty",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "courseContent": "Course Content"
+  },
+  "quiz": {
+    "quiz": "Quiz",
+    "question": "Question",
+    "nextQuestion": "Next Question",
+    "finishQuiz": "Finish Quiz",
+    "results": "Results",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "points": "Points"
+  },
+  "game": {
+    "games": "Games",
+    "play": "Play",
+    "xpReward": "+{{xp}} XP"
+  },
+  "gamification": {
+    "level": "Level",
+    "xp": "XP",
+    "streak": "Streak",
+    "dayStreak": "Day Streak",
+    "badges": "Badges",
+    "achievements": "Achievements",
+    "levelUp": "Level Up!",
+    "badgeUnlocked": "Badge Unlocked!",
+    "dailyRewards": "Daily Rewards"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "allTime": "All Time",
+    "rank": "Rank",
+    "you": "(You)"
+  },
+  "profile": {
+    "profile": "Profile",
+    "editProfile": "Edit Profile",
+    "totalXP": "Total XP",
+    "joinDate": "Joined {{date}}"
+  },
+  "settings": {
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "pushNotifications": "Push Notifications",
+    "emailNotifications": "Email Notifications",
+    "preferences": "Preferences",
+    "soundEffects": "Sound Effects",
+    "offlineMode": "Offline Mode",
+    "autoDownload": "Auto-Download",
+    "account": "Account",
+    "changePassword": "Change Password",
+    "deleteAccount": "Delete Account"
+  },
+  "downloads": {
+    "downloads": "Downloads",
+    "storageUsed": "Storage Used",
+    "noDownloads": "No downloads",
+    "downloadOffline": "Download lessons to access them offline"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filters",
+    "noResults": "No results found",
+    "seeAll": "See All",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "continue": "Continue",
+    "complete": "Complete",
+    "offline": "You are offline",
+    "backOnline": "Back online!"
+  }
+}

@@ -1,0 +1,193 @@
+# ============================================================
+# ConfigMap: Database backup script
+# ============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-backup-scripts
+  namespace: acadevia
+  labels:
+    app: db-backup
+data:
+  backup.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    BACKUP_DIR="/backups"
+    DATABASES=("acadevia_users" "acadevia_courses" "acadevia_auth" "acadevia_quiz" "acadevia_gamification" "acadevia_notifications" "acadevia_content" "acadevia_admin" "acadevia_leaderboard" "acadevia_locale" "acadevia_sync")
+
+    echo "============================================"
+    echo "  Acadevia Database Backup"
+    echo "  Timestamp: $TIMESTAMP"
+    echo "============================================"
+
+    mkdir -p "$BACKUP_DIR"
+
+    BACKUP_SUCCESS=0
+    BACKUP_FAILED=0
+
+    for DB in "${DATABASES[@]}"; do
+      echo ""
+      echo "Backing up database: $DB"
+      BACKUP_FILE="$BACKUP_DIR/${DB}_${TIMESTAMP}.sql.gz"
+
+      if mysqldump \
+        -h "$MYSQL_HOST" \
+        -P "$MYSQL_PORT" \
+        -u "$MYSQL_USER" \
+        -p"$MYSQL_PASSWORD" \
+        --single-transaction \
+        --routines \
+        --triggers \
+        --set-gtid-purged=OFF \
+        "$DB" 2>/dev/null | gzip > "$BACKUP_FILE"; then
+        
+        SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+        echo "  ✓ Success: $BACKUP_FILE ($SIZE)"
+        BACKUP_SUCCESS=$((BACKUP_SUCCESS + 1))
+      else
+        echo "  ✗ Failed: $DB"
+        BACKUP_FAILED=$((BACKUP_FAILED + 1))
+        rm -f "$BACKUP_FILE"
+      fi
+    done
+
+    echo ""
+    echo "============================================"
+    echo "  Backup Summary"
+    echo "  Success: $BACKUP_SUCCESS"
+    echo "  Failed:  $BACKUP_FAILED"
+    echo "============================================"
+
+    # Upload to MinIO/S3
+    if [ -n "${S3_ENDPOINT:-}" ]; then
+      echo ""
+      echo "Uploading backups to S3/MinIO..."
+
+      # Configure mc (MinIO client)
+      mc alias set backup "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" --api S3v4
+
+      for BACKUP_FILE in "$BACKUP_DIR"/*_${TIMESTAMP}.sql.gz; do
+        FILENAME=$(basename "$BACKUP_FILE")
+        echo "  Uploading: $FILENAME"
+        mc cp "$BACKUP_FILE" "backup/${S3_BUCKET}/db-backups/${TIMESTAMP}/$FILENAME"
+      done
+
+      echo "  Upload complete!"
+
+      # Cleanup old remote backups (keep last 30 days)
+      echo "  Cleaning up remote backups older than 30 days..."
+      mc rm --recursive --force --older-than 30d "backup/${S3_BUCKET}/db-backups/" 2>/dev/null || true
+    fi
+
+    # Clean up local backup files
+    rm -f "$BACKUP_DIR"/*.sql.gz
+
+    if [ "$BACKUP_FAILED" -gt 0 ]; then
+      echo "Some backups failed!"
+      exit 1
+    fi
+
+    echo "All backups completed successfully!"
+
+---
+# ============================================================
+# CronJob: Daily database backup (2 AM IST = 8:30 PM UTC)
+# ============================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-backup
+  namespace: acadevia
+  labels:
+    app: db-backup
+    type: maintenance
+spec:
+  schedule: "30 20 * * *"  # 2:00 AM IST = 8:30 PM UTC
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    metadata:
+      labels:
+        app: db-backup
+    spec:
+      template:
+        metadata:
+          labels:
+            app: db-backup
+        spec:
+          containers:
+            - name: backup
+              image: mysql:8.0
+              command: ["/bin/bash", "/scripts/backup.sh"]
+              env:
+                - name: MYSQL_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-secret
+                      key: host
+                - name: MYSQL_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-secret
+                      key: port
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-secret
+                      key: username
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-secret
+                      key: password
+                - name: S3_ENDPOINT
+                  valueFrom:
+                    secretKeyRef:
+                      name: s3-backup-secret
+                      key: endpoint
+                      optional: true
+                - name: S3_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: s3-backup-secret
+                      key: access-key
+                      optional: true
+                - name: S3_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: s3-backup-secret
+                      key: secret-key
+                      optional: true
+                - name: S3_BUCKET
+                  valueFrom:
+                    secretKeyRef:
+                      name: s3-backup-secret
+                      key: bucket
+                      optional: true
+              volumeMounts:
+                - name: backup-scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: backup-tmp
+                  mountPath: /backups
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: 1
+                  memory: 1Gi
+          volumes:
+            - name: backup-scripts
+              configMap:
+                name: db-backup-scripts
+                defaultMode: 0755
+            - name: backup-tmp
+              emptyDir:
+                sizeLimit: 5Gi
+          restartPolicy: OnFailure
+      backoffLimit: 2
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3

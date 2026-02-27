@@ -1,0 +1,3 @@
+export interface StudentAnalytics { totalXp: number; lessonsCompleted: number; quizzesTaken: number; averageScore: number; hoursLearned: number; streak: number; weeklyActivity: DayActivity[]; recentQuizScores: { quizTitle: string; score: number; date: string }[]; }
+export interface DayActivity { date: string; lessonsCompleted: number; xpEarned: number; minutesSpent: number; }
+export interface AdminAnalytics { totalStudents: number; totalTeachers: number; totalSchools: number; activeToday: number; dau: number; wau: number; mau: number; courseCompletionRate: number; averageScore: number; stateWiseActivity: { state: string; count: number }[]; dailyActiveChart: { date: string; count: number }[]; }

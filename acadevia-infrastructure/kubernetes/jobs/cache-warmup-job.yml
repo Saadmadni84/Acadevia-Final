@@ -1,0 +1,171 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cache-warmup
+  namespace: acadevia
+  labels:
+    app: cache-warmup
+    type: setup
+spec:
+  template:
+    metadata:
+      labels:
+        app: cache-warmup
+    spec:
+      initContainers:
+        - name: wait-for-redis
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Redis to be ready..."
+              until nc -z redis 6379; do
+                echo "Redis not ready, retrying in 3s..."
+                sleep 3
+              done
+              echo "Redis is ready!"
+      containers:
+        - name: cache-warmup
+          image: redis:7-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              REDIS_HOST="${REDIS_HOST:-redis}"
+              REDIS_PORT="${REDIS_PORT:-6379}"
+
+              echo "============================================"
+              echo "  Acadevia - Cache Warmup"
+              echo "  Redis: $REDIS_HOST:$REDIS_PORT"
+              echo "============================================"
+
+              redis_cmd() {
+                if [ -n "${REDIS_PASSWORD:-}" ]; then
+                  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --no-auth-warning "$@"
+                else
+                  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" "$@"
+                fi
+              }
+
+              # Test connectivity
+              echo ""
+              echo "Testing Redis connection..."
+              PONG=$(redis_cmd PING)
+              if [ "$PONG" != "PONG" ]; then
+                echo "Failed to connect to Redis!"
+                exit 1
+              fi
+              echo "  Connected successfully."
+
+              # Set platform configuration cache
+              echo ""
+              echo "Setting platform configuration..."
+              redis_cmd SET "config:platform:name" "Acadevia" EX 86400
+              redis_cmd SET "config:platform:version" "1.0.0" EX 86400
+              redis_cmd SET "config:platform:maintenance" "false" EX 3600
+              redis_cmd SET "config:platform:registration_enabled" "true" EX 3600
+
+              # Set supported locales
+              echo "Setting supported locales..."
+              redis_cmd SADD "config:locales" "en" "hi" "ar" "fr" "es" "de" "zh" "ja" "ko" "pt"
+              redis_cmd EXPIRE "config:locales" 86400
+
+              # Set default gamification config
+              echo "Setting gamification defaults..."
+              redis_cmd HSET "config:gamification:points" \
+                "lesson_complete" "10" \
+                "quiz_pass" "25" \
+                "quiz_perfect" "50" \
+                "course_complete" "100" \
+                "streak_day" "5" \
+                "first_login" "10" \
+                "daily_login" "2"
+              redis_cmd EXPIRE "config:gamification:points" 86400
+
+              # Set level thresholds
+              echo "Setting level thresholds..."
+              redis_cmd ZADD "config:gamification:levels" \
+                0 "Beginner" \
+                100 "Learner" \
+                500 "Scholar" \
+                1500 "Expert" \
+                5000 "Master" \
+                15000 "Grandmaster" \
+                50000 "Legend"
+              redis_cmd EXPIRE "config:gamification:levels" 86400
+
+              # Set badge definitions
+              echo "Setting badge definitions..."
+              redis_cmd HSET "config:badges:first_lesson" \
+                "name" "First Step" \
+                "description" "Complete your first lesson" \
+                "icon" "rocket" \
+                "type" "milestone"
+              redis_cmd EXPIRE "config:badges:first_lesson" 86400
+
+              redis_cmd HSET "config:badges:week_streak" \
+                "name" "Consistent Learner" \
+                "description" "Maintain a 7-day streak" \
+                "icon" "fire" \
+                "type" "streak"
+              redis_cmd EXPIRE "config:badges:week_streak" 86400
+
+              redis_cmd HSET "config:badges:quiz_master" \
+                "name" "Quiz Master" \
+                "description" "Score 100% on 10 quizzes" \
+                "icon" "trophy" \
+                "type" "achievement"
+              redis_cmd EXPIRE "config:badges:quiz_master" 86400
+
+              # Set rate limiting configuration
+              echo "Setting rate limiting config..."
+              redis_cmd HSET "config:rate_limits" \
+                "api_default" "100" \
+                "api_auth" "20" \
+                "api_upload" "10" \
+                "ws_messages" "50" \
+                "window_seconds" "60"
+              redis_cmd EXPIRE "config:rate_limits" 86400
+
+              # Set feature flags
+              echo "Setting feature flags..."
+              redis_cmd HSET "config:features" \
+                "dark_mode" "true" \
+                "offline_mode" "true" \
+                "ai_tutor" "false" \
+                "video_lessons" "true" \
+                "live_classes" "false" \
+                "peer_review" "true" \
+                "leaderboard" "true" \
+                "social_login" "true"
+              redis_cmd EXPIRE "config:features" 3600
+
+              echo ""
+              echo "============================================"
+              echo "  Cache warmup completed successfully!"
+              echo "  Keys set: $(redis_cmd DBSIZE | awk '{print $NF}')"
+              echo "============================================"
+
+          env:
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: password
+                  optional: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      restartPolicy: Never
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600

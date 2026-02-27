@@ -1,0 +1,125 @@
+{
+  "common": {
+    "loading": "लोड होत आहे...",
+    "error": "काहीतरी चूक झाली",
+    "retry": "पुन्हा प्रयत्न करा",
+    "save": "जतन करा",
+    "cancel": "रद्द करा",
+    "search": "शोधा...",
+    "noResults": "कोणतेही परिणाम सापडले नाहीत",
+    "viewAll": "सर्व पहा",
+    "back": "मागे",
+    "next": "पुढे",
+    "submit": "सबमिट करा",
+    "delete": "हटवा",
+    "edit": "संपादित करा",
+    "close": "बंद करा"
+  },
+  "nav": {
+    "home": "मुख्यपृष्ठ",
+    "courses": "अभ्यासक्रम",
+    "games": "खेळ",
+    "leaderboard": "लीडरबोर्ड",
+    "profile": "प्रोफाइल",
+    "settings": "सेटिंग्ज",
+    "downloads": "डाउनलोड्स",
+    "notifications": "सूचना",
+    "logout": "लॉगआउट"
+  },
+  "auth": {
+    "login": "लॉगिन",
+    "register": "खाते तयार करा",
+    "email": "ईमेल पत्ता",
+    "password": "पासवर्ड",
+    "studentId": "विद्यार्थी आयडी",
+    "selectState": "आपले राज्य निवडा",
+    "selectCity": "आपले शहर निवडा",
+    "selectSchool": "आपली शाळा निवडा",
+    "selectLanguage": "भाषा निवडा",
+    "forgotPassword": "पासवर्ड विसरलात?",
+    "rememberMe": "मला लक्षात ठेवा",
+    "noAccount": "खाते नाही?",
+    "hasAccount": "आधीच खाते आहे?"
+  },
+  "dashboard": {
+    "welcome": "पुन्हा स्वागत, {{name}}!",
+    "streak": "{{count}} दिवसांची मालिका 🔥",
+    "todayGoal": "आजचे उद्दिष्ट: {{completed}}/{{total}} धडे",
+    "continueLearning": "शिकणे सुरू ठेवा",
+    "xpEarned": "आज मिळवलेले XP",
+    "lessonsCompleted": "पूर्ण केलेले धडे",
+    "quizzesTaken": "दिलेल्या प्रश्नमंजुषा",
+    "upcomingEvents": "आगामी कार्यक्रम",
+    "recommended": "तुमच्यासाठी शिफारस केलेले"
+  },
+  "gamification": {
+    "xpGained": "+{{amount}} XP",
+    "levelUp": "लेव्हल अप! तुम्ही आता लेव्हल {{level}} आहात",
+    "badgeUnlocked": "बॅज अनलॉक: {{badge}}",
+    "streakBonus": "मालिका बोनस! +{{amount}} XP",
+    "keepStreak": "तुमची मालिका तोडू नका!",
+    "dailyReward": "दैनिक बक्षीस",
+    "level": "लेव्हल {{level}}"
+  },
+  "quiz": {
+    "startQuiz": "प्रश्नमंजुषा सुरू करा",
+    "question": "प्रश्न {{current}}/{{total}}",
+    "timeRemaining": "उरलेला वेळ",
+    "submit": "उत्तर सबमिट करा",
+    "results": "प्रश्नमंजुषा निकाल",
+    "score": "तुमचा स्कोर: {{score}}%",
+    "correct": "बरोबर",
+    "incorrect": "चुकीचे",
+    "skipped": "वगळले",
+    "review": "उत्तरांचे पुनरावलोकन करा",
+    "retry": "पुन्हा प्रयत्न करा",
+    "hint": "सूचना वापरा"
+  },
+  "video": {
+    "popupQuestion": "झटपट प्रश्न!",
+    "download": "डाउनलोड",
+    "quality": "गुणवत्ता",
+    "downloaded": "डाउनलोड झाले ✓",
+    "offline": "ऑफलाइन उपलब्ध",
+    "speed": "वेग"
+  },
+  "course": {
+    "enroll": "आत्ता नोंदणी करा",
+    "enrolled": "नोंदणी झाली",
+    "continue": "शिकणे सुरू ठेवा",
+    "progress": "प्रगती",
+    "modules": "मॉड्यूल्स",
+    "lessons": "धडे",
+    "students": "विद्यार्थी",
+    "rating": "रेटिंग"
+  },
+  "leaderboard": {
+    "school": "शाळा",
+    "city": "शहर",
+    "state": "राज्य",
+    "national": "राष्ट्रीय",
+    "rank": "रँक",
+    "myRank": "माझा रँक",
+    "xpToNext": "पुढच्या रँकसाठी {{amount}} XP"
+  },
+  "settings": {
+    "language": "भाषा",
+    "darkMode": "डार्क मोड",
+    "notifications": "सूचना",
+    "sounds": "ध्वनी प्रभाव",
+    "dataSaver": "डेटा सेव्हर",
+    "autoSync": "ऑटो सिंक",
+    "clearCache": "कॅशे साफ करा",
+    "downloadQuality": "डाउनलोड गुणवत्ता",
+    "account": "खाते",
+    "changePassword": "पासवर्ड बदला",
+    "devices": "उपकरणे व्यवस्थापित करा"
+  },
+  "offline": {
+    "youAreOffline": "तुम्ही ऑफलाइन आहात",
+    "changesWillSync": "कनेक्ट झाल्यावर बदल सिंक होतील",
+    "backOnline": "पुन्हा ऑनलाइन! सिंक होत आहे...",
+    "allSynced": "सर्व सिंक झाले ✓",
+    "pendingItems": "{{count}} आयटम सिंक प्रलंबित"
+  }
+}

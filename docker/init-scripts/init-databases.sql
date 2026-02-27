@@ -1,0 +1,12 @@
+CREATE DATABASE IF NOT EXISTS acadevia_auth_db;
+CREATE DATABASE IF NOT EXISTS acadevia_user_db;
+CREATE DATABASE IF NOT EXISTS acadevia_course_db;
+CREATE DATABASE IF NOT EXISTS acadevia_content_db;
+CREATE DATABASE IF NOT EXISTS acadevia_quiz_db;
+CREATE DATABASE IF NOT EXISTS acadevia_game_db;
+CREATE DATABASE IF NOT EXISTS acadevia_gamification_db;
+CREATE DATABASE IF NOT EXISTS acadevia_leaderboard_db;
+CREATE DATABASE IF NOT EXISTS acadevia_notification_db;
+CREATE DATABASE IF NOT EXISTS acadevia_analytics_db;
+CREATE DATABASE IF NOT EXISTS acadevia_i18n_db;
+CREATE DATABASE IF NOT EXISTS acadevia_sync_db;

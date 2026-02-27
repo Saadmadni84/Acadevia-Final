@@ -1,0 +1,33 @@
+-- V6: Create video_downloads table
+CREATE TABLE IF NOT EXISTS video_downloads (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    video_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    lesson_id BIGINT,
+    course_id BIGINT,
+    quality VARCHAR(20) NOT NULL,
+    file_size_mb DECIMAL(10,2) DEFAULT 0,
+    download_url VARCHAR(1000),
+    download_status VARCHAR(30) DEFAULT 'QUEUED',
+    download_progress_pct INT DEFAULT 0,
+    error_message TEXT,
+    retry_count INT DEFAULT 0,
+    max_retries INT DEFAULT 3,
+    download_token VARCHAR(255),
+    token_expires_at DATETIME,
+    expires_at DATETIME,
+    requested_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    started_at DATETIME,
+    completed_at DATETIME,
+    deleted_at DATETIME,
+    device_id VARCHAR(255),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_downloads_video_id (video_id),
+    INDEX idx_downloads_user_id (user_id),
+    INDEX idx_downloads_status (download_status),
+    INDEX idx_downloads_token (download_token),
+    INDEX idx_downloads_device (device_id),
+    CONSTRAINT fk_downloads_video FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

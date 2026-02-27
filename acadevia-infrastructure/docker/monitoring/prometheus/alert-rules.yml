@@ -1,0 +1,220 @@
+# ============================================================
+# Acadevia Prometheus Alert Rules
+# ============================================================
+groups:
+  # ==============================
+  #  Service Health Alerts
+  # ==============================
+  - name: service_health
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been unreachable for more than 2 minutes."
+
+  # ==============================
+  #  System Resource Alerts
+  # ==============================
+  - name: system_resources
+    rules:
+      - alert: HighCPU
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for more than 5 minutes. Current value: {{ $value | printf \"%.1f\" }}%"
+
+      - alert: HighMemoryCritical
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 90% for more than 5 minutes. Current value: {{ $value | printf \"%.1f\" }}%"
+
+      - alert: HighMemoryWarning
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 75
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 75% for more than 5 minutes. Current value: {{ $value | printf \"%.1f\" }}%"
+
+      - alert: HighDiskUsageCritical
+        expr: |
+          (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 90%. Current value: {{ $value | printf \"%.1f\" }}%"
+
+      - alert: HighDiskUsageWarning
+        expr: |
+          (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 75
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 75%. Current value: {{ $value | printf \"%.1f\" }}%"
+
+  # ==============================
+  #  Application Performance Alerts
+  # ==============================
+  - name: application_performance
+    rules:
+      - alert: HighErrorRateCritical
+        expr: |
+          (
+            sum by(job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            /
+            sum by(job) (rate(http_server_requests_seconds_count[5m]))
+          ) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical error rate for {{ $labels.job }}"
+          description: "Error rate is above 5% for more than 5 minutes. Current value: {{ $value | printf \"%.2f\" }}%"
+
+      - alert: HighErrorRateWarning
+        expr: |
+          (
+            sum by(job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            /
+            sum by(job) (rate(http_server_requests_seconds_count[5m]))
+          ) * 100 > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate for {{ $labels.job }}"
+          description: "Error rate is above 1% for more than 5 minutes. Current value: {{ $value | printf \"%.2f\" }}%"
+
+      - alert: HighLatencyCritical
+        expr: |
+          histogram_quantile(0.99, sum by(le, job) (rate(http_server_requests_seconds_bucket[5m]))) > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical p99 latency for {{ $labels.job }}"
+          description: "p99 latency is above 5 seconds. Current value: {{ $value | printf \"%.2f\" }}s"
+
+      - alert: HighLatencyWarning
+        expr: |
+          histogram_quantile(0.95, sum by(le, job) (rate(http_server_requests_seconds_bucket[5m]))) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 latency for {{ $labels.job }}"
+          description: "p95 latency is above 2 seconds. Current value: {{ $value | printf \"%.2f\" }}s"
+
+  # ==============================
+  #  Database Alerts
+  # ==============================
+  - name: database_alerts
+    rules:
+      - alert: MysqlConnectionPoolHigh
+        expr: |
+          mysql_global_status_threads_connected / mysql_global_variables_max_connections * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MySQL connection pool near capacity"
+          description: "MySQL connection pool usage is above 90%. Current value: {{ $value | printf \"%.1f\" }}%"
+
+      - alert: MysqlSlowQueries
+        expr: |
+          rate(mysql_global_status_slow_queries[1m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High slow query rate in MySQL"
+          description: "More than 10 slow queries per minute. Current rate: {{ $value | printf \"%.1f\" }}/min"
+
+  # ==============================
+  #  Kafka Alerts
+  # ==============================
+  - name: kafka_alerts
+    rules:
+      - alert: KafkaConsumerLagCritical
+        expr: |
+          kafka_consumergroup_lag_sum > 10000
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical Kafka consumer lag for {{ $labels.consumergroup }}"
+          description: "Consumer group {{ $labels.consumergroup }} lag is above 10000. Current value: {{ $value }}"
+
+      - alert: KafkaConsumerLagWarning
+        expr: |
+          kafka_consumergroup_lag_sum > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Kafka consumer lag for {{ $labels.consumergroup }}"
+          description: "Consumer group {{ $labels.consumergroup }} lag is above 1000. Current value: {{ $value }}"
+
+  # ==============================
+  #  Redis Alerts
+  # ==============================
+  - name: redis_alerts
+    rules:
+      - alert: RedisMemoryHigh
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is above 80%. Current value: {{ $value | printf \"%.1f\" }}%"
+
+  # ==============================
+  #  Security Alerts
+  # ==============================
+  - name: security_alerts
+    rules:
+      - alert: BruteForceAttempt
+        expr: |
+          sum by(job) (rate(http_server_requests_seconds_count{status="401", uri=~".*/login.*|.*/auth.*"}[1m])) * 60 > 50
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Possible brute-force attack on {{ $labels.job }}"
+          description: "More than 50 failed login attempts per minute. Current rate: {{ $value | printf \"%.0f\" }}/min"
+
+  # ==============================
+  #  Container/Pod Alerts
+  # ==============================
+  - name: container_alerts
+    rules:
+      - alert: PodRestartLoop
+        expr: |
+          increase(process_uptime_seconds[30m]) < 0 and changes(process_start_time_seconds[30m]) > 3
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is in a restart loop"
+          description: "Service has restarted more than 3 times in the last 30 minutes."

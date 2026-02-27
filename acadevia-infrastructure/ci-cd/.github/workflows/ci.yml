@@ -1,0 +1,262 @@
+name: Acadevia CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '20'
+  REGISTRY: acadevia
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.changes }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      api-gateway: ${{ steps.filter.outputs.api-gateway }}
+      auth-service: ${{ steps.filter.outputs.auth-service }}
+      user-service: ${{ steps.filter.outputs.user-service }}
+      course-service: ${{ steps.filter.outputs.course-service }}
+      content-service: ${{ steps.filter.outputs.content-service }}
+      quiz-service: ${{ steps.filter.outputs.quiz-service }}
+      game-service: ${{ steps.filter.outputs.game-service }}
+      sync-service: ${{ steps.filter.outputs.sync-service }}
+      gamification-service: ${{ steps.filter.outputs.gamification-service }}
+      leaderboard-service: ${{ steps.filter.outputs.leaderboard-service }}
+      notification-service: ${{ steps.filter.outputs.notification-service }}
+      analytics-service: ${{ steps.filter.outputs.analytics-service }}
+      admin-service: ${{ steps.filter.outputs.admin-service }}
+      locale-service: ${{ steps.filter.outputs.locale-service }}
+      config-server: ${{ steps.filter.outputs.config-server }}
+      service-registry: ${{ steps.filter.outputs.service-registry }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api-gateway: 'api-gateway/**'
+            auth-service: 'auth-service/**'
+            user-service: 'user-service/**'
+            course-service: 'course-service/**'
+            content-service: 'content-service/**'
+            quiz-service: 'quiz-service/**'
+            game-service: 'game-service/**'
+            sync-service: 'sync-service/**'
+            gamification-service: 'gamification-service/**'
+            leaderboard-service: 'leaderboard-service/**'
+            notification-service: 'notification-service/**'
+            analytics-service: 'analytics-service/**'
+            admin-service: 'admin-service/**'
+            locale-service: 'locale-service/**'
+            config-server: 'config-server/**'
+            service-registry: 'service-registry/**'
+            frontend: 'acadevia-frontend/**'
+
+  lint-and-test:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.services != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        exclude:
+          - service: frontend
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'maven'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ matrix.service }}-${{ hashFiles(format('{0}/pom.xml', matrix.service)) }}
+          restore-keys: |
+            ${{ runner.os }}-maven-${{ matrix.service }}-
+            ${{ runner.os }}-maven-
+
+      - name: Run tests for ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.service }}
+          mvn verify -B -Dmaven.test.failure.ignore=false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.service }}
+          path: ${{ matrix.service }}/target/surefire-reports/
+          retention-days: 7
+
+      - name: Upload JaCoCo coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: ${{ matrix.service }}/target/site/jacoco/
+          retention-days: 7
+
+  frontend-checks:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: acadevia-frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: acadevia-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm run test -- --run
+
+      - name: Build
+        run: npm run build
+
+      - name: Check bundle size
+        run: |
+          BUNDLE_SIZE=$(du -sk dist/ | cut -f1)
+          BUNDLE_SIZE_MB=$(echo "scale=2; $BUNDLE_SIZE / 1024" | bc)
+          echo "Bundle size: ${BUNDLE_SIZE_MB}MB"
+
+          GZIP_SIZE=$(find dist -type f \( -name '*.js' -o -name '*.css' -o -name '*.html' \) -exec gzip -c {} \; | wc -c)
+          GZIP_SIZE_MB=$(echo "scale=2; $GZIP_SIZE / 1048576" | bc)
+          echo "Gzipped size: ${GZIP_SIZE_MB}MB"
+
+          THRESHOLD=2097152  # 2MB in bytes
+          if [ "$GZIP_SIZE" -gt "$THRESHOLD" ]; then
+            echo "::warning::Bundle size (${GZIP_SIZE_MB}MB gzipped) exceeds 2MB threshold!"
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: acadevia-frontend/dist/
+          retention-days: 7
+
+  build-images:
+    needs: [lint-and-test, detect-changes]
+    if: ${{ needs.detect-changes.outputs.services != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        exclude:
+          - service: frontend
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.REGISTRY }}/${{ matrix.service }}:pr-${{ github.event.number }} \
+            -f ${{ matrix.service }}/Dockerfile \
+            ${{ matrix.service }}
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ matrix.service }}:pr-${{ github.event.number }}'
+          format: 'sarif'
+          output: 'trivy-${{ matrix.service }}.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-scan-${{ matrix.service }}
+          path: 'trivy-${{ matrix.service }}.sarif'
+          retention-days: 7
+
+  security-scan:
+    needs: [build-images, detect-changes]
+    if: ${{ needs.detect-changes.outputs.services != '[]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Aggregate Trivy results
+        run: |
+          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Scanning all built images for vulnerabilities..." >> $GITHUB_STEP_SUMMARY
+
+      - name: Download all scan artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: trivy-scan-*
+          path: scan-results/
+
+      - name: Check for CRITICAL vulnerabilities
+        run: |
+          CRITICAL_FOUND=false
+          HIGH_FOUND=false
+
+          for sarif in scan-results/trivy-scan-*/*.sarif; do
+            if [ -f "$sarif" ]; then
+              SERVICE=$(basename $(dirname "$sarif") | sed 's/trivy-scan-//')
+              
+              CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level == "error")] | length' "$sarif" 2>/dev/null || echo "0")
+              HIGH_COUNT=$(jq '[.runs[].results[] | select(.level == "warning")] | length' "$sarif" 2>/dev/null || echo "0")
+              
+              echo "  $SERVICE: $CRITICAL_COUNT critical, $HIGH_COUNT high"
+              
+              if [ "$CRITICAL_COUNT" -gt "0" ]; then
+                CRITICAL_FOUND=true
+                echo "::error::CRITICAL vulnerabilities found in $SERVICE"
+              fi
+              if [ "$HIGH_COUNT" -gt "0" ]; then
+                HIGH_FOUND=true
+                echo "::warning::HIGH vulnerabilities found in $SERVICE"
+              fi
+            fi
+          done
+
+          if [ "$CRITICAL_FOUND" = true ]; then
+            echo "::error::CRITICAL vulnerabilities detected. Failing the build."
+            exit 1
+          fi
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "- CRITICAL: Fails the pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "- HIGH: Warning only" >> $GITHUB_STEP_SUMMARY

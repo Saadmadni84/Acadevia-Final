@@ -1,0 +1,125 @@
+{
+  "common": {
+    "loading": "લોડ થઈ રહ્યું છે...",
+    "error": "કંઈક ખોટું થયું",
+    "retry": "ફરી પ્રયાસ કરો",
+    "save": "સાચવો",
+    "cancel": "રદ કરો",
+    "search": "શોધો...",
+    "noResults": "કોઈ પરિણામો મળ્યા નથી",
+    "viewAll": "બધું જુઓ",
+    "back": "પાછળ",
+    "next": "આગળ",
+    "submit": "સબમિટ કરો",
+    "delete": "કાઢી નાખો",
+    "edit": "સંપાદિત કરો",
+    "close": "બંધ કરો"
+  },
+  "nav": {
+    "home": "હોમ",
+    "courses": "અભ્યાસક્રમો",
+    "games": "રમતો",
+    "leaderboard": "લીડરબોર્ડ",
+    "profile": "પ્રોફાઇલ",
+    "settings": "સેટિંગ્સ",
+    "downloads": "ડાઉનલોડ્સ",
+    "notifications": "સૂચનાઓ",
+    "logout": "લૉગઆઉટ"
+  },
+  "auth": {
+    "login": "લૉગિન",
+    "register": "એકાઉન્ટ બનાવો",
+    "email": "ઇમેઇલ સરનામું",
+    "password": "પાસવર્ડ",
+    "studentId": "વિદ્યાર્થી ID",
+    "selectState": "તમારું રાજ્ય પસંદ કરો",
+    "selectCity": "તમારું શહેર પસંદ કરો",
+    "selectSchool": "તમારી શાળા પસંદ કરો",
+    "selectLanguage": "ભાષા પસંદ કરો",
+    "forgotPassword": "પાસવર્ડ ભૂલી ગયા?",
+    "rememberMe": "મને યાદ રાખો",
+    "noAccount": "એકાઉન્ટ નથી?",
+    "hasAccount": "પહેલેથી એકાઉન્ટ છે?"
+  },
+  "dashboard": {
+    "welcome": "ફરી સ્વાગત છે, {{name}}!",
+    "streak": "{{count}} દિવસની સિલસિલો 🔥",
+    "todayGoal": "આજનું લક્ષ્ય: {{completed}}/{{total}} પાઠ",
+    "continueLearning": "શીખવાનું ચાલુ રાખો",
+    "xpEarned": "આજે મેળવેલ XP",
+    "lessonsCompleted": "પૂર્ણ થયેલા પાઠ",
+    "quizzesTaken": "આપેલી ક્વિઝ",
+    "upcomingEvents": "આગામી કાર્યક્રમો",
+    "recommended": "તમારા માટે ભલામણ કરેલ"
+  },
+  "gamification": {
+    "xpGained": "+{{amount}} XP",
+    "levelUp": "લેવલ અપ! તમે હવે લેવલ {{level}} છો",
+    "badgeUnlocked": "બેજ અનલૉક: {{badge}}",
+    "streakBonus": "સિલસિલો બોનસ! +{{amount}} XP",
+    "keepStreak": "તમારો સિલસિલો તોડશો નહીં!",
+    "dailyReward": "દૈનિક ઇનામ",
+    "level": "લેવલ {{level}}"
+  },
+  "quiz": {
+    "startQuiz": "ક્વિઝ શરૂ કરો",
+    "question": "પ્રશ્ન {{current}}/{{total}}",
+    "timeRemaining": "બાકી સમય",
+    "submit": "જવાબ સબમિટ કરો",
+    "results": "ક્વિઝ પરિણામો",
+    "score": "તમારો સ્કોર: {{score}}%",
+    "correct": "સાચું",
+    "incorrect": "ખોટું",
+    "skipped": "છોડી દેવાયું",
+    "review": "જવાબોની સમીક્ષા કરો",
+    "retry": "ફરી પ્રયાસ કરો",
+    "hint": "સંકેત વાપરો"
+  },
+  "video": {
+    "popupQuestion": "ઝડપી પ્રશ્ન!",
+    "download": "ડાઉનલોડ",
+    "quality": "ગુણવત્તા",
+    "downloaded": "ડાઉનલોડ થયું ✓",
+    "offline": "ઑફલાઇન ઉપલબ્ધ",
+    "speed": "ઝડપ"
+  },
+  "course": {
+    "enroll": "હમણાં નોંધણી કરો",
+    "enrolled": "નોંધણી થયેલ",
+    "continue": "શીખવાનું ચાલુ રાખો",
+    "progress": "પ્રગતિ",
+    "modules": "મોડ્યુલ્સ",
+    "lessons": "પાઠ",
+    "students": "વિદ્યાર્થીઓ",
+    "rating": "રેટિંગ"
+  },
+  "leaderboard": {
+    "school": "શાળા",
+    "city": "શહેર",
+    "state": "રાજ્ય",
+    "national": "રાષ્ટ્રીય",
+    "rank": "ક્રમ",
+    "myRank": "મારો ક્રમ",
+    "xpToNext": "આગળના ક્રમ માટે {{amount}} XP"
+  },
+  "settings": {
+    "language": "ભાષા",
+    "darkMode": "ડાર્ક મોડ",
+    "notifications": "સૂચનાઓ",
+    "sounds": "ધ્વનિ અસરો",
+    "dataSaver": "ડેટા સેવર",
+    "autoSync": "ઑટો સિંક",
+    "clearCache": "કૅશ સાફ કરો",
+    "downloadQuality": "ડાઉનલોડ ગુણવત્તા",
+    "account": "એકાઉન્ટ",
+    "changePassword": "પાસવર્ડ બદલો",
+    "devices": "ઉપકરણો મેનેજ કરો"
+  },
+  "offline": {
+    "youAreOffline": "તમે ઑફલાઇન છો",
+    "changesWillSync": "કનેક્ટ થયા પછી ફેરફારો સિંક થશે",
+    "backOnline": "ફરી ઑનલાઇન! સિંક થઈ રહ્યું છે...",
+    "allSynced": "બધું સિંક થયું ✓",
+    "pendingItems": "{{count}} આઇટમ સિંક બાકી છે"
+  }
+}

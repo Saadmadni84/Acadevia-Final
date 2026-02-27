@@ -1,0 +1,125 @@
+{
+  "common": {
+    "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+    "error": "ಏನೋ ತಪ್ಪಾಗಿದೆ",
+    "retry": "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+    "save": "ಉಳಿಸಿ",
+    "cancel": "ರದ್ದುಮಾಡಿ",
+    "search": "ಹುಡುಕಿ...",
+    "noResults": "ಯಾವುದೇ ಫಲಿತಾಂಶಗಳು ಕಂಡುಬಂದಿಲ್ಲ",
+    "viewAll": "ಎಲ್ಲವನ್ನೂ ನೋಡಿ",
+    "back": "ಹಿಂದೆ",
+    "next": "ಮುಂದೆ",
+    "submit": "ಸಲ್ಲಿಸಿ",
+    "delete": "ಅಳಿಸಿ",
+    "edit": "ಸಂಪಾದಿಸಿ",
+    "close": "ಮುಚ್ಚಿ"
+  },
+  "nav": {
+    "home": "ಮುಖಪುಟ",
+    "courses": "ಕೋರ್ಸ್‌ಗಳು",
+    "games": "ಆಟಗಳು",
+    "leaderboard": "ಲೀಡರ್‌ಬೋರ್ಡ್",
+    "profile": "ಪ್ರೊಫೈಲ್",
+    "settings": "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
+    "downloads": "ಡೌನ್‌ಲೋಡ್‌ಗಳು",
+    "notifications": "ಅಧಿಸೂಚನೆಗಳು",
+    "logout": "ಲಾಗ್‌ಔಟ್"
+  },
+  "auth": {
+    "login": "ಲಾಗಿನ್",
+    "register": "ಖಾತೆ ರಚಿಸಿ",
+    "email": "ಇಮೇಲ್ ವಿಳಾಸ",
+    "password": "ಪಾಸ್‌ವರ್ಡ್",
+    "studentId": "ವಿದ್ಯಾರ್ಥಿ ID",
+    "selectState": "ನಿಮ್ಮ ರಾಜ್ಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "selectCity": "ನಿಮ್ಮ ನಗರವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "selectSchool": "ನಿಮ್ಮ ಶಾಲೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "selectLanguage": "ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ",
+    "forgotPassword": "ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿರಾ?",
+    "rememberMe": "ನನ್ನನ್ನು ನೆನಪಿಡಿ",
+    "noAccount": "ಖಾತೆ ಇಲ್ಲವೇ?",
+    "hasAccount": "ಈಗಾಗಲೇ ಖಾತೆ ಇದೆಯೇ?"
+  },
+  "dashboard": {
+    "welcome": "ಮರಳಿ ಸ್ವಾಗತ, {{name}}!",
+    "streak": "{{count}} ದಿನದ ಸ್ಟ್ರೀಕ್ 🔥",
+    "todayGoal": "ಇಂದಿನ ಗುರಿ: {{completed}}/{{total}} ಪಾಠಗಳು",
+    "continueLearning": "ಕಲಿಕೆ ಮುಂದುವರಿಸಿ",
+    "xpEarned": "ಇಂದು ಗಳಿಸಿದ XP",
+    "lessonsCompleted": "ಪೂರ್ಣಗೊಂಡ ಪಾಠಗಳು",
+    "quizzesTaken": "ತೆಗೆದುಕೊಂಡ ಕ್ವಿಜ್‌ಗಳು",
+    "upcomingEvents": "ಮುಂಬರುವ ಕಾರ್ಯಕ್ರಮಗಳು",
+    "recommended": "ನಿಮಗಾಗಿ ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ"
+  },
+  "gamification": {
+    "xpGained": "+{{amount}} XP",
+    "levelUp": "ಲೆವೆಲ್ ಅಪ್! ನೀವು ಈಗ ಲೆವೆಲ್ {{level}}",
+    "badgeUnlocked": "ಬ್ಯಾಡ್ಜ್ ಅನ್‌ಲಾಕ್: {{badge}}",
+    "streakBonus": "ಸ್ಟ್ರೀಕ್ ಬೋನಸ್! +{{amount}} XP",
+    "keepStreak": "ನಿಮ್ಮ ಸ್ಟ್ರೀಕ್ ಮುರಿಯಬೇಡಿ!",
+    "dailyReward": "ದೈನಂದಿನ ಬಹುಮಾನ",
+    "level": "ಲೆವೆಲ್ {{level}}"
+  },
+  "quiz": {
+    "startQuiz": "ಕ್ವಿಜ್ ಪ್ರಾರಂಭಿಸಿ",
+    "question": "ಪ್ರಶ್ನೆ {{current}}/{{total}}",
+    "timeRemaining": "ಉಳಿದ ಸಮಯ",
+    "submit": "ಉತ್ತರ ಸಲ್ಲಿಸಿ",
+    "results": "ಕ್ವಿಜ್ ಫಲಿತಾಂಶಗಳು",
+    "score": "ನಿಮ್ಮ ಅಂಕ: {{score}}%",
+    "correct": "ಸರಿ",
+    "incorrect": "ತಪ್ಪು",
+    "skipped": "ಬಿಟ್ಟುಬಿಡಲಾಗಿದೆ",
+    "review": "ಉತ್ತರಗಳನ್ನು ಪರಿಶೀಲಿಸಿ",
+    "retry": "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+    "hint": "ಸುಳಿವು ಬಳಸಿ"
+  },
+  "video": {
+    "popupQuestion": "ತ್ವರಿತ ಪ್ರಶ್ನೆ!",
+    "download": "ಡೌನ್‌ಲೋಡ್",
+    "quality": "ಗುಣಮಟ್ಟ",
+    "downloaded": "ಡೌನ್‌ಲೋಡ್ ಆಗಿದೆ ✓",
+    "offline": "ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ಲಭ್ಯ",
+    "speed": "ವೇಗ"
+  },
+  "course": {
+    "enroll": "ಈಗ ನೋಂದಾಯಿಸಿ",
+    "enrolled": "ನೋಂದಾಯಿಸಲಾಗಿದೆ",
+    "continue": "ಕಲಿಕೆ ಮುಂದುವರಿಸಿ",
+    "progress": "ಪ್ರಗತಿ",
+    "modules": "ಮಾಡ್ಯೂಲ್‌ಗಳು",
+    "lessons": "ಪಾಠಗಳು",
+    "students": "ವಿದ್ಯಾರ್ಥಿಗಳು",
+    "rating": "ರೇಟಿಂಗ್"
+  },
+  "leaderboard": {
+    "school": "ಶಾಲೆ",
+    "city": "ನಗರ",
+    "state": "ರಾಜ್ಯ",
+    "national": "ರಾಷ್ಟ್ರೀಯ",
+    "rank": "ಶ್ರೇಣಿ",
+    "myRank": "ನನ್ನ ಶ್ರೇಣಿ",
+    "xpToNext": "ಮುಂದಿನ ಶ್ರೇಣಿಗೆ {{amount}} XP"
+  },
+  "settings": {
+    "language": "ಭಾಷೆ",
+    "darkMode": "ಡಾರ್ಕ್ ಮೋಡ್",
+    "notifications": "ಅಧಿಸೂಚನೆಗಳು",
+    "sounds": "ಧ್ವನಿ ಪರಿಣಾಮಗಳು",
+    "dataSaver": "ಡೇಟಾ ಸೇವರ್",
+    "autoSync": "ಆಟೋ ಸಿಂಕ್",
+    "clearCache": "ಕ್ಯಾಶ್ ತೆರವುಗೊಳಿಸಿ",
+    "downloadQuality": "ಡೌನ್‌ಲೋಡ್ ಗುಣಮಟ್ಟ",
+    "account": "ಖಾತೆ",
+    "changePassword": "ಪಾಸ್‌ವರ್ಡ್ ಬದಲಾಯಿಸಿ",
+    "devices": "ಸಾಧನಗಳನ್ನು ನಿರ್ವಹಿಸಿ"
+  },
+  "offline": {
+    "youAreOffline": "ನೀವು ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿದ್ದೀರಿ",
+    "changesWillSync": "ಸಂಪರ್ಕಗೊಂಡಾಗ ಬದಲಾವಣೆಗಳು ಸಿಂಕ್ ಆಗುತ್ತವೆ",
+    "backOnline": "ಮತ್ತೆ ಆನ್‌ಲೈನ್‌ನಲ್ಲಿ! ಸಿಂಕ್ ಆಗುತ್ತಿದೆ...",
+    "allSynced": "ಎಲ್ಲವೂ ಸಿಂಕ್ ಆಗಿದೆ ✓",
+    "pendingItems": "{{count}} ಐಟಂಗಳು ಸಿಂಕ್ ಬಾಕಿ ಇದೆ"
+  }
+}

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: leaderboard-service-config
+  namespace: acadevia
+data:
+  SERVER_PORT: "8089"
+  DB_NAME: "acadevia_leaderboard"
+  DB_USER: "acadevia_leaderboard_user"
+  LEADERBOARD_CACHE_TTL_SECONDS: "300"
+  LEADERBOARD_TOP_N_DEFAULT: "100"
+  LEADERBOARD_REDIS_SORTED_SET_ENABLED: "true"

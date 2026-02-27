@@ -1,0 +1,125 @@
+{
+  "common": {
+    "loading": "লোড হচ্ছে...",
+    "error": "কিছু ভুল হয়েছে",
+    "retry": "আবার চেষ্টা করুন",
+    "save": "সংরক্ষণ করুন",
+    "cancel": "বাতিল করুন",
+    "search": "অনুসন্ধান করুন...",
+    "noResults": "কোনো ফলাফল পাওয়া যায়নি",
+    "viewAll": "সব দেখুন",
+    "back": "পিছনে",
+    "next": "পরবর্তী",
+    "submit": "জমা দিন",
+    "delete": "মুছে ফেলুন",
+    "edit": "সম্পাদনা করুন",
+    "close": "বন্ধ করুন"
+  },
+  "nav": {
+    "home": "হোম",
+    "courses": "কোর্সসমূহ",
+    "games": "গেমস",
+    "leaderboard": "লিডারবোর্ড",
+    "profile": "প্রোফাইল",
+    "settings": "সেটিংস",
+    "downloads": "ডাউনলোডস",
+    "notifications": "বিজ্ঞপ্তি",
+    "logout": "লগআউট"
+  },
+  "auth": {
+    "login": "লগইন",
+    "register": "অ্যাকাউন্ট তৈরি করুন",
+    "email": "ইমেইল ঠিকানা",
+    "password": "পাসওয়ার্ড",
+    "studentId": "ছাত্র আইডি",
+    "selectState": "আপনার রাজ্য নির্বাচন করুন",
+    "selectCity": "আপনার শহর নির্বাচন করুন",
+    "selectSchool": "আপনার স্কুল নির্বাচন করুন",
+    "selectLanguage": "ভাষা নির্বাচন করুন",
+    "forgotPassword": "পাসওয়ার্ড ভুলে গেছেন?",
+    "rememberMe": "আমাকে মনে রাখুন",
+    "noAccount": "অ্যাকাউন্ট নেই?",
+    "hasAccount": "ইতিমধ্যে অ্যাকাউন্ট আছে?"
+  },
+  "dashboard": {
+    "welcome": "স্বাগতম, {{name}}!",
+    "streak": "{{count}} দিনের ধারা 🔥",
+    "todayGoal": "আজকের লক্ষ্য: {{completed}}/{{total}} পাঠ",
+    "continueLearning": "শেখা চালিয়ে যান",
+    "xpEarned": "আজ অর্জিত XP",
+    "lessonsCompleted": "সম্পন্ন পাঠ",
+    "quizzesTaken": "কুইজ সম্পন্ন",
+    "upcomingEvents": "আসন্ন ইভেন্ট",
+    "recommended": "আপনার জন্য সুপারিশকৃত"
+  },
+  "gamification": {
+    "xpGained": "+{{amount}} XP",
+    "levelUp": "লেভেল আপ! আপনি এখন লেভেল {{level}}",
+    "badgeUnlocked": "ব্যাজ আনলক: {{badge}}",
+    "streakBonus": "ধারা বোনাস! +{{amount}} XP",
+    "keepStreak": "আপনার ধারা ভাঙবেন না!",
+    "dailyReward": "দৈনিক পুরস্কার",
+    "level": "লেভেল {{level}}"
+  },
+  "quiz": {
+    "startQuiz": "কুইজ শুরু করুন",
+    "question": "প্রশ্ন {{current}}/{{total}}",
+    "timeRemaining": "অবশিষ্ট সময়",
+    "submit": "উত্তর জমা দিন",
+    "results": "কুইজের ফলাফল",
+    "score": "আপনার স্কোর: {{score}}%",
+    "correct": "সঠিক",
+    "incorrect": "ভুল",
+    "skipped": "এড়িয়ে যাওয়া",
+    "review": "উত্তর পর্যালোচনা করুন",
+    "retry": "আবার চেষ্টা করুন",
+    "hint": "ইঙ্গিত ব্যবহার করুন"
+  },
+  "video": {
+    "popupQuestion": "দ্রুত প্রশ্ন!",
+    "download": "ডাউনলোড",
+    "quality": "গুণমান",
+    "downloaded": "ডাউনলোড হয়েছে ✓",
+    "offline": "অফলাইনে উপলব্ধ",
+    "speed": "গতি"
+  },
+  "course": {
+    "enroll": "এখনই নথিভুক্ত হন",
+    "enrolled": "নথিভুক্ত",
+    "continue": "শেখা চালিয়ে যান",
+    "progress": "অগ্রগতি",
+    "modules": "মডিউল",
+    "lessons": "পাঠ",
+    "students": "শিক্ষার্থী",
+    "rating": "রেটিং"
+  },
+  "leaderboard": {
+    "school": "স্কুল",
+    "city": "শহর",
+    "state": "রাজ্য",
+    "national": "জাতীয়",
+    "rank": "র‍্যাঙ্ক",
+    "myRank": "আমার র‍্যাঙ্ক",
+    "xpToNext": "পরবর্তী র‍্যাঙ্কে {{amount}} XP"
+  },
+  "settings": {
+    "language": "ভাষা",
+    "darkMode": "ডার্ক মোড",
+    "notifications": "বিজ্ঞপ্তি",
+    "sounds": "শব্দ প্রভাব",
+    "dataSaver": "ডেটা সেভার",
+    "autoSync": "স্বয়ংক্রিয় সিঙ্ক",
+    "clearCache": "ক্যাশ মুছুন",
+    "downloadQuality": "ডাউনলোড গুণমান",
+    "account": "অ্যাকাউন্ট",
+    "changePassword": "পাসওয়ার্ড পরিবর্তন করুন",
+    "devices": "ডিভাইস পরিচালনা করুন"
+  },
+  "offline": {
+    "youAreOffline": "আপনি অফলাইনে আছেন",
+    "changesWillSync": "সংযুক্ত হলে পরিবর্তনগুলি সিঙ্ক হবে",
+    "backOnline": "আবার অনলাইনে! সিঙ্ক হচ্ছে...",
+    "allSynced": "সব সিঙ্ক হয়েছে ✓",
+    "pendingItems": "{{count}}টি আইটেম সিঙ্কের অপেক্ষায়"
+  }
+}

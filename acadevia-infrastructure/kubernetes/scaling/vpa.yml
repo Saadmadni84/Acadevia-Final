@@ -1,0 +1,86 @@
+---
+# VPA for API Gateway - Recommendation only
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: api-gateway-vpa
+  namespace: acadevia
+  labels:
+    app: api-gateway
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: api-gateway
+        minAllowed:
+          cpu: 200m
+          memory: 256Mi
+        maxAllowed:
+          cpu: 2
+          memory: 4Gi
+        controlledResources:
+          - cpu
+          - memory
+
+---
+# VPA for Gamification Service - Recommendation only
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: gamification-service-vpa
+  namespace: acadevia
+  labels:
+    app: gamification-service
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: gamification-service
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: gamification-service
+        minAllowed:
+          cpu: 100m
+          memory: 256Mi
+        maxAllowed:
+          cpu: 1
+          memory: 2Gi
+        controlledResources:
+          - cpu
+          - memory
+
+---
+# VPA for Leaderboard Service - Recommendation only
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: leaderboard-service-vpa
+  namespace: acadevia
+  labels:
+    app: leaderboard-service
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: leaderboard-service
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: leaderboard-service
+        minAllowed:
+          cpu: 100m
+          memory: 256Mi
+        maxAllowed:
+          cpu: 1
+          memory: 2Gi
+        controlledResources:
+          - cpu
+          - memory

@@ -1,0 +1,20 @@
+CREATE TABLE download_manifest (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    manifest_id VARCHAR(64) NOT NULL UNIQUE,
+    user_id BIGINT NOT NULL,
+    device_id VARCHAR(255) NOT NULL,
+    content_id VARCHAR(255) NOT NULL,
+    content_type VARCHAR(50),
+    quality VARCHAR(20),
+    file_size_bytes BIGINT,
+    total_chunks INT,
+    completed_chunks INT DEFAULT 0,
+    status VARCHAR(50) NOT NULL,
+    s3_key VARCHAR(512),
+    local_path VARCHAR(512),
+    expires_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_device (user_id, device_id),
+    INDEX idx_status (status)
+);

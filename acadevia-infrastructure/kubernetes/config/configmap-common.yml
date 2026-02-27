@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: common-config
+  namespace: acadevia
+  labels:
+    app.kubernetes.io/part-of: acadevia
+data:
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-0.kafka-headless.acadevia.svc.cluster.local:9092,kafka-1.kafka-headless.acadevia.svc.cluster.local:9092,kafka-2.kafka-headless.acadevia.svc.cluster.local:9092"
+  REDIS_HOST: "redis-0.redis-headless.acadevia.svc.cluster.local"
+  REDIS_PORT: "6379"
+  MYSQL_HOST: "mysql-0.mysql-headless.acadevia.svc.cluster.local"
+  MYSQL_PORT: "3306"
+  MINIO_ENDPOINT: "http://minio.acadevia.svc.cluster.local:9000"
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  EUREKA_CLIENT_ENABLED: "false"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,prometheus,info"
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+  JAEGER_AGENT_HOST: "jaeger.acadevia.svc.cluster.local"
+  JAEGER_AGENT_PORT: "6831"

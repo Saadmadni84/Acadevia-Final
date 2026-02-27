@@ -1,0 +1,125 @@
+{
+  "common": {
+    "loading": "ଲୋଡ୍ ହେଉଛି...",
+    "error": "କିଛି ଭୁଲ ହୋଇଗଲା",
+    "retry": "ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ",
+    "save": "ସେଭ୍ କରନ୍ତୁ",
+    "cancel": "ବାତିଲ କରନ୍ତୁ",
+    "search": "ଖୋଜନ୍ତୁ...",
+    "noResults": "କୌଣସି ଫଳାଫଳ ମିଳିଲା ନାହିଁ",
+    "viewAll": "ସବୁ ଦେଖନ୍ତୁ",
+    "back": "ପଛକୁ",
+    "next": "ପରବର୍ତ୍ତୀ",
+    "submit": "ଦାଖଲ କରନ୍ତୁ",
+    "delete": "ବିଲୋପ କରନ୍ତୁ",
+    "edit": "ସମ୍ପାଦନା କରନ୍ତୁ",
+    "close": "ବନ୍ଦ କରନ୍ତୁ"
+  },
+  "nav": {
+    "home": "ହୋମ",
+    "courses": "ପାଠ୍ୟକ୍ରମ",
+    "games": "ଖେଳ",
+    "leaderboard": "ଲିଡରବୋର୍ଡ",
+    "profile": "ପ୍ରୋଫାଇଲ",
+    "settings": "ସେଟିଂସ",
+    "downloads": "ଡାଉନଲୋଡ୍",
+    "notifications": "ବିଜ୍ଞପ୍ତି",
+    "logout": "ଲଗଆଉଟ"
+  },
+  "auth": {
+    "login": "ଲଗଇନ",
+    "register": "ଆକାଉଣ୍ଟ ତିଆରି କରନ୍ତୁ",
+    "email": "ଇମେଲ ଠିକଣା",
+    "password": "ପାସୱାର୍ଡ",
+    "studentId": "ଛାତ୍ର ID",
+    "selectState": "ଆପଣଙ୍କ ରାଜ୍ୟ ବାଛନ୍ତୁ",
+    "selectCity": "ଆପଣଙ୍କ ସହର ବାଛନ୍ତୁ",
+    "selectSchool": "ଆପଣଙ୍କ ବିଦ୍ୟାଳୟ ବାଛନ୍ତୁ",
+    "selectLanguage": "ଭାଷା ବାଛନ୍ତୁ",
+    "forgotPassword": "ପାସୱାର୍ଡ ଭୁଲି ଯାଇଛନ୍ତି?",
+    "rememberMe": "ମୋତେ ମନେ ରଖନ୍ତୁ",
+    "noAccount": "ଆକାଉଣ୍ଟ ନାହିଁ?",
+    "hasAccount": "ପୂର୍ବରୁ ଆକାଉଣ୍ଟ ଅଛି?"
+  },
+  "dashboard": {
+    "welcome": "ପୁଣି ସ୍ବାଗତ, {{name}}!",
+    "streak": "{{count}} ଦିନର ଧାରା 🔥",
+    "todayGoal": "ଆଜିର ଲକ୍ଷ୍ୟ: {{completed}}/{{total}} ପାଠ",
+    "continueLearning": "ଶିଖିବା ଜାରି ରଖନ୍ତୁ",
+    "xpEarned": "ଆଜି ଅର୍ଜିତ XP",
+    "lessonsCompleted": "ସମ୍ପୂର୍ଣ୍ଣ ହୋଇଥିବା ପାଠ",
+    "quizzesTaken": "ଦିଆଯାଇଥିବା କ୍ୱିଜ୍",
+    "upcomingEvents": "ଆସନ୍ତା ଇଭେଣ୍ଟ",
+    "recommended": "ଆପଣଙ୍କ ପାଇଁ ସୁପାରିଶ"
+  },
+  "gamification": {
+    "xpGained": "+{{amount}} XP",
+    "levelUp": "ଲେଭଲ ଅପ! ଆପଣ ବର୍ତ୍ତମାନ ଲେଭଲ {{level}}",
+    "badgeUnlocked": "ବ୍ୟାଜ ଅନଲକ: {{badge}}",
+    "streakBonus": "ଧାରା ବୋନସ! +{{amount}} XP",
+    "keepStreak": "ଆପଣଙ୍କ ଧାରା ଭାଙ୍ଗନ୍ତୁ ନାହିଁ!",
+    "dailyReward": "ଦୈନିକ ପୁରସ୍କାର",
+    "level": "ଲେଭଲ {{level}}"
+  },
+  "quiz": {
+    "startQuiz": "କ୍ୱିଜ୍ ଆରମ୍ଭ କରନ୍ତୁ",
+    "question": "ପ୍ରଶ୍ନ {{current}}/{{total}}",
+    "timeRemaining": "ବାକି ସମୟ",
+    "submit": "ଉତ୍ତର ଦାଖଲ କରନ୍ତୁ",
+    "results": "କ୍ୱିଜ୍ ଫଳାଫଳ",
+    "score": "ଆପଣଙ୍କ ସ୍କୋର: {{score}}%",
+    "correct": "ଠିକ",
+    "incorrect": "ଭୁଲ",
+    "skipped": "ଛାଡ଼ି ଦିଆଗଲା",
+    "review": "ଉତ୍ତର ସମୀକ୍ଷା କରନ୍ତୁ",
+    "retry": "ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ",
+    "hint": "ସୂଚନା ବ୍ୟବହାର କରନ୍ତୁ"
+  },
+  "video": {
+    "popupQuestion": "ଦ୍ରୁତ ପ୍ରଶ୍ନ!",
+    "download": "ଡାଉନଲୋଡ୍",
+    "quality": "ଗୁଣବତ୍ତା",
+    "downloaded": "ଡାଉନଲୋଡ୍ ହୋଇଗଲା ✓",
+    "offline": "ଅଫଲାଇନରେ ଉପಲବ୍ଧ",
+    "speed": "ବେଗ"
+  },
+  "course": {
+    "enroll": "ବର୍ତ୍ତମାନ ନାମଲେଖା କରନ୍ତୁ",
+    "enrolled": "ନାମଲେଖା ହୋଇଛି",
+    "continue": "ଶିଖିବା ଜାରି ରଖନ୍ତୁ",
+    "progress": "ଅଗ୍ରଗତି",
+    "modules": "ମଡ୍ୟୁଲ",
+    "lessons": "ପାଠ",
+    "students": "ଛାତ୍ର",
+    "rating": "ରେଟିଂ"
+  },
+  "leaderboard": {
+    "school": "ବିଦ୍ୟାଳୟ",
+    "city": "ସହର",
+    "state": "ରାଜ୍ୟ",
+    "national": "ଜାତୀୟ",
+    "rank": "ର୍ୟାଙ୍କ",
+    "myRank": "ମୋ ର୍ୟାଙ୍କ",
+    "xpToNext": "ପରବର୍ତ୍ତୀ ର୍ୟାଙ୍କ ପାଇଁ {{amount}} XP"
+  },
+  "settings": {
+    "language": "ଭାଷା",
+    "darkMode": "ଡାର୍କ ମୋଡ୍",
+    "notifications": "ବିଜ୍ଞପ୍ତି",
+    "sounds": "ଧ୍ୱନି ପ୍ରଭାବ",
+    "dataSaver": "ଡାଟା ସେଭର",
+    "autoSync": "ଅଟୋ ସିଙ୍କ",
+    "clearCache": "କ୍ୟାସ ସଫା କରନ୍ତୁ",
+    "downloadQuality": "ଡାଉନଲୋଡ୍ ଗୁଣବତ୍ତା",
+    "account": "ଆକାଉଣ୍ଟ",
+    "changePassword": "ପାସୱାର୍ଡ ବଦଳାନ୍ତୁ",
+    "devices": "ଡିଭାଇସ ପରିଚାଳନା କରନ୍ତୁ"
+  },
+  "offline": {
+    "youAreOffline": "ଆପଣ ଅଫଲାଇନରେ ଅଛନ୍ତି",
+    "changesWillSync": "ସଂଯୋଗ ହେଲେ ପରିବର୍ତ୍ତନ ସିଙ୍କ ହେବ",
+    "backOnline": "ପୁଣି ଅନଲାଇନରେ! ସିଙ୍କ ହେଉଛି...",
+    "allSynced": "ସବୁ ସିଙ୍କ ହୋଇଗଲା ✓",
+    "pendingItems": "{{count}} ଆଇଟମ ସିଙ୍କ ବାକି ଅଛି"
+  }
+}

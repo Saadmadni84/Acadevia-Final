@@ -1,0 +1,538 @@
+# ============================================================
+# Acadevia Platform — Production Overrides
+# ============================================================
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d
+# ============================================================
+
+services:
+
+  # ==============================
+  #  APPLICATION SERVICES (pre-built images, no build context)
+  # ==============================
+
+  api-gateway:
+    image: ${REGISTRY}/api-gateway:${IMAGE_TAG}
+    build: !reset null
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    mem_limit: 768m
+
+  auth-service:
+    image: ${REGISTRY}/auth-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${AUTH_DB_NAME}
+      DB_USER: ${AUTH_DB_USER}
+      DB_PASS: ${AUTH_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  user-service:
+    image: ${REGISTRY}/user-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${USER_DB_NAME}
+      DB_USER: ${USER_DB_USER}
+      DB_PASS: ${USER_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  course-service:
+    image: ${REGISTRY}/course-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${COURSE_DB_NAME}
+      DB_USER: ${COURSE_DB_USER}
+      DB_PASS: ${COURSE_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  content-service:
+    image: ${REGISTRY}/content-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${CONTENT_DB_NAME}
+      DB_USER: ${CONTENT_DB_USER}
+      DB_PASS: ${CONTENT_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_CONTENT: ${MINIO_BUCKET_CONTENT}
+      CDN_BASE_URL: ${CDN_BASE_URL}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 768M
+    mem_limit: 1g
+
+  quiz-service:
+    image: ${REGISTRY}/quiz-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${QUIZ_DB_NAME}
+      DB_USER: ${QUIZ_DB_USER}
+      DB_PASS: ${QUIZ_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  game-service:
+    image: ${REGISTRY}/game-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${GAME_DB_NAME}
+      DB_USER: ${GAME_DB_USER}
+      DB_PASS: ${GAME_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  sync-service:
+    image: ${REGISTRY}/sync-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${SYNC_DB_NAME}
+      DB_USER: ${SYNC_DB_USER}
+      DB_PASS: ${SYNC_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  gamification-service:
+    image: ${REGISTRY}/gamification-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${GAMIFICATION_DB_NAME}
+      DB_USER: ${GAMIFICATION_DB_USER}
+      DB_PASS: ${GAMIFICATION_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  leaderboard-service:
+    image: ${REGISTRY}/leaderboard-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${LEADERBOARD_DB_NAME}
+      DB_USER: ${LEADERBOARD_DB_USER}
+      DB_PASS: ${LEADERBOARD_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  notification-service:
+    image: ${REGISTRY}/notification-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${NOTIFICATION_DB_NAME}
+      DB_USER: ${NOTIFICATION_DB_USER}
+      DB_PASS: ${NOTIFICATION_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      SMS_PROVIDER: ${SMS_PROVIDER}
+      SMS_API_KEY: ${SMS_API_KEY}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID}
+      FCM_CREDENTIALS_PATH: ${FCM_CREDENTIALS_PATH}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  analytics-service:
+    image: ${REGISTRY}/analytics-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${ANALYTICS_DB_NAME}
+      DB_USER: ${ANALYTICS_DB_USER}
+      DB_PASS: ${ANALYTICS_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  admin-service:
+    image: ${REGISTRY}/admin-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${ADMIN_DB_NAME}
+      DB_USER: ${ADMIN_DB_USER}
+      DB_PASS: ${ADMIN_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 640M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    mem_limit: 640m
+
+  i18n-service:
+    image: ${REGISTRY}/i18n-service:${IMAGE_TAG}
+    build: !reset null
+    ports: !reset []
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: ${MYSQL_HOST}
+      DB_PORT: ${MYSQL_PORT}
+      DB_NAME: ${I18N_DB_NAME}
+      DB_USER: ${I18N_DB_USER}
+      DB_PASS: ${I18N_DB_PASS}
+      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    mem_limit: 512m
+
+  frontend:
+    image: ${REGISTRY}/frontend:${IMAGE_TAG}
+    build: !reset null
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+      VITE_SOCKET_URL: ${VITE_SOCKET_URL}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    mem_limit: 256m
+
+  # ==============================
+  #  Infrastructure overrides — use managed services in prod
+  #  Remove or comment out if using RDS, ElastiCache, MSK
+  # ==============================
+
+  mysql:
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "1.0"
+          memory: 2G
+    mem_limit: 4g
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    mem_limit: 1g
+
+  kafka:
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "1.0"
+          memory: 1G
+    mem_limit: 2g

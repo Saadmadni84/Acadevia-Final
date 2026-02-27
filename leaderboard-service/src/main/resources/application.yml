@@ -1,0 +1,124 @@
+server:
+  port: 8088
+  servlet:
+    context-path: /api/leaderboard
+
+spring:
+  application:
+    name: leaderboard-service
+  profiles:
+    active: dev
+  config:
+    import: optional:configserver:http://localhost:8888
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/acadevia_leaderboard?useSSL=false&serverTimezone=Asia/Kolkata&createDatabaseIfNotExist=true
+    username: root
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 600000
+      connection-timeout: 20000
+      pool-name: LeaderboardHikariPool
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 50
+          max-idle: 20
+          min-idle: 10
+          max-wait: 3000ms
+        shutdown-timeout: 200ms
+
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    consumer:
+      group-id: leaderboard-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.acadevia.*
+        max.poll.records: 500
+        fetch.min.bytes: 1048576
+        fetch.max.wait.ms: 500
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+
+# Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.uuid}
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  health:
+    redis:
+      enabled: true
+
+# Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Custom Properties
+acadevia:
+  leaderboard:
+    default-page-size: 20
+    max-page-size: 100
+    top-n-default: 10
+    nearby-range: 5
+    snapshot-enabled: true
+    websocket:
+      enabled: true
+      heartbeat-interval: 25000
+    reset:
+      daily-cron: "0 0 0 * * ?"           # Every day at 00:00 IST
+      weekly-cron: "0 0 0 ? * MON"         # Every Monday 00:00 IST
+      monthly-cron: "0 0 0 1 * ?"          # 1st of every month 00:00 IST
+      snapshot-before-reset: true
+    cache:
+      user-display-ttl: 1800               # 30 minutes
+      leaderboard-page-ttl: 60             # 1 minute
+    xp-to-coin-ratio: 10                   # 10 XP = 1 coin

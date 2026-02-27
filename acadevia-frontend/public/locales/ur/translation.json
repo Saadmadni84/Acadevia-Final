@@ -1,0 +1,125 @@
+{
+  "common": {
+    "loading": "لوڈ ہو رہا ہے...",
+    "error": "کچھ غلط ہو گیا",
+    "retry": "دوبارہ کوشش کریں",
+    "save": "محفوظ کریں",
+    "cancel": "منسوخ کریں",
+    "search": "تلاش کریں...",
+    "noResults": "کوئی نتائج نہیں ملے",
+    "viewAll": "سب دیکھیں",
+    "back": "واپس",
+    "next": "اگلا",
+    "submit": "جمع کرائیں",
+    "delete": "حذف کریں",
+    "edit": "ترمیم کریں",
+    "close": "بند کریں"
+  },
+  "nav": {
+    "home": "ہوم",
+    "courses": "کورسز",
+    "games": "گیمز",
+    "leaderboard": "لیڈر بورڈ",
+    "profile": "پروفائل",
+    "settings": "ترتیبات",
+    "downloads": "ڈاؤن لوڈز",
+    "notifications": "اطلاعات",
+    "logout": "لاگ آؤٹ"
+  },
+  "auth": {
+    "login": "لاگ ان",
+    "register": "اکاؤنٹ بنائیں",
+    "email": "ای میل ایڈریس",
+    "password": "پاس ورڈ",
+    "studentId": "طالب علم کی شناخت",
+    "selectState": "اپنی ریاست منتخب کریں",
+    "selectCity": "اپنا شہر منتخب کریں",
+    "selectSchool": "اپنا اسکول منتخب کریں",
+    "selectLanguage": "زبان منتخب کریں",
+    "forgotPassword": "پاس ورڈ بھول گئے؟",
+    "rememberMe": "مجھے یاد رکھیں",
+    "noAccount": "اکاؤنٹ نہیں ہے؟",
+    "hasAccount": "پہلے سے اکاؤنٹ ہے؟"
+  },
+  "dashboard": {
+    "welcome": "واپسی پر خوش آمدید، {{name}}!",
+    "streak": "{{count}} دن کا سلسلہ 🔥",
+    "todayGoal": "آج کا ہدف: {{completed}}/{{total}} سبق",
+    "continueLearning": "سیکھنا جاری رکھیں",
+    "xpEarned": "آج حاصل کردہ XP",
+    "lessonsCompleted": "مکمل شدہ اسباق",
+    "quizzesTaken": "دیے گئے کوئز",
+    "upcomingEvents": "آنے والے پروگرام",
+    "recommended": "آپ کے لیے تجویز کردہ"
+  },
+  "gamification": {
+    "xpGained": "+{{amount}} XP",
+    "levelUp": "لیول اپ! آپ اب لیول {{level}} پر ہیں",
+    "badgeUnlocked": "بیج کھل گیا: {{badge}}",
+    "streakBonus": "سلسلے کا بونس! +{{amount}} XP",
+    "keepStreak": "اپنا سلسلہ مت توڑیں!",
+    "dailyReward": "روزانہ انعام",
+    "level": "لیول {{level}}"
+  },
+  "quiz": {
+    "startQuiz": "کوئز شروع کریں",
+    "question": "سوال {{current}}/{{total}}",
+    "timeRemaining": "باقی وقت",
+    "submit": "جواب جمع کرائیں",
+    "results": "کوئز کے نتائج",
+    "score": "آپ کا اسکور: {{score}}%",
+    "correct": "درست",
+    "incorrect": "غلط",
+    "skipped": "چھوڑ دیا گیا",
+    "review": "جوابات کا جائزہ لیں",
+    "retry": "دوبارہ کوشش کریں",
+    "hint": "اشارہ استعمال کریں"
+  },
+  "video": {
+    "popupQuestion": "فوری سوال!",
+    "download": "ڈاؤن لوڈ",
+    "quality": "کوالٹی",
+    "downloaded": "ڈاؤن لوڈ ہو گیا ✓",
+    "offline": "آف لائن دستیاب",
+    "speed": "رفتار"
+  },
+  "course": {
+    "enroll": "ابھی داخلہ لیں",
+    "enrolled": "داخلہ ہو گیا",
+    "continue": "سیکھنا جاری رکھیں",
+    "progress": "پیشرفت",
+    "modules": "ماڈیولز",
+    "lessons": "اسباق",
+    "students": "طلباء",
+    "rating": "درجہ بندی"
+  },
+  "leaderboard": {
+    "school": "اسکول",
+    "city": "شہر",
+    "state": "ریاست",
+    "national": "قومی",
+    "rank": "درجہ",
+    "myRank": "میرا درجہ",
+    "xpToNext": "اگلے درجے کے لیے {{amount}} XP"
+  },
+  "settings": {
+    "language": "زبان",
+    "darkMode": "ڈارک موڈ",
+    "notifications": "اطلاعات",
+    "sounds": "آواز کے اثرات",
+    "dataSaver": "ڈیٹا سیور",
+    "autoSync": "آٹو سنک",
+    "clearCache": "کیشے صاف کریں",
+    "downloadQuality": "ڈاؤن لوڈ کوالٹی",
+    "account": "اکاؤنٹ",
+    "changePassword": "پاس ورڈ تبدیل کریں",
+    "devices": "آلات کا نظم کریں"
+  },
+  "offline": {
+    "youAreOffline": "آپ آف لائن ہیں",
+    "changesWillSync": "منسلک ہونے پر تبدیلیاں سنک ہوں گی",
+    "backOnline": "واپس آن لائن! سنک ہو رہا ہے...",
+    "allSynced": "سب سنک ہو گیا ✓",
+    "pendingItems": "{{count}} آئٹمز کی سنک باقی ہے"
+  }
+}

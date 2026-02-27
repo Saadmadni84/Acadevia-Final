@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: acadevia
+data:
+  NGINX_PORT: "80"
+  NGINX_WORKER_CONNECTIONS: "1024"
+  VITE_API_BASE_URL: "https://api.acadevia.in"
+  VITE_SOCKET_URL: "wss://api.acadevia.in"
+  VITE_CDN_URL: "https://cdn.acadevia.in"

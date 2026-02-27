@@ -1,0 +1,134 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-topic-scripts
+  namespace: acadevia
+  labels:
+    app: kafka-topic-creation
+data:
+  create-topics.sh: |
+    #!/bin/bash
+    set -e
+
+    KAFKA_BROKER="${KAFKA_BROKER:-kafka:9092}"
+    REPLICATION_FACTOR="${REPLICATION_FACTOR:-1}"
+    PARTITIONS="${PARTITIONS:-3}"
+
+    echo "=== Acadevia Kafka Topic Creation ==="
+    echo "Broker: $KAFKA_BROKER"
+    echo "Replication Factor: $REPLICATION_FACTOR"
+    echo "Default Partitions: $PARTITIONS"
+    echo ""
+
+    create_topic() {
+      local topic=$1
+      local partitions=${2:-$PARTITIONS}
+      local retention=${3:-604800000}  # 7 days default
+
+      echo "Creating topic: $topic (partitions=$partitions, retention=${retention}ms)"
+      kafka-topics --bootstrap-server "$KAFKA_BROKER" \
+        --create --if-not-exists \
+        --topic "$topic" \
+        --partitions "$partitions" \
+        --replication-factor "$REPLICATION_FACTOR" \
+        --config retention.ms="$retention" \
+        --config cleanup.policy=delete
+    }
+
+    # Auth events
+    create_topic "auth.user-registered" 3
+    create_topic "auth.user-logged-in" 3
+    create_topic "auth.password-reset" 1
+
+    # User events
+    create_topic "user.profile-updated" 3
+    create_topic "user.avatar-changed" 1
+    create_topic "user.preferences-updated" 1
+
+    # Course events
+    create_topic "course.created" 3
+    create_topic "course.updated" 3
+    create_topic "course.published" 3
+    create_topic "course.enrolled" 6
+    create_topic "course.lesson-completed" 6
+    create_topic "course.progress-updated" 6
+
+    # Content events
+    create_topic "content.uploaded" 3
+    create_topic "content.processed" 3
+    create_topic "content.deleted" 1
+
+    # Quiz events
+    create_topic "quiz.submitted" 6
+    create_topic "quiz.graded" 6
+    create_topic "quiz.result-published" 3
+
+    # Game / Gamification events
+    create_topic "game.xp-earned" 6
+    create_topic "game.badge-awarded" 3
+    create_topic "game.level-up" 3
+    create_topic "game.achievement-unlocked" 3
+    create_topic "game.leaderboard-updated" 3
+
+    # Notification events
+    create_topic "notification.send" 6
+    create_topic "notification.email" 3
+    create_topic "notification.push" 3
+    create_topic "notification.in-app" 3
+
+    # Admin events
+    create_topic "admin.audit-log" 3 2592000000  # 30 days retention
+
+    # Sync events
+    create_topic "sync.data-changed" 6
+    create_topic "sync.conflict-resolved" 3
+
+    echo ""
+    echo "=== All topics created successfully ==="
+    kafka-topics --bootstrap-server "$KAFKA_BROKER" --list
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-topic-creation
+  namespace: acadevia
+  labels:
+    app: kafka-topic-creation
+    type: job
+spec:
+  template:
+    metadata:
+      labels:
+        app: kafka-topic-creation
+    spec:
+      containers:
+        - name: kafka-topic-creator
+          image: confluentinc/cp-kafka:7.5.0
+          command: ["/bin/bash", "/scripts/create-topics.sh"]
+          env:
+            - name: KAFKA_BROKER
+              value: "kafka:9092"
+            - name: REPLICATION_FACTOR
+              value: "1"
+            - name: PARTITIONS
+              value: "3"
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 300m
+              memory: 512Mi
+      volumes:
+        - name: scripts
+          configMap:
+            name: kafka-topic-scripts
+            defaultMode: 0755
+      restartPolicy: Never
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600

@@ -1,0 +1,35 @@
+# ============================================================
+# Acadevia Jaeger All-in-One Configuration
+# ============================================================
+# Environment variables for Jaeger container
+# Usage in docker-compose:
+#   env_file:
+#     - ./monitoring/jaeger/jaeger-config.yml
+# Or pass as environment variables directly.
+# ============================================================
+
+# Enable OTLP receiver for OpenTelemetry traces
+COLLECTOR_OTLP_ENABLED: "true"
+
+# Storage backend — use memory for dev, badger for persistence
+SPAN_STORAGE_TYPE: "badger"
+
+# Badger storage settings (persistent local storage)
+BADGER_EPHEMERAL: "false"
+BADGER_DIRECTORY_VALUE: "/badger/data"
+BADGER_DIRECTORY_KEY: "/badger/key"
+BADGER_SPAN_STORE_TTL: "168h"
+
+# Query service base path
+QUERY_BASE_PATH: "/jaeger"
+
+# Sampling strategy — probabilistic at 10%
+SAMPLING_STRATEGIES_FILE: ""
+COLLECTOR_ZIPKIN_HOST_PORT: ":9411"
+
+# Resource limits
+COLLECTOR_QUEUE_SIZE: "2000"
+COLLECTOR_NUM_WORKERS: "50"
+
+# Logging
+LOG_LEVEL: "info"

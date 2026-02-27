@@ -1,0 +1,51 @@
+spring:
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+  main:
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  flyway:
+    enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+acadevia:
+  content:
+    max-video-size-mb: 500
+    max-downloads-per-user: 50
+    max-downloads-per-device: 10
+    download-token-expiry-hours: 24
+    download-expiry-days: 30
+    supported-formats:
+      - mp4
+      - webm
+    supported-qualities:
+      - 360p
+      - 480p
+      - 720p
+      - 1080p
+    cache:
+      video-ttl-minutes: 30
+      lesson-content-ttl-minutes: 60

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-service-config
+  namespace: acadevia
+data:
+  SERVER_PORT: "8092"
+  DB_NAME: "acadevia_admin"
+  DB_USER: "acadevia_admin_user"
+  ADMIN_AUDIT_LOG_ENABLED: "true"
+  ADMIN_SUPER_ADMIN_ROLE: "ROLE_SUPER_ADMIN"

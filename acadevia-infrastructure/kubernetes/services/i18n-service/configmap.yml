@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: i18n-service-config
+  namespace: acadevia
+data:
+  SERVER_PORT: "8093"
+  DB_NAME: "acadevia_i18n"
+  DB_USER: "acadevia_i18n_user"
+  I18N_DEFAULT_LOCALE: "en"
+  I18N_SUPPORTED_LOCALES: "en,hi,ta,te,kn,ml,mr,bn,gu,pa,ur"
+  I18N_CACHE_TTL_SECONDS: "3600"
+  I18N_FALLBACK_LOCALE: "en"

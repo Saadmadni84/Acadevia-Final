@@ -1,0 +1,17 @@
+package com.acadevia.sync.enums;
+
+public enum SyncEntityType {
+    QUIZ_ATTEMPT,
+    XP_TRANSACTION,
+    STREAK_UPDATE,
+    GAME_PROGRESS,
+    LESSON_PROGRESS,
+    COURSE_PROGRESS,
+    VIDEO_WATCH_EVENT,
+    POPUP_QUESTION_ANSWER,
+    BADGE_EARNED,
+    WALLET_TRANSACTION,
+    USER_PREFERENCE,
+    NOTE,
+    BOOKMARK
+}
