@@ -7,6 +7,6 @@ public class ValidationConstants {
     public static final int MAX_PASSWORD_LENGTH = 50;
     public static final int MIN_NAME_LENGTH = 2;
     public static final int MAX_NAME_LENGTH = 100;
-    public static final int MIN_CLASS_GRADE = 6;
+    public static final int MIN_CLASS_GRADE = 1;
     public static final int MAX_CLASS_GRADE = 12;
 }

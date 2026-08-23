@@ -33,7 +33,7 @@ export const authService = {
 
     return apiClient.post<ApiResponse<AuthResponse>>('/api/v1/auth/register/student', {
       ...base,
-      classGrade: parseInt(data.grade) || 6,
+      classGrade: parseInt(data.grade) || 1,
       studentSchoolId: data.studentSchoolId || `STU-${Date.now()}`,
       board: data.board || '',
       medium: data.medium || '',
