@@ -9,12 +9,15 @@ i18n
   .use(initReactI18next)
   .init({
     fallbackLng: 'en',
-    debug: import.meta.env.DEV,
+    debug: false,
     interpolation: { escapeValue: false },
     backend: { loadPath: '/locales/{{lng}}/translation.json' },
     detection: {
       order: ['querystring', 'localStorage', 'navigator'],
       caches: ['localStorage'],
+    },
+    react: {
+      useSuspense: false,
     },
   });
 

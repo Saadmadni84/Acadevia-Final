@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
-import { Howl } from 'howler';
+import { Howl, Howler } from 'howler';
 import { useSoundStore } from '@/stores/useSoundStore';
 
 type SoundName =
