@@ -21,11 +21,11 @@ COPY content-service/src ./content-service/src
 RUN mvn package -pl content-service -am -DskipTests -B -q
 
 # Stage 2: Runtime
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 
 # Security: create non-root user
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -s /bin/sh appuser
 
 WORKDIR /app
 

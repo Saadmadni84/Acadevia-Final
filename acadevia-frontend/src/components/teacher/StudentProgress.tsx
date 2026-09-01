@@ -322,4 +322,5 @@ const StudentProgress: React.FC = () => {
   );
 };
 
+export { StudentProgress };
 export default StudentProgress;

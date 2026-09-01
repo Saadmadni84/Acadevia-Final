@@ -116,6 +116,7 @@ services:
       - JWT_SECRET=acadevia-prod-secret-key-256-bits-minimum
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_DATA_REDIS_HOST=redis
 
   auth-service:
     build: 

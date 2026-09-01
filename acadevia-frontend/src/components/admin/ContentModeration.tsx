@@ -409,4 +409,5 @@ const ContentModeration: React.FC = () => {
   );
 };
 
+export { ContentModeration };
 export default ContentModeration;
