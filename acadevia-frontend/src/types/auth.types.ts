@@ -32,7 +32,22 @@ export interface TeacherRegistrationRequest {
 
 export type RegisterRequest = StudentRegistrationRequest | TeacherRegistrationRequest;
 export interface AuthResponse { accessToken: string; refreshToken: string; user: AuthUser; }
-export interface AuthUser { id: string; email: string; fullName: string; role: string; avatarUrl?: string; schoolName?: string; className?: string; languagePreference: string; }
+export interface AuthUser {
+  id: string;
+  email: string;
+  fullName: string;
+  role: string;
+  avatarUrl?: string;
+  schoolName?: string;
+  className?: string;
+  section?: string;
+  cityName?: string;
+  stateName?: string;
+  phone?: string;
+  board?: string;
+  joinedAt?: string;
+  languagePreference: string;
+}
 export interface ForgotPasswordRequest { email: string; }
 export interface OTPVerifyRequest { email: string; otp: string; }
 export interface ResetPasswordRequest { email: string; otp: string; newPassword: string; }

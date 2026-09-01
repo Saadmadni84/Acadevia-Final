@@ -391,3 +391,4 @@ const QuizCreator: React.FC = () => {
 
 export { QuizCreator };
 export default QuizCreator;
+export { QuizCreator };

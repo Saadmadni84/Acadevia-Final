@@ -8,12 +8,17 @@ import AvatarSelector from './AvatarSelector';
 
 const editProfileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
-  bio: z.string().max(250, 'Bio must be under 250 characters').optional().default(''),
+  bio: z.string().max(250, 'Bio must be under 250 characters').optional(),
   language: z.string().min(1, 'Please select a language'),
-  avatarUrl: z.string().optional().default(''),
+  avatarUrl: z.string().optional(),
 });
 
-type EditProfileFormData = z.infer<typeof editProfileSchema>;
+type EditProfileFormData = {
+  name: string;
+  bio?: string;
+  language: string;
+  avatarUrl?: string;
+};
 
 interface EditProfileProps {
   initialData: {

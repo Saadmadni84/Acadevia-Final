@@ -5,13 +5,19 @@ import { getInitials } from '@/lib/utils';
 interface AvatarProps {
   src?: string;
   name: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   online?: boolean;
   levelRing?: boolean;
   className?: string;
 }
 
-const sizeMap = { sm: 'h-8 w-8 text-xs', md: 'h-10 w-10 text-sm', lg: 'h-14 w-14 text-base', xl: 'h-20 w-20 text-lg' };
+const sizeMap = {
+  sm: 'h-8 w-8 text-xs',
+  md: 'h-10 w-10 text-sm',
+  lg: 'h-14 w-14 text-base',
+  xl: 'h-20 w-20 text-lg',
+  '2xl': 'h-24 w-24 sm:h-28 sm:w-28 text-2xl font-bold',
+};
 
 const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', online, levelRing, className }) => (
   <div className={cn('relative inline-flex', className)}>
