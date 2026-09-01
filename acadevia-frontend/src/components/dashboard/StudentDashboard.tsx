@@ -1,4 +1,5 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { WelcomeCard } from './WelcomeCard';
 import { ContinueLearningCard } from './ContinueLearningCard';
 import { DailyGoalProgress } from './DailyGoalProgress';
@@ -10,6 +11,8 @@ import { RecommendedCoursesCarousel } from './RecommendedCoursesCarousel';
 import { EnrolledCoursesOverview } from './EnrolledCoursesOverview';
 import { StreakDisplay } from '@/components/gamification/StreakDisplay';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useGamificationProfile } from '@/hooks/useGamification';
+import { userService } from '@/services/user.service';
 
 const mockContinue = [
   { id: '1', courseTitle: 'Mathematics Class 10', lessonTitle: 'Chapter 5: Quadratic Equations', progress: 65, timeLeft: '12 min', courseId: 'c1', lessonId: 'l1', thumbnail: '', category: 'Mathematics', color: 'from-[#5B2C6F] to-[#3A1B47]' },
@@ -52,12 +55,38 @@ const mockActivities = [
 ];
 
 const StudentDashboard: React.FC = () => {
-  const user = useAuthStore(s => s.user);
+  const authUser = useAuthStore(s => s.user);
+
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: async () => (await userService.getProfile()).data.data,
+    enabled: Boolean(authUser),
+  });
+
+  const { data: gamification } = useGamificationProfile();
+
+  const user = userProfile ?? authUser;
+  const level = gamification?.level ?? user?.level ?? 1;
+  const xp = gamification?.xp ?? user?.xp ?? 0;
+  const requiredXP = Math.max(100, Math.ceil((xp + 1) / 100) * 100);
+  const streak = gamification?.streak ?? user?.streak ?? 0;
+  const longestStreak = gamification?.longestStreak ?? streak;
+  const goalProgress = gamification?.dailyGoal
+    ? Math.min(100, Math.round((gamification.dailyProgress / gamification.dailyGoal) * 100))
+    : 0;
 
   return (
-    <div className="space-y-6 pb-4">
+    <div className="space-y-6 pb-4 max-w-7xl mx-auto">
       {/* Hero Banner */}
-      <WelcomeCard name={user?.fullName?.split(' ')[0] || 'Student'} level={5} levelName="Rising Scholar" currentXP={720} requiredXP={1000} streak={12} todayGoalProgress={50} />
+      <WelcomeCard
+        name={user?.fullName?.split(' ')[0] || 'Student'}
+        level={level}
+        levelName={`Level ${level}`}
+        currentXP={xp}
+        requiredXP={requiredXP}
+        streak={streak}
+        todayGoalProgress={goalProgress}
+      />
 
       {/* Enrolled Courses Overview */}
       <EnrolledCoursesOverview courses={mockEnrolled} />
@@ -77,11 +106,15 @@ const StudentDashboard: React.FC = () => {
             name={user?.fullName || 'Student'}
             email={user?.email || ''}
             avatarUrl={user?.avatarUrl}
-            level={5}
-            xp={720}
-            streak={12}
+            level={level}
+            xp={xp}
+            streak={streak}
           />
-          <StreakDisplay currentStreak={12} longestStreak={30} todayCompleted={false} />
+          <StreakDisplay
+            currentStreak={streak}
+            longestStreak={longestStreak}
+            todayCompleted={goalProgress >= 100}
+          />
           <DailyGoalProgress goals={mockGoals} />
           <WeeklyHeatmap data={mockWeek} />
           <QuickActions />

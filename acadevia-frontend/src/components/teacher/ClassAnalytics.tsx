@@ -298,3 +298,4 @@ const ClassAnalytics: React.FC = () => {
 };
 
 export default ClassAnalytics;
+export { ClassAnalytics };

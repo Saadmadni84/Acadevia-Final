@@ -294,3 +294,4 @@ const PlatformAnalytics: React.FC = () => {
 };
 
 export default PlatformAnalytics;
+export { PlatformAnalytics };

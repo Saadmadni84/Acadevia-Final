@@ -410,3 +410,4 @@ const ContentModeration: React.FC = () => {
 };
 
 export default ContentModeration;
+export { ContentModeration };

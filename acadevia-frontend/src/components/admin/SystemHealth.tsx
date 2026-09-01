@@ -308,3 +308,4 @@ const SystemHealth: React.FC = () => {
 };
 
 export default SystemHealth;
+export { SystemHealth };
