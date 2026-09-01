@@ -17,7 +17,8 @@ export const FooterTrustSection: React.FC = () => {
             </h5>
             <a
               href={`mailto:${COMPANY_CONTACT.supportEmail}`}
-              className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:text-primary dark:hover:text-primary-300 transition-colors"
+              aria-label={`Send email to ${COMPANY_CONTACT.supportEmail}`}
+              className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:text-primary dark:hover:text-primary-300 transition-colors block break-all"
             >
               {COMPANY_CONTACT.supportEmail}
             </a>
@@ -34,8 +35,19 @@ export const FooterTrustSection: React.FC = () => {
             <h5 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Student Helpline
             </h5>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{COMPANY_CONTACT.phone}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Toll-free student counseling</p>
+            <div className="flex flex-col gap-0.5 mt-0.5">
+              {COMPANY_CONTACT.phones.map((p) => (
+                <a
+                  key={p.tel}
+                  href={p.tel}
+                  aria-label={`Call helpline at ${p.display}`}
+                  className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:text-primary dark:hover:text-primary-300 transition-colors w-fit"
+                >
+                  {p.display}
+                </a>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Toll-free student counseling</p>
           </div>
         </div>
 
@@ -48,10 +60,20 @@ export const FooterTrustSection: React.FC = () => {
             <h5 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Headquarters
             </h5>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {COMPANY_CONTACT.addressLine1}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{COMPANY_CONTACT.addressLine2}</p>
+            <a
+              href={COMPANY_CONTACT.mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View Acadevia headquarters location on Google Maps"
+              className="group block"
+            >
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary dark:group-hover:text-primary-300 transition-colors">
+                {COMPANY_CONTACT.addressLine1}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-primary dark:group-hover:text-primary-300 transition-colors mt-0.5">
+                {COMPANY_CONTACT.addressLine2}, {COMPANY_CONTACT.addressPostal}
+              </p>
+            </a>
           </div>
         </div>
 
