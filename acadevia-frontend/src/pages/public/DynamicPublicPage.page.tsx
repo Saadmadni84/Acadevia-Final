@@ -9,8 +9,6 @@ import {
   ArrowRight,
   Compass,
   CheckCircle2,
-  BookOpen,
-  Trophy,
   Brain,
 } from 'lucide-react';
 

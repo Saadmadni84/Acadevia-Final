@@ -11,7 +11,6 @@ import {
   CheckCircle,
   Globe2,
   WifiOff,
-  Sparkles,
   ArrowRight,
   GraduationCap,
   Users,
@@ -180,7 +179,7 @@ const AboutPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {philosophyPoints.map((item, idx) => (
+          {philosophyPoints.map((item) => (
             <div
               key={item.title}
               className="p-6 rounded-2xl bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-800 shadow-sm"
