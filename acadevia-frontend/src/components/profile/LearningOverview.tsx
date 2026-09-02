@@ -22,10 +22,11 @@ export interface DayStudyActivity {
 }
 
 interface LearningOverviewProps {
-  enrolledCourses?: Course[];
+  enrolledCourses?: (Course | { id: string; title: string; subject: string; progress: number; lessonsCount: number; icon?: string })[];
   coursesCompletedCount?: number;
   quizzesTakenCount?: number;
   hoursLearnedCount?: number;
+  studyMinutesCount?: number;
   averageQuizScore?: number;
   weeklyActivity?: { date?: string; day?: string; minutes?: number; minutesSpent?: number }[];
   recentActivities?: {
@@ -39,44 +40,31 @@ interface LearningOverviewProps {
   className?: string;
 }
 
-const defaultEnrolledFallback = [
-  { id: 'c1', title: 'Mathematics Class 10', subject: 'Mathematics', progress: 65, lessonsCount: 12, icon: '📐' },
-  { id: 'c2', title: 'Science Class 10', subject: 'Science', progress: 30, lessonsCount: 10, icon: '🔬' },
-  { id: 'c3', title: 'English Literature', subject: 'English', progress: 45, lessonsCount: 8, icon: '📖' },
-  { id: 'c4', title: 'Hindi Vyakaran', subject: 'Hindi', progress: 80, lessonsCount: 6, icon: '🏛️' },
-];
-
-const defaultActivities = [
-  { id: '1', type: 'lesson' as const, title: 'Completed Lesson', description: 'Quadratic Equations - Part 1', xpEarned: 50, timestamp: '2h ago' },
-  { id: '2', type: 'quiz' as const, title: 'Quiz Passed', description: 'Light & Reflection - 92%', xpEarned: 80, timestamp: '3h ago' },
-  { id: '3', type: 'badge' as const, title: 'Badge Earned', description: 'Quiz Master - 10 quizzes passed', xpEarned: 200, timestamp: '1d ago' },
-  { id: '4', type: 'game' as const, title: 'Game Completed', description: 'Math Blaster - High Score!', xpEarned: 30, timestamp: '2d ago' },
-];
-
-const fallbackWeekly: DayStudyActivity[] = [
-  { day: 'Mon', minutes: 45 },
-  { day: 'Tue', minutes: 30 },
-  { day: 'Wed', minutes: 60 },
-  { day: 'Thu', minutes: 15 },
-  { day: 'Fri', minutes: 40 },
-  { day: 'Sat', minutes: 90 },
-  { day: 'Sun', minutes: 20 },
+const defaultEmptyWeek: DayStudyActivity[] = [
+  { day: 'Mon', minutes: 0 },
+  { day: 'Tue', minutes: 0 },
+  { day: 'Wed', minutes: 0 },
+  { day: 'Thu', minutes: 0 },
+  { day: 'Fri', minutes: 0 },
+  { day: 'Sat', minutes: 0 },
+  { day: 'Sun', minutes: 0 },
 ];
 
 export const LearningOverview: React.FC<LearningOverviewProps> = ({
-  enrolledCourses,
+  enrolledCourses = [],
   coursesCompletedCount = 0,
   quizzesTakenCount = 0,
   hoursLearnedCount = 0,
-  averageQuizScore = 85,
+  studyMinutesCount,
+  averageQuizScore = 0,
   weeklyActivity,
-  recentActivities = defaultActivities,
+  recentActivities = [],
   className,
 }) => {
-  // Normalize weekly study data safely (handles date strings, minutes vs minutesSpent, or empty arrays)
+  // Normalize weekly study data safely (handles real activity records or clean zero state)
   const normalizedWeekly: DayStudyActivity[] = React.useMemo(() => {
     if (!weeklyActivity || weeklyActivity.length === 0) {
-      return fallbackWeekly;
+      return defaultEmptyWeek;
     }
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -93,7 +81,7 @@ export const LearningOverview: React.FC<LearningOverviewProps> = ({
         }
       }
       if (!dayName) {
-        dayName = fallbackWeekly[idx % 7]?.day || `D${idx + 1}`;
+        dayName = defaultEmptyWeek[idx % 7]?.day || `D${idx + 1}`;
       }
 
       const mins = Number(item.minutesSpent ?? item.minutes ?? 0);
@@ -103,24 +91,36 @@ export const LearningOverview: React.FC<LearningOverviewProps> = ({
       };
     });
 
-    return mapped.length > 0 ? mapped.slice(0, 7) : fallbackWeekly;
+    return mapped.length > 0 ? mapped.slice(0, 7) : defaultEmptyWeek;
   }, [weeklyActivity]);
 
   const totalStudyMinutes = normalizedWeekly.reduce((acc, curr) => acc + curr.minutes, 0);
   const maxMinutes = Math.max(...normalizedWeekly.map((d) => d.minutes), 60);
 
-  // Use real enrolled courses if available, otherwise use fallback
-  const displayCourses =
-    enrolledCourses && enrolledCourses.length > 0
-      ? enrolledCourses.map((c, i) => ({
-          id: c.id,
-          title: c.title,
-          subject: c.subject || 'Academic',
-          progress: c.progress ?? 0,
-          lessonsCount: c.lessonsCount || 10,
-          icon: i % 4 === 0 ? '📐' : i % 4 === 1 ? '🔬' : i % 4 === 2 ? '📖' : '🏛️',
-        }))
-      : defaultEnrolledFallback;
+  // Formatted learning time display
+  const learningTimeDisplay = React.useMemo(() => {
+    const totalMins = studyMinutesCount !== undefined
+      ? studyMinutesCount
+      : hoursLearnedCount > 0
+      ? Math.round(hoursLearnedCount * 60)
+      : totalStudyMinutes;
+
+    if (totalMins <= 0) return '0m';
+    if (totalMins < 60) return `${totalMins}m`;
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }, [studyMinutesCount, hoursLearnedCount, totalStudyMinutes]);
+
+  // Use real enrolled subjects/courses with their real progress
+  const displayCourses = enrolledCourses.map((c, i) => ({
+    id: c.id,
+    title: c.title,
+    subject: (c as any).subject || 'Academic',
+    progress: c.progress ?? 0,
+    lessonsCount: (c as any).lessonsCount || 1,
+    icon: (c as any).icon || (i % 4 === 0 ? '📐' : i % 4 === 1 ? '🔬' : i % 4 === 2 ? '📖' : '🏛️'),
+  }));
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -146,7 +146,7 @@ export const LearningOverview: React.FC<LearningOverviewProps> = ({
           </div>
           <div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              {quizzesTakenCount > 0 ? quizzesTakenCount : 12}
+              {quizzesTakenCount}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Quizzes Taken</p>
           </div>
@@ -159,7 +159,7 @@ export const LearningOverview: React.FC<LearningOverviewProps> = ({
           </div>
           <div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              {hoursLearnedCount > 0 ? `${hoursLearnedCount}h` : '18h 30m'}
+              {learningTimeDisplay}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Learning Time</p>
           </div>
@@ -172,7 +172,7 @@ export const LearningOverview: React.FC<LearningOverviewProps> = ({
           </div>
           <div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              {averageQuizScore}%
+              {quizzesTakenCount > 0 ? `${averageQuizScore}%` : '0%'}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Average Quiz Score</p>
           </div>
@@ -196,40 +196,55 @@ export const LearningOverview: React.FC<LearningOverviewProps> = ({
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {displayCourses.map((course, idx) => (
-            <motion.div
-              key={course.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              className="p-4 rounded-2xl bg-gray-50/70 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 flex flex-col justify-between hover:shadow-sm transition-all"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-2xl">{course.icon}</span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light">
-                    {course.progress}%
-                  </span>
-                </div>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1 mb-1">
-                  {course.title}
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {Math.round((course.progress / 100) * course.lessonsCount)} of {course.lessonsCount} lessons completed
-                </p>
-              </div>
+        {displayCourses.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {displayCourses.map((course, idx) => {
+              const completedCount = (course as any).completedLessons !== undefined
+                ? (course as any).completedLessons
+                : Math.round((course.progress / 100) * course.lessonsCount);
 
-              {/* Clean solid progress bar */}
-              <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden mt-3">
-                <div
-                  className="bg-primary h-full rounded-full transition-all duration-500"
-                  style={{ width: `${course.progress}%` }}
-                />
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              return (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="p-4 rounded-2xl bg-gray-50/70 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 flex flex-col justify-between hover:shadow-sm transition-all"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-2xl">{course.icon}</span>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light">
+                        {course.progress}%
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1 mb-1">
+                      {course.title}
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {completedCount} of {course.lessonsCount} assessments completed
+                    </p>
+                  </div>
+
+                  {/* Clean solid progress bar */}
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden mt-3">
+                    <div
+                      className="bg-primary h-full rounded-full transition-all duration-500"
+                      style={{ width: `${course.progress}%` }}
+                    />
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8 px-4 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+            <BookOpen className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              No subjects enrolled yet
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 3. Two-column layout: Weekly Study Activity & Recent Milestones */}
@@ -312,40 +327,52 @@ export const LearningOverview: React.FC<LearningOverviewProps> = ({
             </p>
           </div>
 
-          <div className="space-y-3">
-            {recentActivities.slice(0, 4).map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/70 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800/80 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/60"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light flex-shrink-0">
-                    {activity.type === 'lesson' && <BookOpen className="h-4 w-4" />}
-                    {activity.type === 'quiz' && <Brain className="h-4 w-4" />}
-                    {activity.type === 'badge' && <Award className="h-4 w-4 text-secondary" />}
-                    {activity.type === 'game' && <Sparkles className="h-4 w-4 text-orange-500" />}
+          {recentActivities.length > 0 ? (
+            <div className="space-y-3">
+              {recentActivities.slice(0, 4).map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/70 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800/80 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light flex-shrink-0">
+                      {activity.type === 'lesson' && <BookOpen className="h-4 w-4" />}
+                      {activity.type === 'quiz' && <Brain className="h-4 w-4" />}
+                      {activity.type === 'badge' && <Award className="h-4 w-4 text-secondary" />}
+                      {activity.type === 'game' && <Sparkles className="h-4 w-4 text-orange-500" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate">
+                        {activity.title}
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                        {activity.description}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate">
-                      {activity.title}
-                    </p>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                      {activity.description}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="text-right flex-shrink-0 pl-2">
-                  {activity.xpEarned && (
-                    <span className="inline-block text-xs font-bold text-primary dark:text-primary-light bg-primary/10 px-2 py-0.5 rounded-full mb-0.5">
-                      +{activity.xpEarned} XP
-                    </span>
-                  )}
-                  <p className="text-[10px] text-gray-400">{activity.timestamp}</p>
+                  <div className="text-right flex-shrink-0 pl-2">
+                    {activity.xpEarned && (
+                      <span className="inline-block text-xs font-bold text-primary dark:text-primary-light bg-primary/10 px-2 py-0.5 rounded-full mb-0.5">
+                        +{activity.xpEarned} XP
+                      </span>
+                    )}
+                    <p className="text-[10px] text-gray-400">{activity.timestamp}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 px-4 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+              <Clock className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                No recent activity yet
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                Complete a quiz or lesson to see your milestones here!
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

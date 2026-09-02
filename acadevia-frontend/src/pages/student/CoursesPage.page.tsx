@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap,
@@ -10,318 +11,90 @@ import {
   School,
   ChevronRight,
   FileVideo,
+  FileText,
+  Image as ImageIcon,
   Download,
   ChevronDown,
+  Brain,
+  ExternalLink,
+  Eye,
+  CheckCircle,
+  Film,
 } from 'lucide-react';
-import { uploadedContentStore, type UploadedVideo } from '@/stores/uploadedContentStore';
-import { CLOUD_NAME } from '@/services/cloudinary.service';
+import { uploadedContentStore, type UploadedContentItem } from '@/stores/uploadedContentStore';
+import { dataService } from '@/services/data.service';
+import { contentService, type AcademicSubject, type AcademicChapter } from '@/services/content.service';
+import { useAuthStore } from '@/stores/useAuthStore';
 
-/* ------------------------------------------------------------------ */
-/*  Science chapters per class (Class 1 to Class 12)                  */
-/* ------------------------------------------------------------------ */
+type View = 'school' | 'class' | 'subject' | 'chapters' | 'content';
 
 const CLASSES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
-const SCIENCE_CHAPTERS: Record<number, string[]> = {
-  1: [
-    'Living and Non-Living Things',
-    'Plants Around Us',
-    'Animals Around Us',
-    'Our Body and Senses',
-    'Food We Eat',
-    'Water for Life',
-    'Air Around Us',
-    'Weather and Seasons',
-    'Safety and Good Habits',
-  ],
-  2: [
-    'Types of Plants',
-    'Useful Animals',
-    'Human Body and Health',
-    'Food and Nutrition',
-    'Housing and Clothing',
-    'Air, Water and Weather',
-    'Rocks and Soil',
-    'Sun, Moon and Stars',
-    'Safety and First Aid',
-  ],
-  3: [
-    'Living and Non-Living Things',
-    'Parts of a Plant',
-    'Birds: Feathers and Beaks',
-    'Insects and Creepy Crawlies',
-    'Our Food and Digestive System',
-    'Water: States and Cycle',
-    'Houses and Cleanliness',
-    'Soil: Types and Layers',
-    'Light, Sound and Force',
-    'The Solar System',
-  ],
-  4: [
-    'Plant Adaptations and Photosynthesis',
-    'Animal Habitats and Adaptations',
-    'Human Body: Organ Systems',
-    'Food and Digestion',
-    'Teeth and Microbes',
-    'Safety, Health and Hygiene',
-    'Matter: Solids, Liquids, Gases',
-    'Force, Work and Energy',
-    'Air, Water and Weather',
-    'Our Earth and the Solar System',
-  ],
-  5: [
-    'Plant Reproduction and Seed Dispersal',
-    'Animal Life: Breathing and Migration',
-    'Skeletal and Nervous System',
-    'Food, Health and Diseases',
-    'Safety and First Aid',
-    'Rocks, Minerals and Soil',
-    'Air and Water: Purification and Atmosphere',
-    'Simple Machines, Force and Energy',
-    'Sun, Earth, Moon and Eclipses',
-    'Natural Disasters and Environment',
-  ],
-  6: [
-    'Food: Where Does it Come From?',
-    'Components of Food',
-    'Fibre to Fabric',
-    'Sorting Materials into Groups',
-    'Separation of Substances',
-    'Changes Around Us',
-    'Getting to Know Plants',
-    'Body Movements',
-    'The Living Organisms and Their Surroundings',
-    'Motion and Measurement of Distances',
-    'Light, Shadows and Reflections',
-    'Electricity and Circuits',
-    'Fun with Magnets',
-    'Water',
-    'Air Around Us',
-    'Garbage In, Garbage Out',
-  ],
-  7: [
-    'Nutrition in Plants',
-    'Nutrition in Animals',
-    'Fibre to Fabric',
-    'Heat',
-    'Acids, Bases and Salts',
-    'Physical and Chemical Changes',
-    'Weather, Climate and Adaptations',
-    'Winds, Storms and Cyclones',
-    'Soil',
-    'Respiration in Organisms',
-    'Transportation in Animals and Plants',
-    'Reproduction in Plants',
-    'Motion and Time',
-    'Electric Current and its Effects',
-    'Light',
-    'Water: A Precious Resource',
-    'Forests: Our Lifeline',
-    'Wastewater Story',
-  ],
-  8: [
-    'Crop Production and Management',
-    'Microorganisms: Friend and Foe',
-    'Synthetic Fibres and Plastics',
-    'Materials: Metals and Non-Metals',
-    'Coal and Petroleum',
-    'Combustion and Flame',
-    'Conservation of Plants and Animals',
-    'Cell — Structure and Functions',
-    'Reproduction in Animals',
-    'Reaching the Age of Adolescence',
-    'Force and Pressure',
-    'Friction',
-    'Sound',
-    'Chemical Effects of Electric Current',
-    'Some Natural Phenomena',
-    'Light',
-    'Stars and the Solar System',
-    'Pollution of Air and Water',
-  ],
-  9: [
-    'Matter in Our Surroundings',
-    'Is Matter Around Us Pure?',
-    'Atoms and Molecules',
-    'Structure of the Atom',
-    'The Fundamental Unit of Life',
-    'Tissues',
-    'Diversity in Living Organisms',
-    'Motion',
-    'Force and Laws of Motion',
-    'Gravitation',
-    'Work and Energy',
-    'Sound',
-    'Why Do We Fall Ill?',
-    'Natural Resources',
-    'Improvement in Food Resources',
-  ],
-  10: [
-    'Chemical Reactions and Equations',
-    'Acids, Bases and Salts',
-    'Metals and Non-metals',
-    'Carbon and its Compounds',
-    'Periodic Classification of Elements',
-    'Life Processes',
-    'Control and Coordination',
-    'How Do Organisms Reproduce?',
-    'Heredity and Evolution',
-    'Light – Reflection and Refraction',
-    'The Human Eye and the Colourful World',
-    'Electricity',
-    'Magnetic Effects of Electric Current',
-    'Sources of Energy',
-    'Our Environment',
-    'Management of Natural Resources',
-  ],
-  11: [
-    'Physical World',
-    'Units and Measurements',
-    'Motion in a Straight Line',
-    'Motion in a Plane',
-    'Laws of Motion',
-    'Work, Energy and Power',
-    'System of Particles and Rotational Motion',
-    'Gravitation',
-    'Mechanical Properties of Solids',
-    'Mechanical Properties of Fluids',
-    'Thermal Properties of Matter',
-    'Thermodynamics',
-    'Kinetic Theory',
-    'Oscillations',
-    'Waves',
-  ],
-  12: [
-    'Electric Charges and Fields',
-    'Electrostatic Potential and Capacitance',
-    'Current Electricity',
-    'Moving Charges and Magnetism',
-    'Magnetism and Matter',
-    'Electromagnetic Induction',
-    'Alternating Current',
-    'Electromagnetic Waves',
-    'Ray Optics and Optical Instruments',
-    'Wave Optics',
-    'Dual Nature of Radiation and Matter',
-    'Atoms',
-    'Nuclei',
-    'Semiconductor Electronics',
-  ],
-};
+export const CoursesPage: React.FC = () => {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
 
-/* ------------------------------------------------------------------ */
-/*  Download Buttons Component                                         */
-/* ------------------------------------------------------------------ */
+  // Default to student's class grade if student
+  const studentGrade = user?.role === 'STUDENT' && user.classGrade ? Number(user.classGrade) : null;
 
-const QUALITY_OPTIONS = [
-  { label: 'Original', quality: null, badge: 'Best' },
-  { label: '720p HD', quality: 'c_scale,w_1280,h_720/q_auto', badge: 'HD' },
-  { label: '480p', quality: 'c_scale,w_854,h_480/q_auto', badge: 'SD' },
-  { label: '360p', quality: 'c_scale,w_640,h_360/q_auto', badge: 'Low' },
-];
-
-const DownloadButtons: React.FC<{ video: UploadedVideo }> = ({ video }) => {
-  const [open, setOpen] = useState(false);
-
-  const getDownloadUrl = (qualityTransform: string | null) => {
-    const pid = video.cloudinaryPublicId;
-    if (!qualityTransform) {
-      return `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/fl_attachment/${pid}.mp4`;
-    }
-    return `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/${qualityTransform}/fl_attachment/${pid}.mp4`;
-  };
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark transition-colors shadow-sm cursor-pointer"
-      >
-        <Download className="h-4 w-4" />
-        Download Video
-        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {open && (
-        <motion.div
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute left-0 top-12 z-20 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden"
-        >
-          {QUALITY_OPTIONS.map((opt) => (
-            <a
-              key={opt.label}
-              href={getDownloadUrl(opt.quality)}
-              download
-              onClick={() => setOpen(false)}
-              className="flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-            >
-              <div className="flex items-center gap-2">
-                <Download className="h-4 w-4 text-gray-400" />
-                <span className="font-medium text-gray-900 dark:text-white">{opt.label}</span>
-              </div>
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  opt.badge === 'Best'
-                    ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
-                    : opt.badge === 'HD'
-                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                }`}
-              >
-                {opt.badge}
-              </span>
-            </a>
-          ))}
-        </motion.div>
-      )}
-    </div>
-  );
-};
-
-/* ------------------------------------------------------------------ */
-/*  Main Component                                                      */
-/* ------------------------------------------------------------------ */
-
-type View = 'school' | 'class' | 'subject' | 'chapters' | 'player';
-
-const CoursesPage: React.FC = () => {
   const [view, setView] = useState<View>('school');
-  const [selectedClass, setSelectedClass] = useState<number | null>(null);
-  const [selectedSubject] = useState('Science');
+  const [selectedClass, setSelectedClass] = useState<number | null>(studentGrade || 10);
+  const [subjects, setSubjects] = useState<AcademicSubject[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<string>('Science');
+  const [chapters, setChapters] = useState<AcademicChapter[]>([]);
   const [selectedChapter, setSelectedChapter] = useState<string>('');
-  const [playingVideo, setPlayingVideo] = useState<UploadedVideo | null>(null);
-  const [allVideos, setAllVideos] = useState<UploadedVideo[]>([]);
 
-  // Poll localStorage every 3s so student sees new uploads immediately
+  // Currently active/playing content item
+  const [activeItem, setActiveItem] = useState<UploadedContentItem | null>(null);
+  const [allItems, setAllItems] = useState<UploadedContentItem[]>([]);
+
+  // Load content from store
   useEffect(() => {
-    const load = () => setAllVideos(uploadedContentStore.getAll());
+    const load = () => setAllItems(uploadedContentStore.getAll());
     load();
-    const interval = setInterval(load, 3000);
+    const interval = setInterval(load, 2500);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    setAllVideos(uploadedContentStore.getAll());
+    setAllItems(uploadedContentStore.getAll());
   }, [view]);
 
-  const chapterVideos = useMemo(() => {
-    if (!selectedClass || !selectedChapter) return [];
-    return allVideos.filter(
+  // Load subjects when class changes
+  useEffect(() => {
+    if (!selectedClass) return;
+    contentService.getSubjectsForClass(selectedClass).then((subs) => {
+      setSubjects(subs);
+      if (subs.length > 0 && !subs.some((s) => s.name.toLowerCase() === selectedSubject.toLowerCase())) {
+        setSelectedSubject(subs[0].name);
+      }
+    });
+  }, [selectedClass]);
+
+  // Load chapters when class and subject change
+  useEffect(() => {
+    if (!selectedClass || !selectedSubject) return;
+    contentService.getChapters(selectedClass, selectedSubject).then((chaps) => {
+      setChapters(chaps);
+    });
+  }, [selectedClass, selectedSubject]);
+
+  // Filter content items strictly by class, subject, and chapter
+  const chapterItems = useMemo(() => {
+    if (!selectedClass || !selectedChapter || !selectedSubject) return [];
+    return allItems.filter(
       (v) =>
         v.classGrade === selectedClass &&
         v.subject.toLowerCase() === selectedSubject.toLowerCase() &&
         v.chapter.toLowerCase() === selectedChapter.toLowerCase(),
     );
-  }, [selectedClass, selectedChapter, selectedSubject, allVideos]);
+  }, [selectedClass, selectedChapter, selectedSubject, allItems]);
 
-  const chapters = selectedClass ? SCIENCE_CHAPTERS[selectedClass] || [] : [];
-
-  const chapterVideoCount = useMemo(() => {
-    if (!selectedClass) return {};
+  // Chapter content counts
+  const chapterContentCount = useMemo(() => {
+    if (!selectedClass || !selectedSubject) return {};
     const counts: Record<string, number> = {};
-    allVideos
+    allItems
       .filter(
         (v) =>
           v.classGrade === selectedClass &&
@@ -331,10 +104,10 @@ const CoursesPage: React.FC = () => {
         counts[v.chapter] = (counts[v.chapter] || 0) + 1;
       });
     return counts;
-  }, [selectedClass, selectedSubject, allVideos]);
+  }, [selectedClass, selectedSubject, allItems]);
 
-  const totalVideosForClass = (cls: number) =>
-    allVideos.filter((v) => v.classGrade === cls).length;
+  const totalItemsForClass = (cls: number) =>
+    allItems.filter((v) => v.classGrade === cls).length;
 
   const formatDuration = (seconds?: number): string => {
     if (!seconds) return '';
@@ -344,12 +117,15 @@ const CoursesPage: React.FC = () => {
   };
 
   const formatSize = (bytes: number): string => {
+    if (!bytes) return '';
     if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
     if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
     return `${(bytes / 1e3).toFixed(1)} KB`;
   };
 
-  /* ---- School ---- */
+  /* ================================================================== */
+  /*  View 1: School Selector                                           */
+  /* ================================================================== */
   const renderSchool = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -360,13 +136,13 @@ const CoursesPage: React.FC = () => {
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Your School</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Select your school to browse available courses
+          Select your affiliated educational institution to browse academic courses
         </p>
       </div>
       <button
         type="button"
         onClick={() => setView('class')}
-        className="w-full flex items-center gap-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-primary/50 p-5 transition-all hover:shadow-md group bg-white dark:bg-card-dark cursor-pointer"
+        className="w-full flex items-center gap-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-primary/50 p-5 transition-all hover:shadow-md group"
       >
         <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
           <School className="h-7 w-7" />
@@ -376,7 +152,7 @@ const CoursesPage: React.FC = () => {
             Shah Faiz Public School
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Class 1–12 • Science • {allVideos.length} video{allVideos.length !== 1 ? 's' : ''} uploaded
+            Classes 1–12 &bull; {allItems.length} learning item{allItems.length !== 1 ? 's' : ''} available
           </p>
         </div>
         <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
@@ -384,7 +160,9 @@ const CoursesPage: React.FC = () => {
     </motion.div>
   );
 
-  /* ---- Class ---- */
+  /* ================================================================== */
+  /*  View 2: Class Selector (Classes 1 through 12)                     */
+  /* ================================================================== */
   const renderClass = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -396,20 +174,19 @@ const CoursesPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setView('school')}
-          className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+          className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
           <ArrowLeft className="h-5 w-5 text-gray-500" />
         </button>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Shah Faiz Public School
-          </h2>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Select your class</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Shah Faiz Public School</h2>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Select your academic class</p>
         </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
         {CLASSES.map((cls) => {
-          const count = totalVideosForClass(cls);
+          const count = totalItemsForClass(cls);
+          const isStudentClass = studentGrade === cls;
           return (
             <motion.button
               key={cls}
@@ -419,7 +196,11 @@ const CoursesPage: React.FC = () => {
                 setSelectedClass(cls);
                 setView('subject');
               }}
-              className="flex flex-col items-center gap-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-primary/50 p-6 transition-all hover:shadow-md bg-white dark:bg-card-dark cursor-pointer group"
+              className={`flex flex-col items-center gap-2 rounded-xl border-2 p-5 transition-all hover:shadow-md ${
+                isStudentClass
+                  ? 'border-primary bg-primary/5 shadow-sm'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+              }`}
             >
               <GraduationCap className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
               <span className="text-2xl font-bold text-gray-900 dark:text-white">Class {cls}</span>
@@ -436,53 +217,75 @@ const CoursesPage: React.FC = () => {
     </motion.div>
   );
 
-  /* ---- Subject ---- */
-  const renderSubject = () => {
-    const totalVids = Object.values(chapterVideoCount).reduce((a, b) => a + b, 0);
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0 }}
-        className="space-y-6"
-      >
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setView('class')}
-            className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-500" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Class {selectedClass}
-            </h2>
-            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Select subject</p>
-          </div>
-        </div>
+  /* ================================================================== */
+  /*  View 3: Subject Selector                                          */
+  /* ================================================================== */
+  const renderSubject = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="space-y-6"
+    >
+      <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => setView('chapters')}
-          className="w-full flex items-center gap-4 rounded-xl border-2 border-primary bg-primary/5 p-5 transition-all hover:shadow-md cursor-pointer"
+          onClick={() => setView('class')}
+          className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-white">
-            <Beaker className="h-7 w-7" />
-          </div>
-          <div className="text-left flex-1">
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">Science</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {chapters.length} chapters
-              {totalVids > 0 ? ` • ${totalVids} video${totalVids > 1 ? 's' : ''}` : ''}
-            </p>
-          </div>
-          <ChevronRight className="h-5 w-5 text-primary" />
+          <ArrowLeft className="h-5 w-5 text-gray-500" />
         </button>
-      </motion.div>
-    );
-  };
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Class {selectedClass}</h2>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+            Select a subject to explore syllabus and lessons
+          </p>
+        </div>
+      </div>
 
-  /* ---- Chapters ---- */
+      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {subjects.map((sub) => {
+          const subItemsCount = allItems.filter(
+            (v) =>
+              v.classGrade === selectedClass &&
+              v.subject.toLowerCase() === sub.name.toLowerCase(),
+          ).length;
+
+          return (
+            <motion.button
+              key={sub.id}
+              type="button"
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                setSelectedSubject(sub.name);
+                setView('chapters');
+              }}
+              className="flex items-center gap-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-primary/50 p-4 transition-all hover:shadow-md text-left group"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                <Beaker className="h-6 w-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-semibold text-gray-900 dark:text-white truncate">
+                  {sub.name}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {subItemsCount > 0
+                    ? `${subItemsCount} learning item${subItemsCount > 1 ? 's' : ''}`
+                    : 'Curriculum available'}
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+            </motion.button>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+
+  /* ================================================================== */
+  /*  View 4: Chapters Selector                                         */
+  /* ================================================================== */
   const renderChapters = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -494,47 +297,50 @@ const CoursesPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setView('subject')}
-          className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+          className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
           <ArrowLeft className="h-5 w-5 text-gray-500" />
         </button>
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Class {selectedClass} — Science
+            Class {selectedClass} — {selectedSubject}
           </h2>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            {chapters.length} chapters
+            {chapters.length} syllabus chapter{chapters.length !== 1 ? 's' : ''}
           </p>
         </div>
       </div>
-      <div className="space-y-3">
+
+      <div className="space-y-2.5">
         {chapters.map((ch, idx) => {
-          const count = chapterVideoCount[ch] || 0;
+          const count = chapterContentCount[ch.title] || 0;
           return (
             <button
-              key={ch}
+              key={ch.id || idx}
               type="button"
               onClick={() => {
-                setSelectedChapter(ch);
-                setView('player');
+                setSelectedChapter(ch.title);
+                setView('content');
               }}
-              className={`w-full flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all hover:shadow-sm cursor-pointer ${
+              className={`w-full flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all hover:shadow-sm ${
                 count > 0
-                  ? 'border-gray-200 dark:border-gray-700 hover:border-primary/50 bg-white dark:bg-card-dark'
-                  : 'border-gray-100 dark:border-gray-800 opacity-60 bg-white dark:bg-card-dark'
+                  ? 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+                  : 'border-gray-100 dark:border-gray-800 opacity-70'
               }`}
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary shrink-0">
                 {idx + 1}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 dark:text-white truncate">{ch}</p>
+                <p className="font-semibold text-gray-900 dark:text-white truncate">
+                  {ch.title}
+                </p>
                 {count > 0 ? (
                   <p className="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">
-                    {count} video{count > 1 ? 's' : ''} available
+                    {count} learning item{count > 1 ? 's' : ''} available
                   </p>
                 ) : (
-                  <p className="text-xs text-gray-400 mt-0.5">No videos yet</p>
+                  <p className="text-xs text-gray-400 mt-0.5">No uploaded materials yet</p>
                 )}
               </div>
               {count > 0 ? (
@@ -549,11 +355,55 @@ const CoursesPage: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Subject Quizzes & Assessments */}
+      {selectedClass &&
+        (() => {
+          const subjectQuizzes = dataService.getQuizzesByClassAndSubject(
+            selectedClass,
+            selectedSubject,
+          );
+          if (subjectQuizzes.length === 0) return null;
+          return (
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                {selectedSubject} Quizzes &amp; Assessments ({subjectQuizzes.length})
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {subjectQuizzes.map((quiz) => (
+                  <div
+                    key={quiz.id}
+                    className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-card-dark flex items-center justify-between shadow-xs hover:border-primary/40 transition"
+                  >
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">
+                        {quiz.title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        By {quiz.teacherName} &bull; {quiz.questions.length} questions
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/quizzes?id=${quiz.id}`)}
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary-dark transition"
+                    >
+                      Take Quiz
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
     </motion.div>
   );
 
-  /* ---- Player ---- */
-  const renderPlayer = () => (
+  /* ================================================================== */
+  /*  View 5: Content Viewer (PDF Viewer, Image Lightbox, Video Player)  */
+  /* ================================================================== */
+  const renderContent = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -565,119 +415,185 @@ const CoursesPage: React.FC = () => {
           type="button"
           onClick={() => {
             setView('chapters');
-            setPlayingVideo(null);
+            setActiveItem(null);
           }}
-          className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+          className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
           <ArrowLeft className="h-5 w-5 text-gray-500" />
         </button>
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Chapter: {selectedChapter}
+            {selectedChapter}
           </h2>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            Class {selectedClass} • Science • {chapterVideos.length} video
-            {chapterVideos.length !== 1 ? 's' : ''}
+            Class {selectedClass} &bull; {selectedSubject} &bull; {chapterItems.length} content item{chapterItems.length !== 1 ? 's' : ''}
           </p>
         </div>
       </div>
 
-      {/* Video Player */}
-      {playingVideo && (
-        <div className="space-y-4">
-          <div className="relative rounded-xl overflow-hidden bg-black aspect-video shadow-xl">
-            <video
-              key={playingVideo.cloudinaryUrl}
-              controls
-              autoPlay
-              className="w-full h-full"
-              poster={playingVideo.thumbnailUrl}
-            >
-              <source src={playingVideo.cloudinaryUrl} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </div>
-
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {playingVideo.title}
-              </h3>
-              {playingVideo.description && (
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  {playingVideo.description}
+      {/* Active Content Viewer */}
+      {activeItem && (
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-lg space-y-4">
+          <div className="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    activeItem.contentType === 'VIDEO' || !activeItem.contentType
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
+                      : activeItem.contentType === 'PDF'
+                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                      : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  }`}
+                >
+                  {(activeItem.contentType === 'VIDEO' || !activeItem.contentType) && (
+                    <Film className="h-3 w-3" />
+                  )}
+                  {activeItem.contentType === 'PDF' && <FileText className="h-3 w-3" />}
+                  {activeItem.contentType === 'IMAGE' && <ImageIcon className="h-3 w-3" />}
+                  {activeItem.contentType || 'VIDEO'}
+                </span>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {activeItem.title}
+                </h3>
+              </div>
+              {activeItem.description && (
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                  {activeItem.description}
                 </p>
               )}
               <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                {playingVideo.duration && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" /> {formatDuration(playingVideo.duration)}
-                  </span>
-                )}
-                <span>{formatSize(playingVideo.fileSize)}</span>
-                <span>{new Date(playingVideo.uploadedAt).toLocaleDateString()}</span>
+                <span>Uploaded by: {activeItem.uploadedBy}</span>
+                {activeItem.fileSize > 0 && <span>{formatSize(activeItem.fileSize)}</span>}
+                <span>{new Date(activeItem.uploadedAt).toLocaleDateString()}</span>
               </div>
             </div>
 
-            {/* Download dropdown */}
-            <DownloadButtons video={playingVideo} />
+            <div className="flex items-center gap-2">
+              <a
+                href={activeItem.cloudinaryUrl}
+                target="_blank"
+                rel="noreferrer"
+                download={activeItem.fileName || activeItem.title}
+                className="flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white px-3 py-1.5 text-xs font-semibold transition"
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> Open / Download
+              </a>
+            </div>
           </div>
+
+          {/* Video Player */}
+          {(activeItem.contentType === 'VIDEO' || !activeItem.contentType) && (
+            <div className="relative rounded-xl overflow-hidden bg-black aspect-video shadow-xl">
+              <video
+                key={activeItem.cloudinaryUrl}
+                controls
+                autoPlay
+                className="w-full h-full"
+                poster={activeItem.thumbnailUrl}
+              >
+                <source src={activeItem.cloudinaryUrl} type="video/mp4" />
+                <source src={activeItem.cloudinaryUrl} type="video/webm" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          )}
+
+          {/* PDF Viewer */}
+          {activeItem.contentType === 'PDF' && (
+            <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <iframe
+                src={activeItem.cloudinaryUrl}
+                title={activeItem.title}
+                className="w-full h-[650px] rounded-xl border-0"
+              />
+            </div>
+          )}
+
+          {/* Image Viewer */}
+          {activeItem.contentType === 'IMAGE' && (
+            <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-black/5 flex items-center justify-center p-4">
+              <img
+                src={activeItem.cloudinaryUrl}
+                alt={activeItem.title}
+                className="max-h-[600px] max-w-full object-contain rounded-lg shadow-md"
+              />
+            </div>
+          )}
         </div>
       )}
 
-      {/* Video List */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
-          {playingVideo ? 'More Videos' : 'Videos'}
+      {/* Chapter Content Items List */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+          {activeItem ? 'All Content In This Chapter' : 'Learning Resources'}
         </h3>
-        {chapterVideos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-            <FileVideo className="h-12 w-12 mb-3 opacity-50" />
-            <p className="font-medium">No videos uploaded yet</p>
-            <p className="text-sm mt-1">Your teacher will upload lessons here</p>
+
+        {chapterItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-gray-400 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl">
+            <BookOpen className="h-10 w-10 mb-2 opacity-40" />
+            <p className="font-semibold text-gray-700 dark:text-gray-300">
+              No content items uploaded yet
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Your teacher will publish videos, notes, or worksheets here.
+            </p>
           </div>
         ) : (
-          chapterVideos.map((video) => (
-            <button
-              key={video.id}
-              type="button"
-              onClick={() => setPlayingVideo(video)}
-              className={`w-full flex items-center gap-4 rounded-xl border-2 p-3 text-left transition-all hover:shadow-sm cursor-pointer ${
-                playingVideo?.id === video.id
-                  ? 'border-primary bg-primary/5'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-primary/40 bg-white dark:bg-card-dark'
-              }`}
-            >
-              <div className="relative h-16 w-28 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
-                {video.thumbnailUrl ? (
-                  <img src={video.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <FileVideo className="h-6 w-6 text-gray-400" />
+          <div className="grid gap-3">
+            {chapterItems.map((item) => {
+              const isSelected = activeItem?.id === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveItem(item)}
+                  className={`w-full flex items-center gap-4 rounded-xl border-2 p-3.5 text-left transition-all hover:shadow-sm ${
+                    isSelected
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-primary/40'
+                  }`}
+                >
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    {item.contentType === 'VIDEO' || !item.contentType ? (
+                      <Film className="h-6 w-6" />
+                    ) : item.contentType === 'PDF' ? (
+                      <FileText className="h-6 w-6" />
+                    ) : (
+                      <ImageIcon className="h-6 w-6" />
+                    )}
                   </div>
-                )}
-                {playingVideo?.id === video.id && (
-                  <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow">
-                      <Play className="h-4 w-4 text-primary ml-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          item.contentType === 'VIDEO' || !item.contentType
+                            ? 'bg-purple-100 text-purple-700'
+                            : item.contentType === 'PDF'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-emerald-100 text-emerald-700'
+                        }`}
+                      >
+                        {item.contentType || 'VIDEO'}
+                      </span>
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                        {item.title}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                      <span>By {item.uploadedBy}</span>
+                      {item.fileSize > 0 && <span>{formatSize(item.fileSize)}</span>}
+                      <span>{new Date(item.uploadedAt).toLocaleDateString()}</span>
                     </div>
                   </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 dark:text-white text-sm truncate">
-                  {video.title}
-                </p>
-                <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                  {video.duration && <span>{formatDuration(video.duration)}</span>}
-                  <span>{formatSize(video.fileSize)}</span>
-                </div>
-              </div>
-              {playingVideo?.id !== video.id && (
-                <Play className="h-5 w-5 text-gray-400 shrink-0" />
-              )}
-            </button>
-          ))
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                    <Eye className="h-4 w-4" />
+                    <span>Open</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
     </motion.div>
@@ -690,7 +606,7 @@ const CoursesPage: React.FC = () => {
         {view === 'class' && <React.Fragment key="class">{renderClass()}</React.Fragment>}
         {view === 'subject' && <React.Fragment key="subject">{renderSubject()}</React.Fragment>}
         {view === 'chapters' && <React.Fragment key="chapters">{renderChapters()}</React.Fragment>}
-        {view === 'player' && <React.Fragment key="player">{renderPlayer()}</React.Fragment>}
+        {view === 'content' && <React.Fragment key="content">{renderContent()}</React.Fragment>}
       </AnimatePresence>
     </div>
   );

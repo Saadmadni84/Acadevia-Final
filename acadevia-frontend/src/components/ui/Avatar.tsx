@@ -4,7 +4,9 @@ import { getInitials } from '@/lib/utils';
 
 interface AvatarProps {
   src?: string;
-  name: string;
+  name?: string;
+  alt?: string;
+  fallback?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   online?: boolean;
   levelRing?: boolean;
@@ -19,7 +21,9 @@ const sizeMap = {
   '2xl': 'h-24 w-24 sm:h-28 sm:w-28 text-2xl font-bold',
 };
 
-const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', online, levelRing, className }) => (
+const Avatar: React.FC<AvatarProps> = ({ src, name, alt, fallback, size = 'md', online, levelRing, className }) => {
+  const displayName = name || alt || fallback || '';
+  return (
   <div className={cn('relative inline-flex', className)}>
     <div className={cn(
       'rounded-full flex items-center justify-center overflow-hidden bg-primary/10',
@@ -27,9 +31,9 @@ const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', online, levelRi
       levelRing && 'ring-2 ring-primary ring-offset-2 dark:ring-offset-background-dark'
     )}>
       {src ? (
-        <img src={src} alt={name} className="h-full w-full object-cover" loading="lazy" />
+        <img src={src} alt={displayName} className="h-full w-full object-cover" loading="lazy" />
       ) : (
-        <span className="font-semibold text-primary">{getInitials(name)}</span>
+        <span className="font-semibold text-primary">{getInitials(displayName)}</span>
       )}
     </div>
     {online !== undefined && (
@@ -39,6 +43,7 @@ const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', online, levelRi
       )} />
     )}
   </div>
-);
+  );
+};
 
 export { Avatar };

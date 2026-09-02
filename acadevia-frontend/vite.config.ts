@@ -2,9 +2,57 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
+
+function databaseApiPlugin() {
+  return {
+    name: 'database-api-plugin',
+    enforce: 'pre' as const,
+    configureServer(server: any) {
+      server.middlewares.use((req: any, res: any, next: any) => {
+        const parsedUrl = new URL(req.url || '', 'http://localhost:5173');
+        if (parsedUrl.pathname === '/api/v1/teacher/students') {
+          try {
+            const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 10;
+            const { getTeacherStudentsFromDb } = require('./src/scripts/databaseApi.cjs');
+            const data = getTeacherStudentsFromDb(classGrade);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+        if (parsedUrl.pathname === '/api/v1/teacher/analytics') {
+          try {
+            const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 10;
+            const subject = parsedUrl.searchParams.get('subject') || 'All';
+            const { getTeacherAnalyticsFromDb } = require('./src/scripts/databaseApi.cjs');
+            const data = getTeacherAnalyticsFromDb(classGrade, subject);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+        next();
+      });
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [
+    databaseApiPlugin(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',

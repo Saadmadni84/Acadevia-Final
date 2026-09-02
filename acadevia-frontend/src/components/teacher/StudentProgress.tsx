@@ -1,20 +1,22 @@
-import React, { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Download,
   ChevronRight,
-  Filter,
   Flame,
-  Trophy,
   X,
+  GraduationCap,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { dataService, type QuizResultRecord, type ActivityRecord } from '@/services/data.service';
+import { Progress } from '@/components/ui/Progress';
 
-interface Student {
+interface StudentViewItem {
   id: string;
   name: string;
   avatar: string;
@@ -24,37 +26,79 @@ interface Student {
   quizzesCompleted: number;
   avgScore: number;
   streak: number;
+  progress: number;
+  results: QuizResultRecord[];
+  activities: ActivityRecord[];
 }
 
-const mockStudents: Student[] = Array.from({ length: 25 }, (_, i) => ({
-  id: `s-${i + 1}`,
-  name: `Student ${i + 1}`,
-  avatar: `https://api.dicebear.com/7.x/initials/svg?seed=Student${i + 1}`,
-  className: `Class ${Math.floor(Math.random() * 4) + 6}`,
-  section: ['A', 'B', 'C'][Math.floor(Math.random() * 3)],
-  totalXP: Math.floor(Math.random() * 5000) + 500,
-  quizzesCompleted: Math.floor(Math.random() * 30) + 1,
-  avgScore: Math.floor(Math.random() * 40) + 60,
-  streak: Math.floor(Math.random() * 30),
-}));
-
-type SortKey = keyof Pick<Student, 'name' | 'totalXP' | 'quizzesCompleted' | 'avgScore' | 'streak'>;
+type SortKey = keyof Pick<StudentViewItem, 'name' | 'totalXP' | 'quizzesCompleted' | 'avgScore' | 'streak'>;
 type SortDir = 'asc' | 'desc';
 
 const StudentProgress: React.FC = () => {
-  const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const teacherId = user?.id || '10';
+
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('totalXP');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filterClass, setFilterClass] = useState('');
   const [filterSection, setFilterSection] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<StudentViewItem | null>(null);
+  const [apiStudents, setApiStudents] = useState<StudentViewItem[] | null>(null);
 
-  const classes = useMemo(() => [...new Set(mockStudents.map((s) => s.className))].sort(), []);
-  const sections = useMemo(() => [...new Set(mockStudents.map((s) => s.section))].sort(), []);
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/v1/teacher/students?classGrade=10')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (mounted && json?.success && Array.isArray(json.data) && json.data.length > 0) {
+          setApiStudents(json.data);
+          dataService.syncStudentsFromApi(json.data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Retrieve actual students from live API or persistent data layer
+  const students: StudentViewItem[] = useMemo(() => {
+    if (apiStudents && apiStudents.length > 0) {
+      return apiStudents;
+    }
+    const rawStudents = dataService.getTeacherStudents(teacherId);
+
+    // If no students assigned yet, ensure demo student Aarav is included
+    const studentList = rawStudents.length > 0 ? rawStudents : [dataService.getUserById('9')!].filter(Boolean);
+
+    return studentList.map((st) => {
+      const metrics = dataService.getStudentMetrics(st.id);
+      const results = dataService.getStudentQuizResults(st.id);
+      const activities = dataService.getRecentActivities(st.id, 'STUDENT');
+
+      return {
+        id: st.id,
+        name: st.fullName,
+        avatar: st.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(st.fullName)}`,
+        className: `Class ${st.classGrade || 10}`,
+        section: st.section || 'A',
+        totalXP: metrics.totalXP,
+        quizzesCompleted: metrics.quizzesCompleted,
+        avgScore: metrics.averageScore,
+        streak: metrics.streak,
+        progress: metrics.overallProgress,
+        results,
+        activities,
+      };
+    });
+  }, [teacherId]);
+
+  const classes = useMemo(() => [...new Set(students.map((s) => s.className))].sort(), [students]);
+  const sections = useMemo(() => [...new Set(students.map((s) => s.section))].sort(), [students]);
 
   const filtered = useMemo(() => {
-    let result = mockStudents.filter((s) =>
+    let result = students.filter((s) =>
       s.name.toLowerCase().includes(search.toLowerCase())
     );
     if (filterClass) result = result.filter((s) => s.className === filterClass);
@@ -70,9 +114,9 @@ const StudentProgress: React.FC = () => {
     });
 
     return result;
-  }, [search, filterClass, filterSection, sortKey, sortDir]);
+  }, [students, search, filterClass, filterSection, sortKey, sortDir]);
 
-  const toggleSort = (key: SortKey) => {
+  const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -81,178 +125,193 @@ const StudentProgress: React.FC = () => {
     }
   };
 
-  const SortIcon: React.FC<{ column: SortKey }> = ({ column }) => {
-    if (sortKey !== column) return <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />;
+  const getSortIcon = (key: SortKey) => {
+    if (sortKey !== key) return <ArrowUpDown className="h-4 w-4 opacity-40" />;
     return sortDir === 'asc' ? (
-      <ArrowUp className="h-3.5 w-3.5 text-indigo-500" />
+      <ArrowUp className="h-4 w-4 text-primary" />
     ) : (
-      <ArrowDown className="h-3.5 w-3.5 text-indigo-500" />
+      <ArrowDown className="h-4 w-4 text-primary" />
     );
   };
 
-  const exportCSV = () => {
-    const headers = ['Name', 'Class', 'Section', 'Total XP', 'Quizzes Completed', 'Avg Score', 'Streak'];
-    const rows = filtered.map((s) => [s.name, s.className, s.section, s.totalXP, s.quizzesCompleted, s.avgScore, s.streak]);
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'student_progress.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {t('teacher.progress.title', 'Student Progress')}
-        </h2>
-        <button
-          type="button"
-          onClick={exportCSV}
-          className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          <Download className="h-4 w-4" />
-          {t('teacher.progress.exportCSV', 'Export CSV')}
-        </button>
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6 p-1 sm:p-2"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Enrolled Students
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Real-time academic performance, quiz completion, and study progress
+          </p>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+      {/* Filters Bar */}
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
           <input
             type="text"
+            placeholder="Search students by name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('teacher.progress.search', 'Search students...')}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-            aria-label={t('teacher.progress.search', 'Search students')}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-card-dark text-sm outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
-        <div className="flex gap-3">
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <select
-              value={filterClass}
-              onChange={(e) => setFilterClass(e.target.value)}
-              className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-10 pr-8 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition appearance-none"
-              aria-label={t('teacher.progress.filterClass', 'Filter by class')}
-            >
-              <option value="">{t('teacher.progress.allClasses', 'All Classes')}</option>
-              {classes.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <select
+            value={filterClass}
+            onChange={(e) => setFilterClass(e.target.value)}
+            className="px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-card-dark text-xs font-semibold outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="">All Classes</option>
+            {classes.map((cls) => (
+              <option key={cls} value={cls}>
+                {cls}
+              </option>
+            ))}
+          </select>
+
           <select
             value={filterSection}
             onChange={(e) => setFilterSection(e.target.value)}
-            className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition appearance-none"
-            aria-label={t('teacher.progress.filterSection', 'Filter by section')}
+            className="px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-card-dark text-xs font-semibold outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">{t('teacher.progress.allSections', 'All Sections')}</option>
-            {sections.map((s) => (
-              <option key={s} value={s}>Section {s}</option>
+            <option value="">All Sections</option>
+            {sections.map((sec) => (
+              <option key={sec} value={sec}>
+                Section {sec}
+              </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-        <table className="w-full min-w-[700px] text-sm" role="table">
-          <thead>
-            <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
-              {([
-                ['name', t('teacher.progress.name', 'Student')],
-                ['totalXP', t('teacher.progress.xp', 'Total XP')],
-                ['quizzesCompleted', t('teacher.progress.quizzes', 'Quizzes')],
-                ['avgScore', t('teacher.progress.avgScore', 'Avg Score')],
-                ['streak', t('teacher.progress.streak', 'Streak')],
-              ] as [SortKey, string][]).map(([key, label]) => (
-                <th key={key} className="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort(key)}
-                    className="flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                  >
-                    {label}
-                    <SortIcon column={key} />
-                  </button>
-                </th>
-              ))}
-              <th className="px-4 py-3" />
+      {/* Students Table */}
+      <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-card-dark shadow-sm">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-gray-50/80 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-800">
+            <tr>
+              <th
+                className="py-3.5 px-4 cursor-pointer hover:text-gray-900 dark:hover:text-white"
+                onClick={() => handleSort('name')}
+              >
+                <div className="flex items-center gap-2">
+                  Student Name {getSortIcon('name')}
+                </div>
+              </th>
+              <th className="py-3.5 px-4">Class & Section</th>
+              <th
+                className="py-3.5 px-4 cursor-pointer hover:text-gray-900 dark:hover:text-white"
+                onClick={() => handleSort('totalXP')}
+              >
+                <div className="flex items-center gap-2">
+                  Total XP {getSortIcon('totalXP')}
+                </div>
+              </th>
+              <th
+                className="py-3.5 px-4 cursor-pointer hover:text-gray-900 dark:hover:text-white"
+                onClick={() => handleSort('quizzesCompleted')}
+              >
+                <div className="flex items-center gap-2">
+                  Quizzes {getSortIcon('quizzesCompleted')}
+                </div>
+              </th>
+              <th
+                className="py-3.5 px-4 cursor-pointer hover:text-gray-900 dark:hover:text-white"
+                onClick={() => handleSort('avgScore')}
+              >
+                <div className="flex items-center gap-2">
+                  Avg Score {getSortIcon('avgScore')}
+                </div>
+              </th>
+              <th
+                className="py-3.5 px-4 cursor-pointer hover:text-gray-900 dark:hover:text-white"
+                onClick={() => handleSort('streak')}
+              >
+                <div className="flex items-center gap-2">
+                  Streak {getSortIcon('streak')}
+                </div>
+              </th>
+              <th className="py-3.5 px-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {filtered.map((student, i) => (
-              <motion.tr
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            {filtered.map((student) => (
+              <tr
                 key={student.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.02 }}
                 onClick={() => setSelectedStudent(student)}
-                className="border-b border-gray-100 dark:border-gray-700/50 cursor-pointer hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors"
-                role="row"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') setSelectedStudent(student);
-                }}
+                className="hover:bg-primary/5 dark:hover:bg-primary/10 cursor-pointer transition-colors"
               >
-                <td className="px-4 py-3">
+                <td className="py-3.5 px-4">
                   <div className="flex items-center gap-3">
                     <img
                       src={student.avatar}
                       alt=""
-                      className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700"
+                      className="h-10 w-10 rounded-full object-cover ring-2 ring-primary/20"
                     />
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{student.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {student.className} - {student.section}
+                      <p className="font-bold text-gray-900 dark:text-white">
+                        {student.name}
                       </p>
+                      <p className="text-xs text-gray-400">ID: {student.id}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3">
-                  <span className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-                    <Trophy className="h-3.5 w-3.5" />
-                    {student.totalXP.toLocaleString()}
+                <td className="py-3.5 px-4">
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    {student.className}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-1.5">
+                    &bull; Sec {student.section}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{student.quizzesCompleted}</td>
-                <td className="px-4 py-3">
+                <td className="py-3.5 px-4 font-bold text-primary dark:text-[#D4A843]">
+                  {student.totalXP.toLocaleString()} XP
+                </td>
+                <td className="py-3.5 px-4">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-600">
+                    {student.quizzesCompleted} Done
+                  </span>
+                </td>
+                <td className="py-3.5 px-4">
                   <span
-                    className={`font-medium ${
+                    className={`font-bold text-sm ${
                       student.avgScore >= 80
-                        ? 'text-green-600 dark:text-green-400'
-                        : student.avgScore >= 60
-                        ? 'text-yellow-600 dark:text-yellow-400'
-                        : 'text-red-600 dark:text-red-400'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-amber-600'
                     }`}
                   >
                     {student.avgScore}%
                   </span>
                 </td>
-                <td className="px-4 py-3">
-                  <span className="flex items-center gap-1 text-orange-500">
-                    <Flame className="h-3.5 w-3.5" />
-                    {student.streak}d
-                  </span>
+                <td className="py-3.5 px-4">
+                  <div className="flex items-center gap-1 font-semibold text-orange-500">
+                    <Flame className="h-4 w-4 fill-orange-500" />
+                    <span>{student.streak}d</span>
+                  </div>
                 </td>
-                <td className="px-4 py-3">
-                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                <td className="py-3.5 px-4 text-right">
+                  <button
+                    type="button"
+                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-primary transition"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
                 </td>
-              </motion.tr>
+              </tr>
             ))}
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="py-12 text-center text-gray-500 dark:text-gray-400">
-            {t('teacher.progress.noResults', 'No students found')}
+          <div className="py-12 text-center text-gray-500">
+            No students found matching filters.
           </div>
         )}
       </div>
@@ -260,62 +319,149 @@ const StudentProgress: React.FC = () => {
       {/* Detail Side Panel */}
       <AnimatePresence>
         {selectedStudent && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex justify-end bg-black/30"
-            onClick={() => setSelectedStudent(null)}
-          >
-            <motion.aside
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs">
+            <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl p-6 overflow-y-auto"
-              role="dialog"
-              aria-label={t('teacher.progress.studentDetail', 'Student detail')}
+              className="w-full max-w-lg bg-white dark:bg-card-dark shadow-2xl p-6 overflow-y-auto space-y-6"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {t('teacher.progress.studentDetail', 'Student Detail')}
+              {/* Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5 text-primary" />
+                  Student Academic Profile
                 </h3>
                 <button
                   type="button"
                   onClick={() => setSelectedStudent(null)}
-                  className="rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  aria-label={t('common.close', 'Close')}
+                  className="rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition"
                 >
-                  <X className="h-5 w-5 text-gray-500" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="flex items-center gap-4 mb-6">
-                <img src={selectedStudent.avatar} alt="" className="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+              {/* Student Identity Card */}
+              <div className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-[#5B2C6F]/5 to-secondary/10 border border-primary/20">
+                <img
+                  src={selectedStudent.avatar}
+                  alt=""
+                  className="h-16 w-16 rounded-full object-cover ring-4 ring-white dark:ring-card-dark shadow"
+                />
                 <div>
-                  <p className="text-xl font-semibold text-gray-900 dark:text-white">{selectedStudent.name}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {selectedStudent.className} - Section {selectedStudent.section}
+                  <h4 className="text-xl font-bold text-gray-900 dark:text-white">
+                    {selectedStudent.name}
+                  </h4>
+                  <p className="text-xs font-semibold text-primary dark:text-[#D4A843]">
+                    {selectedStudent.className} &bull; Section {selectedStudent.section}
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Acadevia Demo School &bull; Enrolled
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: t('teacher.progress.xp', 'Total XP'), value: selectedStudent.totalXP.toLocaleString(), color: 'text-amber-600 dark:text-amber-400' },
-                  { label: t('teacher.progress.quizzes', 'Quizzes Done'), value: selectedStudent.quizzesCompleted, color: 'text-blue-600 dark:text-blue-400' },
-                  { label: t('teacher.progress.avgScore', 'Avg Score'), value: `${selectedStudent.avgScore}%`, color: 'text-green-600 dark:text-green-400' },
-                  { label: t('teacher.progress.streak', 'Streak'), value: `${selectedStudent.streak} days`, color: 'text-orange-500' },
-                ].map((stat) => (
-                  <div key={stat.label} className="rounded-lg bg-gray-50 dark:bg-gray-700/50 p-4">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</p>
-                    <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                  </div>
-                ))}
+              {/* Statistics Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+                  <p className="text-xs text-gray-500">Total XP</p>
+                  <p className="text-xl font-bold text-primary dark:text-[#D4A843]">
+                    {selectedStudent.totalXP.toLocaleString()}
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+                  <p className="text-xs text-gray-500">Quizzes Completed</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    {selectedStudent.quizzesCompleted}
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+                  <p className="text-xs text-gray-500">Average Score</p>
+                  <p className="text-xl font-bold text-emerald-600">
+                    {selectedStudent.avgScore}%
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+                  <p className="text-xs text-gray-500">Daily Streak</p>
+                  <p className="text-xl font-bold text-orange-500">
+                    {selectedStudent.streak} Days
+                  </p>
+                </div>
               </div>
-            </motion.aside>
-          </motion.div>
+
+              {/* Overall Progress */}
+              <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span>Curriculum Completion</span>
+                  <span className="text-primary">{selectedStudent.progress}%</span>
+                </div>
+                <Progress value={selectedStudent.progress} size="md" gradient />
+              </div>
+
+              {/* Quiz Submissions History */}
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  Quiz Submissions ({selectedStudent.results.length})
+                </h4>
+                {selectedStudent.results.length > 0 ? (
+                  <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
+                    {selectedStudent.results.map((res) => (
+                      <div
+                        key={res.id}
+                        className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 flex items-center justify-between"
+                      >
+                        <div className="min-w-0 flex-1 pr-2">
+                          <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                            {res.quizTitle}
+                          </p>
+                          <p className="text-[11px] text-gray-500">
+                            {res.subject} &bull; {new Date(res.completedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                            {res.percentage}%
+                          </span>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            {res.score}/{res.totalPoints} pts
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">No quiz submissions recorded yet.</p>
+                )}
+              </div>
+
+              {/* Recent Activity Log */}
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  Recent Student Activity
+                </h4>
+                {selectedStudent.activities.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedStudent.activities.slice(0, 4).map((act) => (
+                      <div
+                        key={act.id}
+                        className="p-2.5 rounded-lg border border-gray-100 dark:border-gray-800 text-xs"
+                      >
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                          {act.title}
+                        </p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">{act.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">No recent activity recorded.</p>
+                )}
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </motion.div>
