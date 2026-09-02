@@ -454,4 +454,3 @@ const SchoolManagement: React.FC = () => {
 
 export { SchoolManagement };
 export default SchoolManagement;
-export { SchoolManagement };

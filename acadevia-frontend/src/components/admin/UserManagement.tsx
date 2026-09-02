@@ -340,4 +340,3 @@ const UserManagement: React.FC = () => {
 
 export { UserManagement };
 export default UserManagement;
-export { UserManagement };

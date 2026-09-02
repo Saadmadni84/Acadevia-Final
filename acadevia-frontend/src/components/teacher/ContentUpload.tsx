@@ -25,9 +25,67 @@ import {
 /*  Static data – Science chapters per class                           */
 /* ------------------------------------------------------------------ */
 
-const CLASSES = [6, 7, 8, 9, 10, 11, 12] as const;
+const CLASSES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 const SCIENCE_CHAPTERS: Record<number, string[]> = {
+  1: [
+    'Living and Non-Living Things',
+    'Plants Around Us',
+    'Animals Around Us',
+    'Our Body and Senses',
+    'Food We Eat',
+    'Water for Life',
+    'Air Around Us',
+    'Weather and Seasons',
+    'Safety and Good Habits',
+  ],
+  2: [
+    'Types of Plants',
+    'Useful Animals',
+    'Human Body and Health',
+    'Food and Nutrition',
+    'Housing and Clothing',
+    'Air, Water and Weather',
+    'Rocks and Soil',
+    'Sun, Moon and Stars',
+    'Safety and First Aid',
+  ],
+  3: [
+    'Living and Non-Living Things',
+    'Parts of a Plant',
+    'Birds: Feathers and Beaks',
+    'Insects and Creepy Crawlies',
+    'Our Food and Digestive System',
+    'Water: States and Cycle',
+    'Houses and Cleanliness',
+    'Soil: Types and Layers',
+    'Light, Sound and Force',
+    'The Solar System',
+  ],
+  4: [
+    'Plant Adaptations and Photosynthesis',
+    'Animal Habitats and Adaptations',
+    'Human Body: Organ Systems',
+    'Food and Digestion',
+    'Teeth and Microbes',
+    'Safety, Health and Hygiene',
+    'Matter: Solids, Liquids, Gases',
+    'Force, Work and Energy',
+    'Air, Water and Weather',
+    'Our Earth and the Solar System',
+  ],
+  5: [
+    'Plant Reproduction and Seed Dispersal',
+    'Animal Life: Breathing and Migration',
+    'Skeletal and Nervous System',
+    'Food, Health and Diseases',
+    'Safety and First Aid',
+    'Rocks, Minerals and Soil',
+    'Air and Water: Purification and Atmosphere',
+    'Simple Machines, Force and Energy',
+    'Sun, Earth, Moon and Eclipses',
+    'Natural Disasters and Environment',
+  ],
   6: [
     'Food: Where Does it Come From?',
     'Components of Food',
