@@ -8,6 +8,8 @@ import { Logo } from '@/components/common/Logo';
 import { ROUTES } from '@/config/routes.config';
 import { authService } from '@/services/auth.service';
 
+import { INDIAN_STATES, getCitiesForState } from '@/data/indiaLocations';
+
 interface StepProps {
   form: Record<string, string>;
   setField: (key: string, val: string) => void;
@@ -38,13 +40,77 @@ const Step1: React.FC<StepProps> = ({ form, setField }) => (
   </div>
 );
 
-const Step2: React.FC<StepProps> = ({ form, setField }) => (
-  <div className="space-y-4">
-    <Input label="State" leftIcon={<MapPin className="h-4 w-4" />} value={form.state || ''} onChange={e => setField('state', e.target.value)} required placeholder="Select state" />
-    <Input label="City" leftIcon={<MapPin className="h-4 w-4" />} value={form.city || ''} onChange={e => setField('city', e.target.value)} required placeholder="Your city" />
-    <Input label="Pin Code" value={form.pinCode || ''} onChange={e => setField('pinCode', e.target.value)} placeholder="6-digit pin code" />
-  </div>
-);
+const Step2: React.FC<StepProps> = ({ form, setField }) => {
+  const selectedState = form.state || '';
+  const availableCities = selectedState ? getCitiesForState(selectedState) : [];
+
+  const handleStateChange = (newState: string) => {
+    setField('state', newState);
+    setField('city', ''); // Clear city when state changes
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1.5">
+          State <span className="text-red-500">*</span>
+        </label>
+        <div className="relative">
+          <select
+            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+            value={selectedState}
+            onChange={e => handleStateChange(e.target.value)}
+            required
+          >
+            <option value="">Select state</option>
+            {INDIAN_STATES.map(st => (
+              <option key={st} value={st}>
+                {st}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <MapPin className="h-4 w-4" />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1.5">
+          City <span className="text-red-500">*</span>
+        </label>
+        <div className="relative">
+          <select
+            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary appearance-none cursor-pointer disabled:bg-gray-100 dark:disabled:bg-gray-800/40 disabled:cursor-not-allowed disabled:text-gray-400"
+            value={form.city || ''}
+            onChange={e => setField('city', e.target.value)}
+            disabled={!selectedState}
+            required
+          >
+            <option value="">
+              {selectedState ? 'Select city' : 'Select state first'}
+            </option>
+            {availableCities.map(ct => (
+              <option key={ct} value={ct}>
+                {ct}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <MapPin className="h-4 w-4" />
+          </div>
+        </div>
+      </div>
+
+      <Input
+        label="Pin Code"
+        value={form.pinCode || ''}
+        onChange={e => setField('pinCode', e.target.value)}
+        placeholder="6-digit pin code"
+      />
+    </div>
+  );
+};
 
 const Step3: React.FC<StepProps> = ({ form, setField }) => (
   <div className="space-y-4">
@@ -68,11 +134,52 @@ const RegisterForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const setField = (key: string, val: string) => setForm(p => ({ ...p, [key]: val }));
+  const setField = (key: string, val: string) => {
+    setError('');
+    setForm(p => ({ ...p, [key]: val }));
+  };
+
+  const validateStep = (currStep: number): boolean => {
+    if (currStep === 0) {
+      if (!form.name?.trim()) {
+        setError('Full name is required.');
+        return false;
+      }
+      if (!form.phone?.trim()) {
+        setError('Phone number is required.');
+        return false;
+      }
+      if (form.role === 'STUDENT' && !form.grade) {
+        setError('Please select your class.');
+        return false;
+      }
+    } else if (currStep === 1) {
+      if (!form.state?.trim()) {
+        setError('Please select your state.');
+        return false;
+      }
+      if (!form.city?.trim()) {
+        setError('Please select your city.');
+        return false;
+      }
+    } else if (currStep === 2) {
+      if (!form.schoolName?.trim()) {
+        setError('School Name is required.');
+        return false;
+      }
+    }
+    return true;
+  };
 
   const handleSubmit = async () => {
-    if (step < 3) { setStep(s => s + 1); return; }
-    if (!form.name?.trim()) { setError('Full name is required.'); return; }
+    setError('');
+    if (step < 3) {
+      if (!validateStep(step)) return;
+      setStep(s => s + 1);
+      return;
+    }
+
+    if (!validateStep(0) || !validateStep(1) || !validateStep(2)) return;
     if (!form.email?.trim()) { setError('Email is required.'); return; }
     if (!form.password || form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
     const pwRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,50}$/;
@@ -88,10 +195,10 @@ const RegisterForm: React.FC = () => {
       console.error('Response data:', err?.response?.data);
       console.error('Response status:', err?.response?.status);
       const data = err?.response?.data;
-      const msg = data?.message || data?.error || data?.detail || 
-                  (data?.errors ? Object.values(data.errors).join(', ') : null) ||
-                  (typeof data === 'string' ? data : null) ||
-                  err?.message || 'Registration failed.';
+      const msg = data?.message || data?.error || data?.detail ||
+        (data?.errors ? Object.values(data.errors).join(', ') : null) ||
+        (typeof data === 'string' ? data : null) ||
+        err?.message || 'Registration failed.';
       setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setLoading(false);
