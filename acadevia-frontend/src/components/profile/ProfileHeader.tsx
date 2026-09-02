@@ -20,8 +20,9 @@ interface ProfileHeaderProps {
   badgeCount?: number;
   streak?: number;
   role?: string;
+  isUploading?: boolean;
   onEdit?: () => void;
-  onAvatarChange?: () => void;
+  onAvatarChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -33,6 +34,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   cityName,
   level,
   totalXP,
+  isUploading,
   onEdit,
   onAvatarChange,
 }) => {
@@ -50,6 +52,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <ArrowLeft className="h-5 w-5 text-gray-700 dark:text-gray-300 group-hover:-translate-x-0.5 transition-transform" />
           <span>Profile</span>
         </button>
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"
+          >
+            Edit Settings
+          </button>
+        )}
       </div>
 
       {/* 2. Main Profile Card (Matching Reference Layout) */}
@@ -77,15 +88,26 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 </div>
               )}
 
-              {/* Camera Icon Overlay */}
-              <button
-                type="button"
-                onClick={onAvatarChange || onEdit}
+              {/* Camera Icon Overlay with Native File Picker */}
+              <label
                 aria-label="Change profile photo"
-                className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white shadow-md hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95 ring-3 ring-white dark:ring-card-dark cursor-pointer"
+                className={`absolute -bottom-2 -right-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white shadow-md hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95 ring-3 ring-white dark:ring-card-dark cursor-pointer ${
+                  isUploading ? 'opacity-80 pointer-events-none' : ''
+                }`}
               >
-                <Camera className="h-4 w-4" />
-              </button>
+                {isUploading ? (
+                  <div className="h-4.5 w-4.5 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                ) : (
+                  <Camera className="h-4.5 w-4.5" />
+                )}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={onAvatarChange}
+                  disabled={isUploading}
+                  className="hidden"
+                />
+              </label>
             </div>
 
             {/* Student Name */}

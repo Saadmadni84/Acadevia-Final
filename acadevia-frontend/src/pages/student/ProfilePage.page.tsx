@@ -32,6 +32,8 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const [badgeFilter, setBadgeFilter] = useState<'all' | 'earned' | 'locked'>('all');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [, setSyncCount] = useState(0);
 
   useEffect(() => {
@@ -43,6 +45,23 @@ const ProfilePage: React.FC = () => {
       mounted = false;
     };
   }, []);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      await userService.uploadAvatar(file);
+      setSyncCount((c) => c + 1);
+    } catch (err: any) {
+      setUploadError(err.message || 'Unable to update profile photo. Please try again.');
+      setTimeout(() => setUploadError(null), 5000);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // 1. User Profile Data from /api/v1/users/me
   const { data: userProfile } = useQuery({
@@ -174,11 +193,18 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4">
+      {uploadError && (
+        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center justify-between">
+          <span>{uploadError}</span>
+          <button type="button" onClick={() => setUploadError(null)} className="text-rose-500 hover:text-rose-700">✕</button>
+        </div>
+      )}
+
       {/* 1. Main Reference-Styled Profile Card */}
       <ProfileHeader
         name={profile?.fullName || 'Student'}
         email={profile?.email || ''}
-        avatar={profile?.avatarUrl}
+        avatar={profile?.avatarUrl || user?.avatarUrl || (studentId ? dataService.getUserById(studentId)?.avatarUrl : undefined)}
         phone={phoneVal}
         school={schoolDisplay}
         classNameVal={classNameVal}
@@ -192,6 +218,8 @@ const ProfilePage: React.FC = () => {
         badgeCount={earnedBadgesList.length}
         streak={streak}
         role={profile?.role || 'Student'}
+        isUploading={isUploading}
+        onAvatarChange={handleAvatarUpload}
         onEdit={() => navigate(ROUTES.SETTINGS || '/settings')}
       />
 

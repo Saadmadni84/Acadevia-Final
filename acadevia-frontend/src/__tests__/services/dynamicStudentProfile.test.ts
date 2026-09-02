@@ -153,4 +153,60 @@ describe('Dynamic Student School Name, Class, and State Profile Flow', () => {
     expect(chaps10.map(c => c.title)).toContain('Chemical Reactions and Equations');
     expect(chaps9.map(c => c.title)).not.toContain('Chemical Reactions and Equations');
   });
+
+  it('validates profile photo upload, validation, and multi-student photo isolation', async () => {
+    const { userService } = await import('@/services/user.service');
+    const { useAuthStore } = await import('@/stores/useAuthStore');
+
+    // 1. Image validation: Rejects non-image types
+    const textFile = new File(['dummy content'], 'document.txt', { type: 'text/plain' });
+    await expect(userService.uploadAvatar(textFile)).rejects.toThrow('Profile photo must be a JPG, PNG, or WEBP image.');
+
+    // 2. Image validation: Rejects files > 5MB
+    const largeBlob = new Blob([new Uint8Array(6 * 1024 * 1024)], { type: 'image/png' });
+    const largeFile = new File([largeBlob], 'huge.png', { type: 'image/png' });
+    await expect(userService.uploadAvatar(largeFile)).rejects.toThrow('Profile photo must be smaller than 5 MB.');
+
+    // 3. Valid image upload for Student A (Gaurav)
+    const validFileA = new File(['valid-pixel-data-a'], 'photo-a.jpg', { type: 'image/jpeg' });
+    useAuthStore.getState().setUser({
+      id: 'student_a_123',
+      email: 'gaurav@sfps.edu',
+      fullName: 'Gaurav Singh',
+      role: 'STUDENT',
+      schoolName: 'SFPS',
+      classGrade: 9,
+      stateName: 'Uttar Pradesh',
+      cityName: 'Ghazipur',
+      avatarUrl: undefined,
+    });
+
+    const photoUrlA = await userService.uploadAvatar(validFileA);
+    expect(photoUrlA).toBeDefined();
+    expect(useAuthStore.getState().user?.avatarUrl).toBe(photoUrlA);
+    expect(dataService.getUserById('student_a_123')?.avatarUrl).toBe(photoUrlA);
+
+    // 4. Student B (Rahul) isolation
+    useAuthStore.getState().setUser({
+      id: 'student_b_456',
+      email: 'rahul@abc.edu',
+      fullName: 'Rahul Sharma',
+      role: 'STUDENT',
+      schoolName: 'ABC Public School',
+      classGrade: 7,
+      stateName: 'Maharashtra',
+      cityName: 'Mumbai',
+      avatarUrl: undefined,
+    });
+
+    const validFileB = new File(['valid-pixel-data-b'], 'photo-b.png', { type: 'image/png' });
+    const photoUrlB = await userService.uploadAvatar(validFileB);
+    expect(photoUrlB).toBeDefined();
+    expect(useAuthStore.getState().user?.avatarUrl).toBe(photoUrlB);
+    expect(dataService.getUserById('student_b_456')?.avatarUrl).toBe(photoUrlB);
+
+    // Student A's photo in dataService remains photoUrlA and is not overwritten by Student B
+    expect(dataService.getUserById('student_a_123')?.avatarUrl).toBe(photoUrlA);
+    expect(dataService.getUserById('student_a_123')?.avatarUrl).not.toBe(photoUrlB);
+  });
 });

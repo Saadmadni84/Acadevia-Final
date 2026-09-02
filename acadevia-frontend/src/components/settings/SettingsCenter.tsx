@@ -155,21 +155,26 @@ export const SettingsCenter: React.FC = () => {
   };
 
   // ----------------------------------------------------
-  // Profile Photo Upload Simulation / Real
+  // Profile Photo Upload (Real Persistence)
   // ----------------------------------------------------
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const preview = URL.createObjectURL(file);
-      setAvatarUrl(preview);
-      if (user) {
-        setUser({ ...user, avatarUrl: preview });
+      try {
+        const uploadedUrl = await userService.uploadAvatar(file);
+        setAvatarUrl(uploadedUrl);
+        setFeedback({
+          type: 'success',
+          message: 'Profile photo updated.',
+        });
+        setTimeout(() => setFeedback(null), 3000);
+      } catch (err: any) {
+        setFeedback({
+          type: 'error',
+          message: err.message || 'Unable to update profile photo. Please try again.',
+        });
+        setTimeout(() => setFeedback(null), 4000);
       }
-      setFeedback({
-        type: 'success',
-        message: 'Profile photo updated.',
-      });
-      setTimeout(() => setFeedback(null), 3000);
     }
   };
 

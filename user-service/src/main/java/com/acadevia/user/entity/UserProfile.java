@@ -44,6 +44,9 @@ public class UserProfile {
     @Column(name = "user_id", unique = true, nullable = false)
     private Long userId;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Column(columnDefinition = "TEXT")
     private String bio;
 

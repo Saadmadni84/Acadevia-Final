@@ -66,6 +66,7 @@ public class UserProfileService {
                 Optional<UserProfile> profileOpt = userProfileRepository.findByUserId(userId);
                 if (profileOpt.isPresent()) {
                     UserProfile profile = profileOpt.get();
+                    builder.avatarUrl(profile.getAvatarUrl());
                     builder.joinedAt(profile.getCreatedAt() != null
                             ? profile.getCreatedAt().toString()
                             : LocalDateTime.now().toString());
@@ -135,6 +136,9 @@ public class UserProfileService {
         }
         if (updates.containsKey("parentPhone")) {
             profile.setParentPhone((String) updates.get("parentPhone"));
+        }
+        if (updates.containsKey("avatarUrl")) {
+            profile.setAvatarUrl((String) updates.get("avatarUrl"));
         }
 
         userProfileRepository.save(profile);
