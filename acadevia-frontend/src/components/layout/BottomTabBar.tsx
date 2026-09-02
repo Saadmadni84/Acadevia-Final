@@ -17,7 +17,7 @@ const BottomTabBar: React.FC = () => {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-card-dark border-t border-gray-200 dark:border-gray-800 safe-area-pb">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#FDFCF9] dark:bg-card-dark border-t border-[#E7E1D8] dark:border-[#382447] safe-area-pb">
       <div className="flex items-center justify-around h-16">
         {tabs.map((tab) => (
           <NavLink
@@ -25,7 +25,7 @@ const BottomTabBar: React.FC = () => {
             to={tab.to}
             className={({ isActive }) => cn(
               'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors min-w-[56px]',
-              isActive ? 'text-primary' : 'text-gray-400'
+              isActive ? 'text-primary font-bold' : 'text-[#647084] dark:text-gray-400'
             )}
           >
             <tab.icon className="h-5 w-5" />
@@ -38,3 +38,4 @@ const BottomTabBar: React.FC = () => {
 };
 
 export { BottomTabBar };
+export default BottomTabBar;

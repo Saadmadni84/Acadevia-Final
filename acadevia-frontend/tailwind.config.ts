@@ -5,54 +5,66 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Human-designed educational palette: Deep Ink Navy, Educational Teal, Warm Coral, Golden XP
+        // Acadevia Refined Color System: Refined Purple, Warm Cream Background, Educational Subject Accents
         primary: {
-          DEFAULT: '#1E3A8A', // Deep Academic Navy
-          light: '#2563EB',
-          dark: '#0F172A',
-          50: '#F0F5FF',
-          100: '#E0EAFF',
-          200: '#C7D7FE',
-          300: '#A4BCFD',
-          400: '#6086FA',
-          500: '#1E3A8A',
-          600: '#172554',
-          700: '#0F172A',
-          800: '#0B1120',
-          900: '#020617'
+          DEFAULT: '#5B2C6F', // Acadevia Signature Refined Purple
+          light: '#7B3F95',
+          dark: '#3A1B47',
+          soft: '#F0E8F4',
+          hover: '#4A2359',
+          50: '#F9F6FA',
+          100: '#F0E8F4',
+          200: '#DDBFE8',
+          300: '#C393D7',
+          400: '#9C5DBB',
+          500: '#5B2C6F',
+          600: '#4A2359',
+          700: '#3A1B47',
+          800: '#281132',
+          900: '#190920'
         },
         secondary: {
-          DEFAULT: '#0D9488', // Educational Teal
-          light: '#14B8A6',
+          DEFAULT: '#159A8C', // Educational Teal (Science)
+          light: '#2DD4BF',
           dark: '#0F766E',
           50: '#F0FDFA',
           100: '#CCFBF1',
-          500: '#0D9488',
+          500: '#159A8C',
         },
         accent: {
-          DEFAULT: '#F43F5E', // Warm Coral
+          DEFAULT: '#E85D75', // Warm Coral (English & Alerts)
           light: '#FB7185',
-          dark: '#E11D48',
+          dark: '#C73852',
           50: '#FFF1F2',
         },
         reward: {
-          DEFAULT: '#F59E0B', // Golden Scholar Yellow
-          light: '#FBBF24',
-          dark: '#D97706',
+          DEFAULT: '#D4A843', // Achievement Gold
+          light: '#E5A11A',
+          dark: '#B8860B',
           50: '#FFFBEB',
         },
+        streak: {
+          DEFAULT: '#F28C28', // Flame Streak Orange
+          light: '#FB923C',
+          dark: '#EA580C',
+        },
+        success: {
+          DEFAULT: '#2E9D69', // Completed Green
+          light: '#34D399',
+          dark: '#059669',
+        },
         warning: {
-          DEFAULT: '#F59E0B',
+          DEFAULT: '#E5A11A',
           light: '#FBBF24',
           dark: '#D97706',
         },
         background: {
-          light: '#FAF9F6', // Warm Ivory / Off-White
-          dark: '#0B1120', // Refined Deep Midnight
+          light: '#F8F5EF', // Warm Cream / Ivory Background (Reference B)
+          dark: '#140D1A',  // Midnight Dark Mode
         },
         card: {
-          light: '#FFFFFF',
-          dark: '#1E293B',
+          light: '#FFFFFF', // Clean White Cards Contrasting with Cream
+          dark: '#22152B',
         },
       },
       fontFamily: {

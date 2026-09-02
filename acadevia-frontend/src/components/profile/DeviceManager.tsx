@@ -48,7 +48,7 @@ export default function DeviceManager({
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 md:p-6">
       <div className="flex items-center gap-2">
-        <Shield className="h-5 w-5 text-indigo-500" aria-hidden="true" />
+        <Shield className="h-5 w-5 text-primary" aria-hidden="true" />
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">
           {t('devices.title', 'Device Management')}
         </h1>

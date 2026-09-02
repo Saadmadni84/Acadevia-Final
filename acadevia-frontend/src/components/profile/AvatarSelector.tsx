@@ -66,19 +66,19 @@ export default function AvatarSelector({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="flex flex-col items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-950/40"
+            className="flex flex-col items-center gap-3 rounded-lg border border-primary/20 bg-primary/10 p-4 dark:border-primary/30 dark:bg-primary/20"
           >
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {t('avatar.preview', 'Preview')}
             </p>
-            <div className="h-20 w-20 overflow-hidden rounded-full ring-4 ring-indigo-400 ring-offset-2 dark:ring-offset-gray-800">
+            <div className="h-20 w-20 overflow-hidden rounded-full ring-4 ring-primary ring-offset-2 dark:ring-offset-gray-800">
               <img src={preview} alt={t('avatar.preview', 'Preview')} className="h-full w-full object-cover" />
             </div>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={confirmPreview}
-                className="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700"
+                className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-primary-dark cursor-pointer"
                 aria-label={t('avatar.confirm', 'Confirm avatar')}
               >
                 <Check className="h-3.5 w-3.5" aria-hidden="true" />
@@ -87,7 +87,7 @@ export default function AvatarSelector({
               <button
                 type="button"
                 onClick={cancelPreview}
-                className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 cursor-pointer"
                 aria-label={t('avatar.cancel', 'Cancel selection')}
               >
                 <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -119,7 +119,7 @@ export default function AvatarSelector({
                   aria-label={t('avatar.selectPreset', 'Select avatar')}
                   className={`relative h-12 w-12 overflow-hidden rounded-full transition ${
                     isSelected
-                      ? 'ring-4 ring-indigo-500 ring-offset-2 dark:ring-offset-gray-800'
+                      ? 'ring-4 ring-primary ring-offset-2 dark:ring-offset-gray-800'
                       : 'ring-2 ring-gray-200 hover:ring-gray-300 dark:ring-gray-600 dark:hover:ring-gray-500'
                   }`}
                 >
@@ -148,7 +148,7 @@ export default function AvatarSelector({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm text-gray-600 transition hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+          className="flex items-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm text-gray-600 transition hover:border-primary hover:text-primary dark:border-gray-600 dark:text-gray-400 dark:hover:border-primary dark:hover:text-primary cursor-pointer"
           aria-label={t('avatar.uploadPhoto', 'Upload custom photo')}
         >
           <Upload className="h-4 w-4" aria-hidden="true" />
@@ -168,7 +168,7 @@ export default function AvatarSelector({
       {selectedAvatar && !preview && (
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
           <span>{t('avatar.current', 'Current')}:</span>
-          <div className="h-8 w-8 overflow-hidden rounded-full ring-2 ring-indigo-500">
+          <div className="h-8 w-8 overflow-hidden rounded-full ring-2 ring-primary">
             <img src={selectedAvatar} alt="" className="h-full w-full object-cover" />
           </div>
         </div>

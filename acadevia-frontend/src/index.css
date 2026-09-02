@@ -4,18 +4,50 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --acadevia-bg: #F8F5EF;
+  --acadevia-surface: #FFFFFF;
+  --acadevia-primary: #5B2C6F;
+  --acadevia-primary-dark: #3A1B47;
+  --acadevia-primary-soft: #F0E8F4;
+  --acadevia-text: #1E1226;
+  --acadevia-muted: #6B5E74;
+  --acadevia-border: #E8E2D8;
+
+  --subject-math: #5B2C6F;
+  --subject-science: #159A8C;
+  --subject-english: #E85D75;
+  --subject-social: #E5A11A;
+
+  --reward-gold: #D4A843;
+  --streak-orange: #F28C28;
+  --success-green: #2E9D69;
+}
+
+.dark {
+  --acadevia-bg: #140D1A;
+  --acadevia-surface: #22152B;
+  --acadevia-primary: #9C5DBB;
+  --acadevia-primary-dark: #281132;
+  --acadevia-primary-soft: #351C44;
+  --acadevia-text: #FAF6FD;
+  --acadevia-muted: #A89CB2;
+  --acadevia-border: #382447;
+}
+
 @layer base {
   html {
     @apply scroll-smooth antialiased;
   }
   body {
     @apply bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 font-sans;
+    background-color: var(--acadevia-bg);
   }
 }
 
 @layer components {
   .edu-card {
-    @apply bg-white dark:bg-card-dark rounded-2xl border border-gray-200/80 dark:border-gray-800 shadow-[0_1px_3px_rgba(0,0,0,0.05)];
+    @apply bg-white dark:bg-card-dark rounded-2xl border border-[#E8E2D8]/80 dark:border-[#382447] shadow-[0_1px_4px_rgba(40,17,50,0.04)];
   }
   .edu-badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold;
@@ -27,7 +59,7 @@
     @apply bg-accent text-white;
   }
   .gradient-text {
-    @apply text-primary dark:text-blue-400 font-extrabold;
+    @apply text-primary dark:text-purple-300 font-extrabold;
   }
 }
 

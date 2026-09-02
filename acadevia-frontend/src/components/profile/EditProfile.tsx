@@ -112,7 +112,7 @@ export default function EditProfile({
               id="edit-name"
               type="text"
               {...register('name')}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               aria-invalid={!!errors.name}
               aria-describedby={errors.name ? 'name-error' : undefined}
             />
@@ -131,7 +131,7 @@ export default function EditProfile({
               id="edit-bio"
               rows={3}
               {...register('bio')}
-              className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               aria-invalid={!!errors.bio}
               aria-describedby={errors.bio ? 'bio-error' : undefined}
             />
@@ -170,13 +170,13 @@ export default function EditProfile({
             htmlFor="edit-language"
             className="mb-1 flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white"
           >
-            <Globe className="h-4 w-4 text-indigo-500" aria-hidden="true" />
+            <Globe className="h-4 w-4 text-primary" aria-hidden="true" />
             {t('profile.language', 'Language Preference')}
           </label>
           <select
             id="edit-language"
             {...register('language')}
-            className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             aria-invalid={!!errors.language}
           >
             {availableLanguages.map((lang) => (
@@ -198,7 +198,7 @@ export default function EditProfile({
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 cursor-pointer"
           >
             <X className="h-4 w-4" aria-hidden="true" />
             {t('common.cancel', 'Cancel')}
@@ -206,7 +206,7 @@ export default function EditProfile({
           <button
             type="submit"
             disabled={isSaving || !isDirty}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-dark disabled:opacity-50 cursor-pointer"
           >
             <Save className="h-4 w-4" aria-hidden="true" />
             {isSaving ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
