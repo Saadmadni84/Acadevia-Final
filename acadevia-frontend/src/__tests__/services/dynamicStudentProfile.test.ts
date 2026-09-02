@@ -128,4 +128,29 @@ describe('Dynamic Student School Name, Class, and State Profile Flow', () => {
     const empty = getCitiesForState('NonExistentState');
     expect(empty).toEqual([]);
   });
+
+  it('validates that student-specific courses directly resolve from authenticated classGrade without intermediate selectors', async () => {
+    const { contentService } = await import('@/services/content.service');
+
+    // Student A in Class 9:
+    const class9Subjects = await contentService.getSubjectsForClass(9);
+    expect(class9Subjects.length).toBeGreaterThan(0);
+    const subjectNames9 = class9Subjects.map(s => s.name);
+    expect(subjectNames9).toContain('Science');
+    expect(subjectNames9).toContain('Mathematics');
+
+    // Student B in Class 7:
+    const class7Subjects = await contentService.getSubjectsForClass(7);
+    expect(class7Subjects.length).toBeGreaterThan(0);
+    const subjectNames7 = class7Subjects.map(s => s.name);
+    expect(subjectNames7).toContain('Science');
+    expect(subjectNames7).toContain('Mathematics');
+
+    // Chapters for Class 9 Science vs Class 10 Science
+    const chaps9 = await contentService.getChapters(9, 'Science');
+    const chaps10 = await contentService.getChapters(10, 'Science');
+    expect(chaps9.map(c => c.title)).toContain('Matter in Our Surroundings');
+    expect(chaps10.map(c => c.title)).toContain('Chemical Reactions and Equations');
+    expect(chaps9.map(c => c.title)).not.toContain('Chemical Reactions and Equations');
+  });
 });
