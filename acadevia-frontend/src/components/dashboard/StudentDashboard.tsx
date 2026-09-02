@@ -302,24 +302,24 @@ export const StudentDashboard: React.FC = () => {
       {/* ==================================================== */}
       {/* 1. HERO SECTION: REFINED ACADEVIA PURPLE BANNER      */}
       {/* ==================================================== */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#230E30] via-[#351642] to-[#4D235D] text-white p-7 sm:p-9 shadow-lg border border-[#4D235D]/60">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#5B2C6F] to-[#432052] text-white p-7 sm:p-9 shadow-lg border border-[#432052]/40">
         {/* Subtle Academic Grid Pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(#DDBFE8_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(#F0E8F4_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           {/* Left Column: Greeting & Daily Goal Progress */}
           <div className="space-y-4 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-purple-200 text-xs font-bold">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/25 text-white text-xs font-bold shadow-2xs">
               <span>{studentClass}</span>
               <span>•</span>
               <span className="truncate">{schoolName}</span>
             </div>
 
             <div>
-              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
+              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
                 {greeting}, {studentName} 👋
               </h1>
-              <p className="text-xs sm:text-sm text-purple-200/90 mt-1 font-medium">
+              <p className="text-xs sm:text-sm text-purple-100 mt-1 font-medium">
                 You've completed <span className="font-bold text-white">{todayMinutes} minutes</span> of focused study today.
                 {minutesRemaining > 0
                   ? ` ${minutesRemaining} mins to reach your daily goal!`
@@ -328,14 +328,14 @@ export const StudentDashboard: React.FC = () => {
             </div>
 
             {/* Daily Goal Visual Bar */}
-            <div className="space-y-2 pt-1 max-w-md bg-black/20 backdrop-blur-xs p-3.5 rounded-2xl border border-white/10">
+            <div className="space-y-2 pt-1 max-w-md bg-black/20 backdrop-blur-xs p-3.5 rounded-2xl border border-white/15">
               <div className="flex justify-between text-xs font-extrabold">
-                <span className="text-purple-200">Today's Focus Goal</span>
+                <span className="text-purple-100">Today's Focus Goal</span>
                 <span className="text-white">{todayMinutes} / {dailyGoalSetting} mins ({dailyGoalPct}%)</span>
               </div>
-              <div className="w-full h-2.5 rounded-full bg-white/10 overflow-hidden">
+              <div className="w-full h-2.5 rounded-full bg-black/25 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#C393D7] to-[#D4A843] transition-all duration-500"
+                  className="h-full rounded-full bg-gradient-to-r from-[#DDBFE8] via-[#E5A11A] to-[#D4A843] transition-all duration-500"
                   style={{ width: `${dailyGoalPct}%` }}
                 />
               </div>
@@ -346,17 +346,17 @@ export const StudentDashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end justify-between gap-4 shrink-0">
             {/* Badges Bar */}
             <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/20 border border-orange-400/30 text-orange-200 text-xs font-extrabold shadow-xs">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/25 border border-orange-400/40 text-orange-200 text-xs font-extrabold shadow-xs">
                 <Flame className="h-4 w-4 fill-orange-400 text-orange-400" />
                 <span>{streak || 5} Day Streak</span>
               </div>
 
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/30 text-amber-200 text-xs font-extrabold shadow-xs">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/25 border border-amber-400/40 text-amber-200 text-xs font-extrabold shadow-xs">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                 <span>Level {level}</span>
               </div>
 
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 border border-purple-400/30 text-purple-200 text-xs font-extrabold shadow-xs">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-400/25 border border-purple-300/40 text-purple-100 text-xs font-extrabold shadow-xs">
                 <Zap className="h-4 w-4 fill-purple-300 text-purple-300" />
                 <span>{xp} XP</span>
               </div>
@@ -367,7 +367,7 @@ export const StudentDashboard: React.FC = () => {
               size="md"
               onClick={() => navigate(ROUTES.COURSES)}
               rightIcon={<ArrowRight className="h-4 w-4" />}
-              className="cursor-pointer font-bold shadow-lg shadow-purple-950/40 w-full sm:w-auto text-sm py-3 px-6 bg-gradient-to-r from-[#7B3F95] to-[#5B2C6F] hover:from-[#6A3482] hover:to-[#4A2359]"
+              className="cursor-pointer font-bold shadow-lg shadow-purple-950/40 w-full sm:w-auto text-sm py-3 px-6 bg-gradient-to-r from-[#7B3F95] to-[#432052] hover:from-[#6A3482] hover:to-[#32163F] border border-white/20"
             >
               Continue Learning →
             </Button>
