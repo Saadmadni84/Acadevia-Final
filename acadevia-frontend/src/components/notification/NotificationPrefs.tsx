@@ -132,7 +132,7 @@ export default function NotificationPrefs({
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 md:p-6">
       <div className="flex items-center gap-2">
-        <Bell className="h-5 w-5 text-indigo-500" aria-hidden="true" />
+        <Bell className="h-5 w-5 text-primary" aria-hidden="true" />
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">
           {t('notificationPrefs.title', 'Notification Preferences')}
         </h1>
@@ -143,10 +143,10 @@ export default function NotificationPrefs({
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-950/30"
+          className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/10 p-4 dark:border-primary/30 dark:bg-primary/20"
         >
           <div className="flex items-center gap-3">
-            <BellRing className="h-5 w-5 text-indigo-500" aria-hidden="true" />
+            <BellRing className="h-5 w-5 text-primary" aria-hidden="true" />
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {t('notificationPrefs.enablePush', 'Enable Push Notifications')}
@@ -162,7 +162,7 @@ export default function NotificationPrefs({
             type="button"
             onClick={onRequestPushPermission}
             disabled={pushPermission === 'denied'}
-            className="shrink-0 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-primary-dark disabled:opacity-50 cursor-pointer"
           >
             {t('notificationPrefs.allow', 'Allow')}
           </button>

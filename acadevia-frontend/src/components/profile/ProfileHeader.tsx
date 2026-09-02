@@ -57,8 +57,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Avatar Box + Student Name + Level Pill Badge */}
           <div className="lg:col-span-4 flex flex-col items-center text-center">
-            {/* Square Rounded Avatar Frame with Sky Blue Tint */}
-            <div className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-2xl bg-[#EAF2FF] dark:bg-sky-950/40 border border-blue-100 dark:border-sky-900/50 flex items-center justify-center p-2 shadow-xs">
+            {/* Square Rounded Avatar Frame with Soft Purple Tint */}
+            <div className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-2xl bg-[#F0E8F4] dark:bg-purple-950/40 border border-primary/20 dark:border-purple-900/50 flex items-center justify-center p-2 shadow-xs">
               {avatar ? (
                 <img
                   src={avatar}
@@ -66,7 +66,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   className="w-full h-full object-cover rounded-xl"
                 />
               ) : (
-                <div className="w-full h-full rounded-xl flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-sky-900/60 dark:to-indigo-950/60 text-primary dark:text-primary-light">
+                <div className="w-full h-full rounded-xl flex flex-col items-center justify-center bg-gradient-to-br from-[#F0E8F4] to-[#DDBFE8] dark:from-purple-950/60 dark:to-purple-900/60 text-primary dark:text-purple-300">
                   <span className="text-4xl sm:text-5xl font-extrabold tracking-tight">
                     {name ? name.charAt(0).toUpperCase() : 'S'}
                   </span>

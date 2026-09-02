@@ -124,8 +124,8 @@ const QuizPlayer: React.FC<QuizPlayerProps> = ({ title, questions, timeLimit, on
               ))}
             </div>
             {selected !== null && q.explanation && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-sm">
-                <p className="flex items-start gap-2"><AlertCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />{q.explanation}</p>
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 p-3 rounded-lg bg-primary/10 dark:bg-primary/20 text-sm border border-primary/20">
+                <p className="flex items-start gap-2"><AlertCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />{q.explanation}</p>
               </motion.div>
             )}
             <div className="flex justify-end mt-6">
