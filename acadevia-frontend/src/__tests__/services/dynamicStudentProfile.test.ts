@@ -100,4 +100,32 @@ describe('Dynamic Student School Name, Class, and State Profile Flow', () => {
     expect(dataService.getUserById('s2')?.classGrade).toBe(7);
     expect(dataService.getUserById('s2')?.stateName).toBe('Maharashtra');
   });
+
+  it('validates that all 28 Indian States & 8 Union Territories are present with correct cities', async () => {
+    const { INDIAN_STATES, getCitiesForState, INDIAN_STATES_AND_CITIES } = await import('@/data/indiaLocations');
+
+    // 28 States + 8 UTs = 36 total territories
+    expect(INDIAN_STATES.length).toBeGreaterThanOrEqual(36);
+    expect(INDIAN_STATES).toContain('Uttar Pradesh');
+    expect(INDIAN_STATES).toContain('Maharashtra');
+    expect(INDIAN_STATES).toContain('Delhi');
+    expect(INDIAN_STATES).toContain('Tamil Nadu');
+    expect(INDIAN_STATES).toContain('Karnataka');
+    expect(INDIAN_STATES).toContain('West Bengal');
+
+    // City cascading
+    const upCities = getCitiesForState('Uttar Pradesh');
+    expect(upCities).toContain('Ghazipur');
+    expect(upCities).toContain('Lucknow');
+    expect(upCities).toContain('Varanasi');
+    expect(upCities).not.toContain('Mumbai');
+
+    const mhCities = getCitiesForState('Maharashtra');
+    expect(mhCities).toContain('Mumbai');
+    expect(mhCities).toContain('Pune');
+    expect(mhCities).not.toContain('Ghazipur');
+
+    const empty = getCitiesForState('NonExistentState');
+    expect(empty).toEqual([]);
+  });
 });

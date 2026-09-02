@@ -438,6 +438,31 @@ export const SettingsCenter: React.FC = () => {
                   State affiliation is permanently linked to your student account and cannot be modified.
                 </p>
               </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-gray-700 dark:text-gray-300">
+                    City
+                  </label>
+                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800/50">
+                    Locked &bull; Assigned during registration
+                  </span>
+                </div>
+                <Input
+                  value={
+                    user?.cityName ||
+                    (user?.id ? dataService.getUserById(String(user.id))?.cityName : undefined) ||
+                    (user?.email ? dataService.getUserByEmail(user.email)?.cityName : undefined) ||
+                    'Not provided'
+                  }
+                  disabled
+                  readOnly
+                  className="bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 cursor-not-allowed border-dashed"
+                />
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  City affiliation is permanently linked to your student account and cannot be modified.
+                </p>
+              </div>
             </div>
           </div>
         )}
