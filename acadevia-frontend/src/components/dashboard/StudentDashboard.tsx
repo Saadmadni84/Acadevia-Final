@@ -479,44 +479,49 @@ export const StudentDashboard: React.FC = () => {
           <p className="text-xs text-gray-500 font-medium">Class {studentClass} core syllabus coverage</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4.5">
           {subjectsProgress.map((sub) => (
             <div
               key={sub.name}
               onClick={() => navigate(ROUTES.COURSES)}
               className={cn(
-                'group relative overflow-hidden rounded-3xl border bg-white dark:bg-card-dark transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between',
+                'group relative rounded-3xl border bg-white dark:bg-card-dark transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 cursor-pointer flex flex-col min-h-[230px]',
                 sub.cardBorder
               )}
             >
-              {/* Visual Subject Artwork Header */}
-              <div className={cn('relative h-20 w-full p-3.5 overflow-hidden flex items-center justify-between bg-gradient-to-r text-white', sub.headerGradient)}>
-                <div className="relative z-10 flex items-center gap-2">
-                  <span className="text-xl">{sub.icon}</span>
-                  <span className="text-xs font-extrabold tracking-wide uppercase">{sub.name}</span>
+              {/* Visual Subject Artwork Header (Decorative artwork clipped only within header) */}
+              <div className={cn('relative h-20 w-full p-4 rounded-t-[23px] overflow-hidden flex items-center justify-between bg-gradient-to-r text-white shrink-0', sub.headerGradient)}>
+                <div className="relative z-10 flex items-center gap-2.5 min-w-0 pr-16">
+                  <span className="text-2xl shrink-0">{sub.icon}</span>
+                  <span className="text-xs font-black tracking-wider uppercase leading-snug break-words line-clamp-2">
+                    {sub.name}
+                  </span>
                 </div>
-                <div className="absolute right-0 top-0 bottom-0 w-24 flex items-center justify-end pointer-events-none pr-2">
+                <div className="absolute right-0 top-0 bottom-0 w-28 flex items-center justify-end pointer-events-none pr-3 opacity-75 group-hover:scale-105 transition-transform duration-500">
                   {sub.svgMini}
                 </div>
               </div>
 
-              {/* Content & Progress */}
-              <div className="p-4.5 space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500 font-semibold">{sub.completed} / {sub.total} chapters</span>
-                  <span className={cn('font-extrabold', sub.textColor)}>{sub.progressPct}%</span>
+              {/* Content & Progress Area (flex-1 with mt-auto footer so nothing is cut off) */}
+              <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500 dark:text-gray-400 font-semibold">{sub.completed} / {sub.total} chapters</span>
+                    <span className={cn('font-extrabold text-xs', sub.textColor)}>{sub.progressPct}%</span>
+                  </div>
+
+                  <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                    <div
+                      className={cn('h-full rounded-full transition-all duration-500', sub.barColor)}
+                      style={{ width: `${sub.progressPct}%` }}
+                    />
+                  </div>
                 </div>
 
-                <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                  <div
-                    className={cn('h-full rounded-full transition-all duration-500', sub.barColor)}
-                    style={{ width: `${sub.progressPct}%` }}
-                  />
-                </div>
-
-                <div className="pt-1 flex items-center justify-between text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-primary transition-colors">
+                {/* Explore Syllabus Footer Button */}
+                <div className="pt-2 border-t border-gray-100/80 dark:border-gray-800/80 mt-auto flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors">
                   <span>Explore Syllabus</span>
-                  <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform text-primary" />
                 </div>
               </div>
             </div>
