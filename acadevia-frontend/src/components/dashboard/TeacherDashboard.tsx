@@ -176,7 +176,7 @@ export default function TeacherDashboard({
                   dataKey="avgScore"
                   name={t('dashboard.teacher.avgScore', 'Avg Score')}
                   radius={[6, 6, 0, 0]}
-                  onClick={(data) => setSelectedClass(data.className)}
+                  onClick={(data: any) => setSelectedClass(data?.className ?? null)}
                   cursor="pointer"
                 >
                   {classPerformance.map((_, i) => (

@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run --environment jsdom",
+    "simulate:class10": "vitest run src/__tests__/simulation/class10LiveSimulation.test.ts --environment jsdom"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

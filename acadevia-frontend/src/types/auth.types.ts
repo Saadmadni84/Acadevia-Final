@@ -36,10 +36,12 @@ export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
+  name?: string;
   role: string;
   avatarUrl?: string;
   schoolName?: string;
   className?: string;
+  classGrade?: number;
   section?: string;
   cityName?: string;
   stateName?: string;
@@ -47,6 +49,13 @@ export interface AuthUser {
   board?: string;
   joinedAt?: string;
   languagePreference: string;
+  level?: number;
+  xp?: number;
+  streak?: number;
+  longestStreak?: number;
+  coursesCompleted?: number;
+  quizzesTaken?: number;
+  hoursLearned?: number;
 }
 export interface ForgotPasswordRequest { email: string; }
 export interface OTPVerifyRequest { email: string; otp: string; }
