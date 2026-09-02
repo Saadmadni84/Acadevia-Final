@@ -4,6 +4,10 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { ROUTES } from '@/config/routes.config';
+import { dataService } from '@/services/data.service';
 import {
   Plus,
   Trash2,
@@ -50,8 +54,14 @@ const difficultyColors: Record<string, string> = {
 
 const QuizCreator: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+
+  const [classGrade, setClassGrade] = useState(10);
+  const [subject, setSubject] = useState('Mathematics');
   const [previewMode, setPreviewMode] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [published, setPublished] = useState(false);
 
   const {
     register,
@@ -67,7 +77,17 @@ const QuizCreator: React.FC = () => {
       description: '',
       timeLimit: 30,
       difficulty: 'medium',
-      questions: [],
+      questions: [
+        {
+          id: 'q-init-1',
+          text: '',
+          options: ['', '', '', ''],
+          correctAnswer: 0,
+          hint: '',
+          explanation: '',
+          difficulty: 'medium',
+        },
+      ],
     },
   });
 
@@ -108,7 +128,31 @@ const QuizCreator: React.FC = () => {
   };
 
   const onPublish = (data: QuizForm) => {
-    console.log('Published:', data);
+    const teacherId = user?.id || '8';
+    const teacherName = user?.fullName || 'Dr. Priya Sharma';
+    dataService.createQuiz({
+      teacherId,
+      teacherName,
+      classGrade: Number(classGrade),
+      subject,
+      title: data.title,
+      description: data.description,
+      timeLimit: (data.timeLimit || 5) * 60,
+      difficulty: data.difficulty,
+      questions: data.questions.map((q, idx) => ({
+        id: q.id || `q-${idx}`,
+        question: q.text,
+        options: q.options,
+        correctIndex: q.correctAnswer,
+        explanation: q.explanation,
+        points: 10,
+        topic: data.title,
+      })),
+    });
+    setPublished(true);
+    setTimeout(() => {
+      navigate(ROUTES.TEACHER_DASHBOARD);
+    }, 1200);
   };
 
   const optionLabels = ['A', 'B', 'C', 'D'];
@@ -167,6 +211,45 @@ const QuizCreator: React.FC = () => {
               readOnly={previewMode}
             />
             {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Target Class (1–12)
+            </label>
+            <select
+              value={classGrade}
+              onChange={(e) => setClassGrade(Number(e.target.value))}
+              disabled={previewMode}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((cls) => (
+                <option key={cls} value={cls}>
+                  Class {cls}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Subject
+            </label>
+            <select
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              disabled={previewMode}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition"
+            >
+              <option value="Mathematics">Mathematics</option>
+              <option value="Science">Science</option>
+              <option value="Physics">Physics</option>
+              <option value="Chemistry">Chemistry</option>
+              <option value="Biology">Biology</option>
+              <option value="English">English</option>
+              <option value="Social Science">Social Science</option>
+              <option value="Computer">Computer</option>
+            </select>
           </div>
 
           <div>
@@ -366,6 +449,27 @@ const QuizCreator: React.FC = () => {
         </motion.button>
       )}
 
+      {/* Validation or Success Feedback */}
+      {Object.keys(errors).length > 0 && (
+        <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-semibold flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            {errors.title?.message ||
+              errors.description?.message ||
+              (errors.questions as any)?.message ||
+              (errors.questions as any)?.root?.message ||
+              'Please complete all required fields and options before publishing.'}
+          </span>
+        </div>
+      )}
+
+      {published && (
+        <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-sm font-bold flex items-center gap-2">
+          <CheckCircle2 className="h-5 w-5 shrink-0" />
+          <span>Quiz published successfully! Redirecting to dashboard...</span>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex justify-end gap-3">
         <button
@@ -379,7 +483,8 @@ const QuizCreator: React.FC = () => {
         <button
           type="button"
           onClick={handleSubmit(onPublish)}
-          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shadow-sm"
+          disabled={published}
+          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
         >
           <Send className="h-4 w-4" />
           {t('teacher.quiz.publish', 'Publish')}

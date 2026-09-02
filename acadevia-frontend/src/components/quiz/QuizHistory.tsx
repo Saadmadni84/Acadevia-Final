@@ -130,7 +130,7 @@ const QuizHistory: React.FC<QuizHistoryProps> = ({ attempts, onReviewAttempt }) 
                     borderRadius: '0.5rem',
                     fontSize: 12,
                   }}
-                  formatter={(value: number) => [`${value}%`, t('quiz.score', 'Score')]}
+                  formatter={(value: any) => [`${value}%`, t('quiz.score', 'Score')]}
                 />
                 <Line
                   type="monotone"

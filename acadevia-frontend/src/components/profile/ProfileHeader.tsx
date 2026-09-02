@@ -1,12 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Edit3, Info, Sparkles, Award, ArrowLeft } from 'lucide-react';
-import { Avatar } from '@/components/ui/Avatar';
+import { Camera, Info, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface ProfileHeaderProps {
   name: string;
-  email: string;
+  email?: string;
   avatar?: string;
   phone?: string;
   school?: string;
@@ -27,19 +26,9 @@ interface ProfileHeaderProps {
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   name,
-  email,
   avatar,
-  phone,
-  school,
-  classNameVal,
-  section,
-  stateName,
-  cityName,
-  board,
-  language,
   level,
   totalXP,
-  role = 'Student',
   onEdit,
   onAvatarChange,
 }) => {

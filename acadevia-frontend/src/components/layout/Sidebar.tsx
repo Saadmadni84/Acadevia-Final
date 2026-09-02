@@ -11,7 +11,7 @@ import { getXPForNextLevel, LEVEL_NAMES } from '@/lib/constants';
 import {
   Home, BookOpen, Gamepad2, Trophy, User, Settings,
   Download, ChevronLeft, ChevronRight, Flame,
-  GraduationCap, BarChart3, Users, Shield
+  GraduationCap, BarChart3, Users, Shield, Brain
 } from 'lucide-react';
 
 interface SidebarProps { collapsed: boolean; onToggle: () => void; }
@@ -26,6 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   const studentLinks = [
     { to: ROUTES.DASHBOARD, icon: Home, label: t('nav.home') },
     { to: ROUTES.COURSES, icon: BookOpen, label: t('nav.courses') },
+    { to: ROUTES.QUIZZES, icon: Brain, label: 'Quizzes' },
     { to: ROUTES.GAMES, icon: Gamepad2, label: t('nav.games') },
     { to: ROUTES.LEADERBOARD, icon: Trophy, label: t('nav.leaderboard') },
     { to: ROUTES.DOWNLOADS, icon: Download, label: t('nav.downloads') },
@@ -39,6 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
     { to: ROUTES.TEACHER_QUIZ_CREATE, icon: GraduationCap, label: 'Create Quiz' },
     { to: ROUTES.TEACHER_STUDENTS, icon: Users, label: 'Students' },
     { to: ROUTES.TEACHER_ANALYTICS, icon: BarChart3, label: 'Analytics' },
+    { to: ROUTES.PROFILE, icon: User, label: t('nav.profile', 'Profile') },
   ];
 
   const adminLinks = [

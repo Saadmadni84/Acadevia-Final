@@ -122,7 +122,11 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse login(LoginRequest request, String deviceInfo, String ipAddress) {
-        User user = userRepository.findByEmail(request.getEmail())
+        String identifier = request.getEmail() != null ? request.getEmail().trim() : "";
+        User user = userRepository.findByEmail(identifier)
+                .or(() -> userRepository.findByStudentSchoolId(identifier))
+                .or(() -> userRepository.findByEmail(identifier + "@demo.acadevia.com"))
+                .or(() -> userRepository.findByEmail(identifier + "@acadevia.com"))
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
         if (!user.getIsActive()) {

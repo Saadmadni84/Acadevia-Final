@@ -1,15 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Gamepad2, Trophy, Download, BookOpen } from 'lucide-react';
+import { Gamepad2, Trophy, BookOpen, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/config/routes.config';
 
 const actions = [
   { to: ROUTES.COURSES, icon: BookOpen, label: 'Courses', color: 'bg-[#5B2C6F]', lightBg: 'bg-[#5B2C6F]/5 dark:bg-[#5B2C6F]/10' },
+  { to: ROUTES.QUIZZES, icon: Brain, label: 'Quizzes', color: 'bg-[#7B3F95]', lightBg: 'bg-[#7B3F95]/5 dark:bg-[#7B3F95]/10' },
   { to: ROUTES.GAMES, icon: Gamepad2, label: 'Games', color: 'bg-[#D4A843]', lightBg: 'bg-[#D4A843]/5 dark:bg-[#D4A843]/10' },
-  { to: ROUTES.LEADERBOARD, icon: Trophy, label: 'Leaderboard', color: 'bg-[#7B3F95]', lightBg: 'bg-[#7B3F95]/5 dark:bg-[#7B3F95]/10' },
-  { to: ROUTES.DOWNLOADS, icon: Download, label: 'Downloads', color: 'bg-[#E74C3C]', lightBg: 'bg-[#E74C3C]/5 dark:bg-[#E74C3C]/10' },
+  { to: ROUTES.LEADERBOARD, icon: Trophy, label: 'Leaderboard', color: 'bg-[#E74C3C]', lightBg: 'bg-[#E74C3C]/5 dark:bg-[#E74C3C]/10' },
 ];
 
 const QuickActions: React.FC<{ className?: string }> = ({ className }) => (
