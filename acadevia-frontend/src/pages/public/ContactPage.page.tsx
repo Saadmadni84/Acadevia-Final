@@ -70,7 +70,6 @@ const ContactPage: React.FC = () => {
     }
 
     setLoading(true);
-    // Simulate structured handler for future API integration
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsSubmitted(true);
