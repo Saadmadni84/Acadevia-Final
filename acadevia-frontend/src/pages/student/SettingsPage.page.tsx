@@ -1,12 +1,12 @@
 import React from 'react';
-import { PageHeader } from '@/components/common/PageHeader';
-import { SettingsForm } from '@/components/profile/SettingsForm';
+import { SettingsCenter } from '@/components/settings/SettingsCenter';
 
-const SettingsPage: React.FC = () => (
-  <div className="space-y-6 p-1 max-w-2xl">
-    <PageHeader title="Settings" subtitle="Manage your preferences" />
-    <SettingsForm />
-  </div>
-);
+const SettingsPage: React.FC = () => {
+  return (
+    <div className="space-y-6">
+      <SettingsCenter />
+    </div>
+  );
+};
 
 export default SettingsPage;

@@ -76,10 +76,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
             key={link.to}
             to={link.to}
             className={({ isActive }) => cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all',
               isActive
-                ? 'bg-primary/10 text-primary'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                ? 'bg-primary/10 text-primary dark:text-blue-400 font-bold'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/70 dark:hover:bg-gray-800/50'
             )}
           >
             <link.icon className="h-5 w-5 flex-shrink-0" />

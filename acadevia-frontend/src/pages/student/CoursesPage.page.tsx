@@ -423,9 +423,9 @@ const CoursesPage: React.FC = () => {
             >
               <GraduationCap className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
               <span className="text-2xl font-bold text-gray-900 dark:text-white">Class {cls}</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">Class</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Syllabus & Videos</span>
               {count > 0 && (
-                <span className="text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-medium">
+                <span className="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-medium">
                   {count} video{count > 1 ? 's' : ''}
                 </span>
               )}
