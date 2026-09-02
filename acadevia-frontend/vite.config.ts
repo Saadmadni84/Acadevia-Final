@@ -6,18 +6,44 @@ import { createRequire } from 'module'
 
 const require = createRequire(import.meta.url)
 
+function parseBody(req: any): Promise<any> {
+  return new Promise((resolve) => {
+    let body = '';
+    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('end', () => {
+      try { resolve(body ? JSON.parse(body) : {}); }
+      catch { resolve({}); }
+    });
+  });
+}
+
 function databaseApiPlugin() {
   return {
     name: 'database-api-plugin',
     enforce: 'pre' as const,
     configureServer(server: any) {
-      server.middlewares.use((req: any, res: any, next: any) => {
+      server.middlewares.use(async (req: any, res: any, next: any) => {
         const parsedUrl = new URL(req.url || '', 'http://localhost:5173');
-        if (parsedUrl.pathname === '/api/v1/teacher/students') {
+        const pathname = parsedUrl.pathname;
+
+        // Set standard CORS & headers
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        if (req.method === 'OPTIONS') {
+          res.statusCode = 204;
+          res.end();
+          return;
+        }
+
+        delete require.cache[require.resolve('./src/scripts/databaseApi.cjs')];
+        const db = require('./src/scripts/databaseApi.cjs');
+
+        // 1. Full Shared State
+        if (pathname === '/api/v1/data/state' && req.method === 'GET') {
           try {
-            const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 10;
-            const { getTeacherStudentsFromDb } = require('./src/scripts/databaseApi.cjs');
-            const data = getTeacherStudentsFromDb(classGrade);
+            const data = db.getFullDatabaseState();
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 200, success: true, data }));
             return;
@@ -28,12 +54,29 @@ function databaseApiPlugin() {
             return;
           }
         }
-        if (parsedUrl.pathname === '/api/v1/teacher/analytics') {
+
+        // 2. Teacher Students
+        if (pathname === '/api/v1/teacher/students' && req.method === 'GET') {
+          try {
+            const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 10;
+            const data = db.getTeacherStudentsFromDb(classGrade);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 3. Teacher Analytics
+        if (pathname === '/api/v1/teacher/analytics' && req.method === 'GET') {
           try {
             const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 10;
             const subject = parsedUrl.searchParams.get('subject') || 'All';
-            const { getTeacherAnalyticsFromDb } = require('./src/scripts/databaseApi.cjs');
-            const data = getTeacherAnalyticsFromDb(classGrade, subject);
+            const data = db.getTeacherAnalyticsFromDb(classGrade, subject);
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 200, success: true, data }));
             return;
@@ -44,6 +87,130 @@ function databaseApiPlugin() {
             return;
           }
         }
+
+        // 4. Quizzes
+        if (pathname === '/api/v1/quizzes' && req.method === 'GET') {
+          try {
+            const data = db.getQuizzesFromDb();
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname === '/api/v1/quizzes' && req.method === 'POST') {
+          try {
+            const body = await parseBody(req);
+            const data = db.createQuizInDb(body);
+            res.statusCode = 201;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 201, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 5. Quiz Attempts / Submissions
+        if (pathname === '/api/v1/attempts' && req.method === 'GET') {
+          try {
+            const data = db.getQuizAttemptsFromDb();
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if ((pathname === '/api/v1/attempts' || pathname === '/api/v1/quiz-attempts') && req.method === 'POST') {
+          try {
+            const body = await parseBody(req);
+            const data = db.submitAttemptToDb(body);
+            res.statusCode = 201;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 201, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 6. Content Items
+        if (pathname === '/api/v1/content/items' && req.method === 'GET') {
+          try {
+            const data = db.getContentItemsFromDb();
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname === '/api/v1/content/items' && req.method === 'POST') {
+          try {
+            const body = await parseBody(req);
+            const data = db.createContentItemInDb(body);
+            res.statusCode = 201;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 201, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname.startsWith('/api/v1/content/items/') && req.method === 'DELETE') {
+          try {
+            const id = pathname.replace('/api/v1/content/items/', '');
+            db.deleteContentItemFromDb(id);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 7. Users
+        if (pathname === '/api/v1/users' && req.method === 'GET') {
+          try {
+            const data = db.getUsersFromDb();
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
         next();
       });
     },

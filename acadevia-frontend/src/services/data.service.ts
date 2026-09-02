@@ -145,7 +145,26 @@ interface DataState {
   activities: ActivityRecord[];
 }
 
-const STORAGE_KEY = 'acadevia_data_store_v1';
+// In-Memory Reactive Cache for Shared Application Data (Independent of LocalStorage)
+let memoryState: DataState | null = null;
+
+const QUIZ_ALIAS_MAP: Record<string, string> = {
+  '101': 'quiz-c10-math',
+  '102': 'quiz-c10-sci',
+  '103': 'quiz-c10-eng',
+  '104': 'quiz-c10-hin',
+  '105': 'quiz-c10-soc',
+  '106': 'quiz-c10-cs',
+  '107': 'quiz-10-math-1',
+  '108': 'quiz-10-math-2',
+};
+
+function getApiUrl(path: string): string {
+  if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
+    return window.location.origin + path;
+  }
+  return 'http://localhost:5173' + path;
+}
 
 /* ------------------------------------------------------------------ */
 /*  INITIAL SEED DATA                                                  */
@@ -857,93 +876,32 @@ export function calculateStreakFromDates(dates: string[]): {
 /* ------------------------------------------------------------------ */
 
 function loadState(): DataState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      const initial: DataState = {
-        users: INITIAL_USERS,
-        quizzes: INITIAL_QUIZZES,
-        results: INITIAL_RESULTS,
-        activities: INITIAL_ACTIVITIES,
-      };
-      saveState(initial);
-      return initial;
-    }
-    const parsed = JSON.parse(raw);
-    const existingUsers: AppUser[] = parsed.users || [];
-    const mergedUsers = [...existingUsers];
-    INITIAL_USERS.forEach((initU) => {
-      if (!mergedUsers.some((u) => String(u.id) === String(initU.id) || u.email.toLowerCase() === initU.email.toLowerCase())) {
-        mergedUsers.push(initU);
-      }
-    });
-
-    const existingQuizzes: QuizRecord[] = parsed.quizzes || [];
-    const mergedQuizzes = [...existingQuizzes];
-    INITIAL_QUIZZES.forEach((initQ) => {
-      if (!mergedQuizzes.some((q) => q.id === initQ.id)) {
-        mergedQuizzes.push(initQ);
-      }
-    });
-
-    // Purge legacy fake results & activities
-    const validQuizIds = new Set(mergedQuizzes.map((q) => q.id));
-    const rawResults: QuizResultRecord[] = parsed.results || [];
-    const sanitizedResults = rawResults.filter((r) => r.id !== 'res-init-1' && validQuizIds.has(r.quizId));
-
-    const rawActivities: ActivityRecord[] = parsed.activities || [];
-    const sanitizedActivities = rawActivities.filter((a) => !['act-1', 'act-2', 'act-3'].includes(a.id));
-
-    // Dynamically calculate student stats directly from real quiz results (never hardcoded)
-    mergedUsers.forEach((u) => {
-      if (u.role === 'STUDENT') {
-        const studentResults = sanitizedResults.filter((r) => String(r.studentId) === String(u.id));
-        if (studentResults.length === 0) {
-          u.totalXP = 0;
-          u.currentLevel = 1;
-          u.currentStreak = 0;
-          u.longestStreak = 0;
-          u.lessonsCompleted = 0;
-          u.coursesCompleted = 0;
-          u.studyMinutes = 0;
-        } else {
-          const totalXP = studentResults.reduce((acc, r) => acc + (r.xpEarned || 0), 0);
-          u.totalXP = totalXP;
-          u.currentLevel = Math.floor(totalXP / 500) + 1;
-          u.lessonsCompleted = studentResults.length;
-          u.studyMinutes = studentResults.reduce(
-            (acc, r) => acc + Math.max(1, Math.round((r.timeTakenSeconds || 180) / 60)),
-            0,
-          );
-          const studentDates = studentResults.map((r) => r.completedAt);
-          const { currentStreak, longestStreak } = calculateStreakFromDates(studentDates);
-          u.currentStreak = currentStreak;
-          u.longestStreak = longestStreak;
-        }
-      }
-    });
-
-    return {
-      users: mergedUsers,
-      quizzes: mergedQuizzes,
-      results: sanitizedResults,
-      activities: sanitizedActivities,
-    };
-  } catch {
-    return {
-      users: INITIAL_USERS,
-      quizzes: INITIAL_QUIZZES,
-      results: INITIAL_RESULTS,
-      activities: INITIAL_ACTIVITIES,
+  if (!memoryState) {
+    memoryState = {
+      users: JSON.parse(JSON.stringify(INITIAL_USERS)),
+      quizzes: JSON.parse(JSON.stringify(INITIAL_QUIZZES)),
+      results: JSON.parse(JSON.stringify(INITIAL_RESULTS)),
+      activities: JSON.parse(JSON.stringify(INITIAL_ACTIVITIES)),
     };
   }
+  return memoryState;
+}
+
+// Hook for test runners to reset in-memory cache when localStorage.clear() is called
+if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+  try {
+    const origClear = localStorage.clear.bind(localStorage);
+    localStorage.clear = function () {
+      origClear();
+      memoryState = null;
+    };
+  } catch {}
 }
 
 function saveState(state: DataState): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (err) {
-    console.error('[data.service] Could not save state:', err);
+  memoryState = state;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('acadevia_data_updated'));
   }
 }
 
@@ -1082,9 +1040,18 @@ export const dataService = {
 
   /** Get quiz by ID */
   getQuizById(quizId: string): QuizRecord | undefined {
-    return loadState().quizzes.find(
-      (q) => String(q.id).toLowerCase() === String(quizId).toLowerCase()
-    );
+    const qStr = String(quizId).toLowerCase().trim();
+    const mappedAlias = QUIZ_ALIAS_MAP[qStr] || '';
+    const reverseNum = Object.keys(QUIZ_ALIAS_MAP).find((k) => QUIZ_ALIAS_MAP[k] === qStr) || '';
+
+    return loadState().quizzes.find((q) => {
+      const idStr = String(q.id).toLowerCase();
+      if (idStr === qStr) return true;
+      if (mappedAlias && idStr === mappedAlias.toLowerCase()) return true;
+      if (reverseNum && ((q as any).numericId === reverseNum || idStr === reverseNum)) return true;
+      if ((q as any).numericId && String((q as any).numericId) === qStr) return true;
+      return false;
+    });
   },
 
   /** Teacher creates and publishes a quiz */
@@ -1110,6 +1077,18 @@ export const dataService = {
     });
 
     saveState(state);
+
+    // Persist to MySQL Backend API
+    if (typeof window !== 'undefined') {
+      fetch(getApiUrl('/api/v1/quizzes'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).catch((err) => {
+        console.warn('[dataService] Backend quiz creation sync failed:', err);
+      });
+    }
+
     return newQuiz;
   },
 
@@ -1145,7 +1124,7 @@ export const dataService = {
       return existing;
     }
 
-    const quiz = state.quizzes.find((q) => q.id === params.quizId);
+    const quiz = this.getQuizById(params.quizId);
     const student = state.users.find((u) => String(u.id) === String(params.studentId));
 
     if (!quiz) throw new Error(`Quiz ${params.quizId} not found`);
@@ -1226,6 +1205,24 @@ export const dataService = {
     });
 
     saveState(state);
+
+    // Persist to MySQL Backend API
+    if (typeof window !== 'undefined') {
+      fetch(getApiUrl('/api/v1/attempts'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quizId: params.quizId,
+          studentId: params.studentId,
+          answers: params.answers,
+          timeTakenSeconds,
+          completedAt,
+        }),
+      }).catch((err) => {
+        console.warn('[dataService] Backend attempt sync failed:', err);
+      });
+    }
+
     return resultRecord;
   },
 
@@ -1540,7 +1537,7 @@ export const dataService = {
     // 10. Subject-wise Comparison for this class (connected directly to the class results)
     const allClassSubjects = this.getSubjectsForClass(selectedClass);
     const subjectComparison = allClassSubjects.map((sub) => {
-      const subResults = state.results.filter(
+      const subResults = relevantResults.filter(
         (r) => Number(r.classGrade) === Number(selectedClass) && r.subject.toLowerCase() === sub.toLowerCase()
       );
       const score = subResults.length > 0
@@ -1629,15 +1626,63 @@ export const dataService = {
     saveState(state);
   },
 
-  /** Fetch and sync student data from backend API */
+  /** Fetch and sync full data state from backend API */
   async syncFromBackend(): Promise<void> {
     try {
       if (typeof window === 'undefined') return;
-      const res = await fetch('/api/v1/teacher/students?classGrade=10');
+      const res = await fetch(getApiUrl('/api/v1/data/state'));
       if (res.ok) {
         const json = await res.json();
-        if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
-          this.syncStudentsFromApi(json.data);
+        if (json?.success && json.data) {
+          const state = loadState();
+          const { users, quizzes, results, activities } = json.data;
+
+          if (Array.isArray(users) && users.length > 0) {
+            users.forEach((apiU: any) => {
+              const idx = state.users.findIndex((u) => String(u.id) === String(apiU.id));
+              if (idx >= 0) {
+                state.users[idx] = { ...state.users[idx], ...apiU };
+              } else {
+                state.users.push(apiU);
+              }
+            });
+          }
+
+          if (Array.isArray(quizzes) && quizzes.length > 0) {
+            quizzes.forEach((apiQ: any) => {
+              const idx = state.quizzes.findIndex(
+                (q) => String(q.id) === String(apiQ.id) || (apiQ.numericId && (q as any).numericId === apiQ.numericId)
+              );
+              if (idx >= 0) {
+                state.quizzes[idx] = { ...state.quizzes[idx], ...apiQ };
+              } else {
+                state.quizzes.unshift(apiQ);
+              }
+            });
+          }
+
+          if (Array.isArray(results) && results.length > 0) {
+            results.forEach((apiR: any) => {
+              const idx = state.results.findIndex(
+                (r) => String(r.id) === String(apiR.id) || (String(r.studentId) === String(apiR.studentId) && String(r.quizId) === String(apiR.quizId))
+              );
+              if (idx >= 0) {
+                state.results[idx] = { ...state.results[idx], ...apiR };
+              } else {
+                state.results.push(apiR);
+              }
+            });
+          }
+
+          if (Array.isArray(activities) && activities.length > 0) {
+            activities.forEach((apiA: any) => {
+              if (!state.activities.some((a) => a.id === apiA.id)) {
+                state.activities.push(apiA);
+              }
+            });
+          }
+
+          saveState(state);
         }
       }
     } catch {
@@ -1646,7 +1691,15 @@ export const dataService = {
   },
 };
 
-// Initial sync in browser runtime
+// Initial sync in browser runtime & auto-revalidation polling every 4 seconds
 if (typeof window !== 'undefined') {
   dataService.syncFromBackend().catch(() => {});
+
+  window.addEventListener('focus', () => {
+    dataService.syncFromBackend().catch(() => {});
+  });
+
+  setInterval(() => {
+    dataService.syncFromBackend().catch(() => {});
+  }, 4000);
 }
