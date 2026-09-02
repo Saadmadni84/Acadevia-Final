@@ -55,17 +55,17 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   return (
     <motion.aside
       animate={{ width: collapsed ? 72 : 260 }}
-      className="hidden lg:flex flex-col h-screen bg-white dark:bg-card-dark border-r border-gray-200 dark:border-gray-800 fixed left-0 top-0 z-30"
+      className="hidden lg:flex flex-col h-screen bg-[#FDFCF9] dark:bg-card-dark border-r border-[#E7E1D8] dark:border-[#382447] fixed left-0 top-0 z-30"
     >
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex items-center justify-between p-4 border-b border-[#E7E1D8] dark:border-[#382447]">
         <AnimatePresence>
           {!collapsed && (
-            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xl font-bold gradient-text">
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xl font-extrabold text-primary dark:text-purple-300">
               Acadevia
             </motion.span>
           )}
         </AnimatePresence>
-        <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="Toggle sidebar">
+        <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-[#172033] dark:text-gray-300" aria-label="Toggle sidebar">
           {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </button>
       </div>
@@ -78,8 +78,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
             className={({ isActive }) => cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all',
               isActive
-                ? 'bg-primary/10 text-primary dark:text-blue-400 font-bold'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/70 dark:hover:bg-gray-800/50'
+                ? 'bg-primary/10 text-primary dark:text-purple-300 font-bold border border-primary/20'
+                : 'text-[#647084] dark:text-gray-400 hover:text-[#172033] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
             )}
           >
             <link.icon className="h-5 w-5 flex-shrink-0" />
@@ -95,20 +95,26 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       </nav>
 
       {role === 'STUDENT' && (
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
+        <div className="p-4 border-t border-[#E7E1D8] dark:border-[#382447] space-y-3">
           {streak > 0 && (
             <div className="flex items-center gap-2">
-              <Flame className="h-5 w-5 text-accent animate-pulse" />
-              {!collapsed && <span className="text-sm font-medium">{streak} {t('dashboard.streak', { count: streak })}</span>}
+              <Flame className="h-5 w-5 text-streak fill-current" />
+              <AnimatePresence>
+                {!collapsed && (
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-sm font-bold text-streak">
+                    {streak} Day Streak
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </div>
           )}
           {!collapsed && (
-            <div>
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Level {level} — {LEVEL_NAMES[level - 1]}</span>
-                <span>{xpInfo.current}/{xpInfo.needed} XP</span>
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-semibold text-[#647084] dark:text-gray-400">
+                <span>Level {level} ({LEVEL_NAMES[level] || 'Scholar'})</span>
+                <span className="font-bold text-primary dark:text-purple-300">{xp} XP</span>
               </div>
-              <Progress value={xpInfo.current} max={xpInfo.needed} gradient size="sm" />
+              <Progress value={xpInfo.progress} size="sm" variant="gradient" />
             </div>
           )}
         </div>
@@ -118,3 +124,4 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
 };
 
 export { Sidebar };
+export default Sidebar;

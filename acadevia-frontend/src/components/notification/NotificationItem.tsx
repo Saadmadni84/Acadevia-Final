@@ -105,7 +105,7 @@ export default function NotificationItem({
       className={`group flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
         isRead
           ? 'border-transparent bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50'
-          : 'border-indigo-100 bg-indigo-50/50 hover:bg-indigo-50 dark:border-indigo-900/40 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/30'
+          : 'border-primary/20 bg-primary/10 hover:bg-primary/15 dark:border-primary/30 dark:bg-primary/20 dark:hover:bg-primary/25'
       }`}
       onClick={handleClick}
       tabIndex={0}
@@ -141,7 +141,7 @@ export default function NotificationItem({
       <div className="flex shrink-0 items-center gap-2">
         {!isRead && (
           <span
-            className="h-2 w-2 rounded-full bg-indigo-500"
+            className="h-2 w-2 rounded-full bg-primary"
             aria-hidden="true"
           />
         )}

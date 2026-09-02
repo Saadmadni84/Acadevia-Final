@@ -140,11 +140,11 @@ const QuizReview: React.FC<QuizReviewProps> = ({ questions, result, onBackToCour
 
               {/* Explanation */}
               {q.explanation && (
-                <div className="ml-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3">
-                  <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-0.5">
+                <div className="ml-10 rounded-lg bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 p-3">
+                  <p className="text-xs font-semibold text-primary dark:text-purple-300 mb-0.5">
                     {t('quiz.explanation', 'Explanation')}
                   </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">{q.explanation}</p>
+                  <p className="text-xs text-[#172033] dark:text-gray-300">{q.explanation}</p>
                 </div>
               )}
             </motion.div>
