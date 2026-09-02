@@ -88,10 +88,10 @@ const RegisterForm: React.FC = () => {
       console.error('Response data:', err?.response?.data);
       console.error('Response status:', err?.response?.status);
       const data = err?.response?.data;
-      const msg = data?.message || data?.error || data?.detail || 
-                  (data?.errors ? Object.values(data.errors).join(', ') : null) ||
-                  (typeof data === 'string' ? data : null) ||
-                  err?.message || 'Registration failed.';
+      const msg = data?.message || data?.error || data?.detail ||
+        (data?.errors ? Object.values(data.errors).join(', ') : null) ||
+        (typeof data === 'string' ? data : null) ||
+        err?.message || 'Registration failed.';
       setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setLoading(false);

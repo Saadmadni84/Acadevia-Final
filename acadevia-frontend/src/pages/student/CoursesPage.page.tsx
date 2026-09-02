@@ -36,6 +36,7 @@ export const CoursesPage: React.FC = () => {
 
   // Default to student's class grade if student
   const studentGrade = user?.role === 'STUDENT' && user.classGrade ? Number(user.classGrade) : null;
+  const schoolDisplayName = user?.schoolName || (user?.id ? dataService.getUserById(String(user.id))?.schoolName : undefined) || 'School not assigned';
 
   const [view, setView] = useState<View>('school');
   const [selectedClass, setSelectedClass] = useState<number | null>(studentGrade || 10);
@@ -149,7 +150,7 @@ export const CoursesPage: React.FC = () => {
         </div>
         <div className="text-left flex-1">
           <p className="text-lg font-semibold text-gray-900 dark:text-white">
-            Shah Faiz Public School
+            {schoolDisplayName}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Classes 1–12 &bull; {allItems.length} learning item{allItems.length !== 1 ? 's' : ''} available
@@ -165,7 +166,8 @@ export const CoursesPage: React.FC = () => {
   /* ================================================================== */
   const renderClass = () => (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      key="class"
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       className="space-y-6"
@@ -179,7 +181,7 @@ export const CoursesPage: React.FC = () => {
           <ArrowLeft className="h-5 w-5 text-gray-500" />
         </button>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Shah Faiz Public School</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{schoolDisplayName}</h2>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Select your academic class</p>
         </div>
       </div>
