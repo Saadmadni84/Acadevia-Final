@@ -38,6 +38,9 @@ public class JwtService {
         claims.put("email", user.getEmail());
         claims.put("role", user.getRole().name());
         claims.put("firstName", user.getFirstName());
+        claims.put("lastName", user.getLastName());
+        String fullName = (user.getFirstName() + " " + (user.getLastName() != null ? user.getLastName() : "")).trim();
+        claims.put("fullName", fullName);
         if (user.getSchoolId() != null) claims.put("schoolId", user.getSchoolId());
         if (user.getStateId() != null) claims.put("stateId", user.getStateId());
         if (user.getClassGrade() != null) claims.put("classGrade", user.getClassGrade());

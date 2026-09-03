@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuthUser } from '@/types/auth.types';
+import { queryClient } from '@/providers/QueryProvider';
 
 interface AuthState {
   user: AuthUser | null;
@@ -28,7 +29,14 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user }),
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setLoading: (isLoading) => set({ isLoading }),
-      logout: () => set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false }),
+      logout: () => {
+        try {
+          queryClient.clear();
+        } catch {
+          // ignore if called outside react lifecycle
+        }
+        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false });
+      },
     }),
     {
       name: 'acadevia-auth',

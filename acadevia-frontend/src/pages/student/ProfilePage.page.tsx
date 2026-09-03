@@ -33,6 +33,8 @@ const ProfilePage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const user = useAuthStore((state) => state.user);
   const [badgeFilter, setBadgeFilter] = useState<'all' | 'earned' | 'locked'>('all');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [, setSyncCount] = useState(0);
 
   const queryStudentId = searchParams.get('id') || searchParams.get('studentId');
@@ -49,30 +51,47 @@ const ProfilePage: React.FC = () => {
     };
   }, []);
 
-  // 1. User Profile Data from /api/v1/users/me
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      await userService.uploadAvatar(file);
+      setSyncCount((c) => c + 1);
+    } catch (err: any) {
+      setUploadError(err.message || 'Unable to update profile photo. Please try again.');
+      setTimeout(() => setUploadError(null), 5000);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // 1. User Profile Data from /api/v1/users/me (parameterized by authenticated user id)
   const { data: userProfile } = useQuery({
-    queryKey: ['user-profile'],
+    queryKey: ['user-profile', user?.id],
     queryFn: async () => (await userService.getProfile()).data.data,
     enabled: Boolean(user) && !isViewingOther,
   });
 
   // 2. Gamification Data from /api/v1/gamification/profile
   const { data: gamification } = useQuery({
-    queryKey: ['gamification-profile'],
+    queryKey: ['gamification-profile', user?.id],
     queryFn: async () => (await gamificationService.getProfile()).data.data,
     enabled: Boolean(user) && !isViewingOther,
   });
 
   // 3. Enrolled Courses from /api/v1/courses/enrolled
   const { data: enrolledCourses } = useQuery({
-    queryKey: ['enrolled-courses'],
+    queryKey: ['enrolled-courses', user?.id],
     queryFn: async () => (await courseService.getEnrolled()).data.data,
     enabled: Boolean(user) && !isViewingOther,
   });
 
   // 4. Student Analytics from /api/v1/analytics/student
   const { data: studentAnalytics } = useQuery({
-    queryKey: ['student-analytics'],
+    queryKey: ['student-analytics', user?.id],
     queryFn: async () => (await analyticsService.getStudentAnalytics()).data.data,
     enabled: Boolean(user) && !isViewingOther,
   });
@@ -93,6 +112,13 @@ const ProfilePage: React.FC = () => {
     : (userProfile ?? user);
 
   const studentId = queryStudentId || (user?.id ? String(user.id) : '20');
+  const studentName =
+    (profile as any)?.fullName ||
+    (profile as any)?.name ||
+    user?.fullName ||
+    userProfile?.fullName ||
+    (studentId ? dataService.getUserById(String(studentId))?.fullName : undefined) ||
+    'Student';
 
   // Retrieve actual student metrics from persistent data layer
   const metrics = dataService.getStudentMetrics(studentId);
@@ -181,7 +207,22 @@ const ProfilePage: React.FC = () => {
     (profile as any)?.cityName ||
     user?.cityName ||
     dataService.getUserById(studentId)?.cityName;
-  const phoneVal = (profile as any)?.phone || user?.phone;
+  const pinCodeVal =
+    (profile as any)?.pinCode ||
+    (profile as any)?.pincode ||
+    user?.pinCode ||
+    (user as any)?.pincode ||
+    dataService.getUserById(studentId)?.pinCode ||
+    dataService.getUserById(studentId)?.pincode;
+
+  const phoneVal =
+    (profile as any)?.phone ||
+    (profile as any)?.phoneNumber ||
+    user?.phone ||
+    (user as any)?.phoneNumber ||
+    (studentId ? dataService.getUserById(studentId)?.phone : undefined) ||
+    (studentId ? dataService.getUserById(studentId)?.phoneNumber : undefined);
+
   const boardVal = (profile as any)?.board || (user as any)?.board;
   const languageVal = (profile as any)?.languagePreference || user?.languagePreference || 'English';
 
@@ -193,17 +234,25 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4">
+      {uploadError && (
+        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center justify-between">
+          <span>{uploadError}</span>
+          <button type="button" onClick={() => setUploadError(null)} className="text-rose-500 hover:text-rose-700">✕</button>
+        </div>
+      )}
+
       {/* 1. Main Reference-Styled Profile Card */}
       <ProfileHeader
-        name={profile?.fullName || 'Student'}
+        name={studentName}
         email={profile?.email || ''}
-        avatar={profile?.avatarUrl}
+        avatar={profile?.avatarUrl || user?.avatarUrl || (studentId ? dataService.getUserById(studentId)?.avatarUrl : undefined)}
         phone={phoneVal}
         school={schoolDisplay}
         classNameVal={classNameVal}
         section={sectionVal}
         stateName={stateNameVal}
         cityName={cityNameVal}
+        pinCode={pinCodeVal}
         board={boardVal}
         language={languageVal}
         level={level}
@@ -211,6 +260,8 @@ const ProfilePage: React.FC = () => {
         badgeCount={earnedBadgesList.length}
         streak={streak}
         role={profile?.role || 'Student'}
+        isUploading={isUploading}
+        onAvatarChange={handleAvatarUpload}
         onEdit={() => navigate(ROUTES.SETTINGS || '/settings')}
       />
 

@@ -35,8 +35,9 @@ public class UserProfileController {
         String userId = request.getHeader("X-User-Id");
         String email = request.getHeader("X-User-Email");
         String role = request.getHeader("X-User-Role");
-        log.info("GET /me for userId={}, email={}, role={}", userId, email, role);
-        UserMeResponse response = userProfileService.buildMeResponse(userId, email, role);
+        String fullName = request.getHeader("X-User-Name");
+        log.info("GET /me for userId={}, email={}, role={}, fullName={}", userId, email, role, fullName);
+        UserMeResponse response = userProfileService.buildMeResponse(userId, email, role, fullName);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -47,12 +48,16 @@ public class UserProfileController {
         String userId = request.getHeader("X-User-Id");
         String email = request.getHeader("X-User-Email");
         String role = request.getHeader("X-User-Role");
+        String fullName = request.getHeader("X-User-Name");
         log.info("PUT /me for userId={}", userId);
         // Apply updates to profile if they exist
         if (userId != null) {
             userProfileService.applyMeUpdates(Long.parseLong(userId), updates);
         }
-        UserMeResponse response = userProfileService.buildMeResponse(userId, email, role);
+        if (updates.containsKey("fullName")) {
+            fullName = (String) updates.get("fullName");
+        }
+        UserMeResponse response = userProfileService.buildMeResponse(userId, email, role, fullName);
         return ResponseEntity.ok(ApiResponse.ok(response, "Profile updated successfully"));
     }
 

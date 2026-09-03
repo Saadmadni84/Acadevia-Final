@@ -1,23 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles,
   CheckCircle2,
   XCircle,
   ArrowRight,
-  RotateCcw,
   Hammer,
-  TreePine,
-  Crown,
   ArrowUp,
   ArrowDown,
   ArrowLeft,
-  Sparkle,
-  Train,
-  DoorOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import type { InteractiveMission, PetType, WorldId } from './types';
+import type { InteractiveMission, PetType } from './types';
 import { PET_COMPANIONS, KINGDOM_WORLDS } from './missionGenerator';
 import { cn } from '@/lib/utils';
 
@@ -39,7 +32,7 @@ export const InteractiveMissionView: React.FC<InteractiveMissionViewProps> = ({
   const worldConfig =
     KINGDOM_WORLDS.find((w) => w.id === mission.worldId) || KINGDOM_WORLDS[0];
 
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
 
   // Mission 1: Village Explorer Coordinates
   const [playerPos, setPlayerPos] = useState<{ x: number; y: number }>({ x: 50, y: 75 });
@@ -73,6 +66,7 @@ export const InteractiveMissionView: React.FC<InteractiveMissionViewProps> = ({
 
   // Mission 8: Royal Castle Trials
   const [castleTrialIndex, setCastleTrialIndex] = useState<number>(0);
+  const [adaptiveAnswer, setAdaptiveAnswer] = useState<number | string | null>(null);
 
   // Common Mission Resolution
   const [isResolved, setIsResolved] = useState<boolean>(false);
@@ -81,21 +75,25 @@ export const InteractiveMissionView: React.FC<InteractiveMissionViewProps> = ({
 
   useEffect(() => {
     startTimeRef.current = Date.now();
-    setPlayerPos({ x: 50, y: 75 });
-    setCollectedStars([]);
-    setVisitedHouse(null);
-    setBoardedCount(0);
-    setTrainDeparted(false);
-    setSelectedDoor(null);
-    setDoorOpen(false);
-    setSelectedPath(null);
-    setBridgeBlocksAdded(0);
-    setPlacedShapes({ roof: false, body: false, door: false, window: false });
-    setSelectedGardenItem(null);
-    setCastleTrialIndex(0);
-    setIsResolved(false);
-    setIsSuccess(null);
-    setFeedbackMessage('');
+    const resetTimer = window.setTimeout(() => {
+      setPlayerPos({ x: 50, y: 75 });
+      setCollectedStars([]);
+      setVisitedHouse(null);
+      setBoardedCount(0);
+      setTrainDeparted(false);
+      setSelectedDoor(null);
+      setDoorOpen(false);
+      setSelectedPath(null);
+      setBridgeBlocksAdded(0);
+      setPlacedShapes({ roof: false, body: false, door: false, window: false });
+      setSelectedGardenItem(null);
+      setCastleTrialIndex(0);
+      setAdaptiveAnswer(null);
+      setIsResolved(false);
+      setIsSuccess(null);
+      setFeedbackMessage('');
+    }, 0);
+    return () => window.clearTimeout(resetTimer);
   }, [mission]);
 
   // Keyboard controls for Village Explorer (WASD / Arrows)
@@ -261,6 +259,25 @@ export const InteractiveMissionView: React.FC<InteractiveMissionViewProps> = ({
     onComplete(isSuccess ?? false, timeSpent);
   };
 
+  const adaptiveOptions = (() => {
+    if (mission.payload.options) return mission.payload.options;
+    const answer = mission.payload.correctAnswer;
+    if (typeof answer === 'string') return [answer, 'Not quite', 'Try another clue'].sort();
+    return Array.from(new Set([answer, Math.max(0, answer - 1), answer + 1, answer + 2]));
+  })();
+
+  const handleAdaptiveAnswer = (answer: number | string) => {
+    if (isResolved) return;
+    setAdaptiveAnswer(answer);
+    if (answer === mission.payload.correctAnswer) {
+      setIsResolved(true);
+      setIsSuccess(true);
+      setFeedbackMessage(mission.mathExplanation);
+    } else {
+      setFeedbackMessage(`Good try! ${mission.prompt} Think about ${mission.instruction.toLowerCase()}`);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-5 select-none p-1 sm:p-2">
       {/* Top Breadcrumb */}
@@ -297,6 +314,60 @@ export const InteractiveMissionView: React.FC<InteractiveMissionViewProps> = ({
             {mission.instruction}
           </p>
         </div>
+
+        {/* Classes 2–5 use the same mission engine with their grade-specific configuration.
+            Previously these IDs had no renderer at all, leaving a blank stage. */}
+        {mission.classGrade !== 1 && (
+          <div className="rounded-3xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-white to-secondary/10 p-5 sm:p-7 text-center space-y-5">
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-5xl">{worldConfig.icon}</span>
+              <div className="text-left">
+                <p className="text-xs font-black uppercase tracking-wider text-primary">Class {mission.classGrade} Adventure</p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{currentPet.avatar} {currentPet.name} is helping with this mission.</p>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-white/90 p-4 shadow-sm dark:bg-gray-900/70">
+              <p className="text-lg font-extrabold text-gray-900 dark:text-white">{mission.prompt}</p>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{currentPet.avatar} {mission.payload.companionHint ?? 'Think through the village clue before choosing.'}</p>
+            </div>
+            {mission.payload.interactionType === 'fraction' && (
+              <div className="mx-auto flex max-w-xs overflow-hidden rounded-xl border-2 border-primary/30 bg-white">
+                {[0, 1, 2, 3].map((part) => <div key={part} className="h-10 flex-1 border-r border-primary/20 last:border-0 even:bg-primary/20" />)}
+              </div>
+            )}
+            {mission.payload.interactionType === 'map' && (
+              <div className="mx-auto grid w-36 grid-cols-5 gap-1 rounded-xl bg-indigo-100 p-2" aria-label="Royal map grid">
+                {Array.from({ length: 25 }).map((_, cell) => <span key={cell} className={cn('aspect-square rounded-sm bg-white text-center text-[10px] leading-5', cell === 20 && 'bg-primary text-white', cell === 9 && 'bg-secondary text-white')}>{cell === 20 ? '🏰' : cell === 9 ? '💎' : ''}</span>)}
+              </div>
+            )}
+            {mission.payload.interactionType === 'angle' && (
+              <div className="mx-auto flex max-w-xs justify-center gap-3"><span className="rounded-xl bg-white p-3 text-3xl shadow-sm">━</span><span className="rounded-xl bg-primary/15 p-3 text-3xl shadow-sm">└</span><span className="rounded-xl bg-white p-3 text-3xl shadow-sm">∠</span></div>
+            )}
+            {mission.payload.interactionType === 'data' && mission.payload.visualData && (
+              <div className="mx-auto flex h-28 max-w-sm items-end justify-center gap-4 rounded-xl bg-white p-3 shadow-sm">
+                {mission.payload.visualData.map((item) => <div key={item.label} className="flex h-full flex-col items-center justify-end gap-1 text-[10px] font-bold"><div className="w-7 rounded-t bg-primary" style={{ height: `${(item.value / 40) * 100}%` }} /><span>{item.label}</span></div>)}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {adaptiveOptions.map((option) => (
+                <button
+                  key={String(option)}
+                  type="button"
+                  disabled={isResolved}
+                  onClick={() => handleAdaptiveAnswer(option)}
+                  className={cn(
+                    'min-h-14 rounded-2xl border-2 bg-white px-3 py-3 text-sm font-extrabold shadow-sm transition hover:-translate-y-0.5 hover:border-primary dark:bg-card-dark',
+                    adaptiveAnswer === option && option === mission.payload.correctAnswer && 'border-emerald-500 bg-emerald-50 text-emerald-800',
+                    adaptiveAnswer === option && option !== mission.payload.correctAnswer && 'border-amber-400 bg-amber-50 text-amber-900',
+                    adaptiveAnswer !== option && 'border-gray-200 dark:border-gray-700'
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ==================================================== */}
         {/* MISSION 1: MAGIC STAR HUNT (MAGIC VILLAGE)            */}

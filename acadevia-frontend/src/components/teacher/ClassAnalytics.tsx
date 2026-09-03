@@ -426,4 +426,4 @@ const ClassAnalytics: React.FC = () => {
 
 export { ClassAnalytics };
 export default ClassAnalytics;
-
+export { ClassAnalytics };

@@ -22,5 +22,10 @@ public class AuthResponse {
     private String preferredLanguage;
     private Integer classGrade;
     private Long schoolId;
+    private String schoolName;
+    private String stateName;
+    private String cityName;
+    private String pinCode;
+    private String phone;
     private String message;
 }
