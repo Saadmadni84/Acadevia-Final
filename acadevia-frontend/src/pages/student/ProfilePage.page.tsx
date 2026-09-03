@@ -193,6 +193,7 @@ const ProfilePage: React.FC = () => {
     (user as any)?.pincode ||
     dataService.getUserById(studentId)?.pinCode ||
     dataService.getUserById(studentId)?.pincode;
+
   const phoneVal =
     profile?.phone ||
     (profile as any)?.phoneNumber ||
@@ -200,6 +201,10 @@ const ProfilePage: React.FC = () => {
     (user as any)?.phoneNumber ||
     (studentId ? dataService.getUserById(studentId)?.phone : undefined) ||
     (studentId ? dataService.getUserById(studentId)?.phoneNumber : undefined);
+
+  const boardVal = profile?.board || (user as any)?.board;
+  const languageVal =
+    profile?.languagePreference || user?.languagePreference || 'English';
   const boardVal = profile?.board || (user as any)?.board;
   const languageVal = profile?.languagePreference || user?.languagePreference || 'English';
 
