@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -135,8 +136,8 @@ const ProfilePage: React.FC = () => {
   }));
 
   const level = gamification?.level ?? metrics.level ?? 1;
-  const totalXP = gamification?.totalXP ?? metrics.totalXP ?? 0;
-  const streak = gamification?.streakDays ?? metrics.streak ?? 0;
+  const totalXP = gamification?.totalXP ?? gamification?.xp ?? metrics.totalXP ?? 0;
+  const streak = gamification?.streakDays ?? gamification?.streak ?? metrics.streak ?? 0;
   const badgesEarnedCount = metrics.badgesUnlocked ?? 0;
   const requiredXP = Math.max(100, Math.ceil((totalXP + 1) / 100) * 100);
 
@@ -205,7 +206,7 @@ const ProfilePage: React.FC = () => {
       ? `Class ${dataService.getUserById(studentId)?.classGrade}`
       : undefined);
 
-  const sectionVal = (profile as any)?.section || user?.section;
+  const sectionVal = (profile as any)?.section || user?.section || (profile as any)?.sectionName;
   const stateNameVal =
     (profile as any)?.stateName ||
     user?.stateName ||
@@ -263,7 +264,7 @@ const ProfilePage: React.FC = () => {
         board={boardVal}
         language={languageVal}
         level={level}
-        totalXP={xp}
+        totalXP={totalXP}
         badgeCount={earnedBadgesList.length}
         streak={streak}
         role={profile?.role || 'Student'}
@@ -275,7 +276,7 @@ const ProfilePage: React.FC = () => {
       {/* 2. Level / XP Progress Card */}
       <div className="rounded-3xl border border-gray-200/80 dark:border-gray-800 bg-white dark:bg-card-dark p-5 sm:p-6 shadow-sm">
         <XPProgressBar
-          currentXP={xp}
+          currentXP={totalXP}
           requiredXP={requiredXP}
           level={level}
           levelName={`Level ${level}`}
