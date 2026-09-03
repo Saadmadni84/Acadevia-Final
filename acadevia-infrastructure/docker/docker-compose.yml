@@ -351,6 +351,12 @@ services:
     container_name: acadevia-content-service
     environment:
       <<: [*spring-env, *minio-env]
+      MINIO_BUCKET_VIDEOS: acadevia-videos
+      MINIO_BUCKET_IMAGES: acadevia-images
+      MINIO_BUCKET_DOCUMENTS: acadevia-documents
+      MINIO_PUBLIC_URL: http://localhost:9000
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 500MB
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 520MB
     depends_on:
       mysql:    {condition: service_healthy}
       redis:    {condition: service_healthy}

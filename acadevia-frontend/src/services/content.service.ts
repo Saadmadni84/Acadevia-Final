@@ -342,26 +342,51 @@ class ContentService {
     let serverFileSize = file.size;
 
     try {
-      const uploadRes = await fetch(getApiUrl('/api/v1/content/upload'), {
-        method: 'POST',
-        headers: {
-          'x-filename': encodeURIComponent(file.name),
-          'x-mime-type': mimeType,
-          'x-content-type': resolvedType,
-          'Content-Type': mimeType,
-        },
-        body: file,
-      });
+      // For VIDEO content, use the MinIO-backed upload endpoint
+      if (resolvedType === 'VIDEO') {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('courseId', String(classNumber));
+        formData.append('lessonId', String(params.schoolId || 1));
+        formData.append('title', title.trim());
 
-      if (uploadRes.ok) {
-        const uploadData = await uploadRes.json();
-        if (uploadData?.data?.fileUrl) {
-          serverFileUrl = uploadData.data.fileUrl;
-          serverFileName = uploadData.data.fileName || file.name;
-          serverFileSize = uploadData.data.fileSize || file.size;
+        const uploadRes = await apiClient.post('/api/v1/content/videos/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 300000, // 5 min timeout for large uploads
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              params.onProgress?.(15 + Math.round(pct * 0.4)); // 15% to 55%
+            }
+          },
+        });
+
+        if (uploadRes.data?.data?.playUrl) {
+          serverFileUrl = uploadRes.data.data.playUrl;
+          serverFileName = uploadRes.data.data.originalFilename || file.name;
+          serverFileSize = uploadRes.data.data.fileSizeBytes || file.size;
         }
       } else {
-        console.warn('[contentService] Backend upload endpoint returned non-200:', uploadRes.status);
+        // Non-video uploads: use the generic upload endpoint
+        const uploadRes = await fetch(getApiUrl('/api/v1/content/upload'), {
+          method: 'POST',
+          headers: {
+            'x-filename': encodeURIComponent(file.name),
+            'x-mime-type': mimeType,
+            'x-content-type': resolvedType,
+            'Content-Type': mimeType,
+          },
+          body: file,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData?.data?.fileUrl) {
+            serverFileUrl = uploadData.data.fileUrl;
+            serverFileName = uploadData.data.fileName || file.name;
+            serverFileSize = uploadData.data.fileSize || file.size;
+          }
+        }
       }
     } catch (err) {
       console.warn('[contentService] Backend file upload failed, fallback to local storage:', err);
@@ -493,6 +518,41 @@ class ContentService {
     } catch {
       // offline
     }
+  }
+
+  /**
+   * Get a short-lived presigned URL for authorized video playback.
+   * Returns the presigned URL and a streaming fallback URL.
+   */
+  async getVideoPlayUrl(videoId: number | string): Promise<{
+    presignedUrl: string;
+    streamUrl: string;
+    expiresInSeconds: number;
+  }> {
+    try {
+      const res = await apiClient.get(`/api/v1/content/videos/${videoId}/play-url`);
+      const data = res.data?.data;
+      return {
+        presignedUrl: data?.presignedUrl || '',
+        streamUrl: data?.streamUrl || `/api/v1/content/videos/${videoId}/stream`,
+        expiresInSeconds: data?.expiresInSeconds || 900,
+      };
+    } catch (err) {
+      console.warn('[contentService] Failed to get play URL, falling back to stream:', err);
+      return {
+        presignedUrl: '',
+        streamUrl: `/api/v1/content/videos/${videoId}/stream`,
+        expiresInSeconds: 0,
+      };
+    }
+  }
+
+  /**
+   * Get the backend streaming URL for a video (HTTP Range support).
+   */
+  getVideoStreamUrl(videoId: number | string): string {
+    const base = import.meta.env.VITE_API_BASE_URL || '';
+    return `${base}/api/v1/content/videos/${videoId}/stream`;
   }
 }
 

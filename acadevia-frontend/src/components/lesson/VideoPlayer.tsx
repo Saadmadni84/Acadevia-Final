@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, Maximize, SkipForward, SkipBack } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { contentService } from '@/services/content.service';
 
 interface PopupQuestion {
   timestamp: number;
@@ -13,13 +14,15 @@ interface PopupQuestion {
 interface VideoPlayerProps {
   src: string;
   title: string;
+  videoId?: number | string;
   popupQuestions?: PopupQuestion[];
   onProgress?: (progress: number) => void;
   onComplete?: () => void;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, title, popupQuestions = [], onProgress, onComplete }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, title, videoId, popupQuestions = [], onProgress, onComplete }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [resolvedSrc, setResolvedSrc] = useState(src);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -29,6 +32,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, title, popupQuestions = 
   const [answeredTimes, setAnsweredTimes] = useState<Set<number>>(new Set());
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const controlsTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Fetch presigned URL when videoId is provided and src is empty or placeholder
+  useEffect(() => {
+    if (videoId && (!src || src === '#')) {
+      contentService.getVideoPlayUrl(videoId).then(({ presignedUrl, streamUrl }) => {
+        setResolvedSrc(presignedUrl || streamUrl);
+      });
+    } else if (src) {
+      setResolvedSrc(src);
+    }
+  }, [videoId, src]);
 
   const togglePlay = () => {
     if (!videoRef.current || activeQuestion) return;
@@ -74,7 +88,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, title, popupQuestions = 
 
   return (
     <div className="relative bg-black rounded-xl overflow-hidden group" onMouseMove={handleMouseMove} onMouseLeave={() => playing && setShowControls(false)}>
-      <video ref={videoRef} src={src} className="w-full aspect-video" onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)} onTimeUpdate={handleTimeUpdate} onEnded={() => { setPlaying(false); onComplete?.(); }} onClick={togglePlay} />
+      <video ref={videoRef} src={resolvedSrc} className="w-full aspect-video" onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)} onTimeUpdate={handleTimeUpdate} onEnded={() => { setPlaying(false); onComplete?.(); }} onClick={togglePlay} />
 
       <AnimatePresence>
         {activeQuestion && (

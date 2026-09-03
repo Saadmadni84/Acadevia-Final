@@ -202,6 +202,23 @@ public class Video {
     @Column(name = "processing_status", length = 50)
     private String processingStatus;
 
+    // ---- MinIO object storage metadata ----
+
+    @Column(name = "object_key", length = 500)
+    private String objectKey;
+
+    @Column(name = "bucket", length = 100)
+    private String bucket;
+
+    @Column(name = "original_filename", length = 500)
+    private String originalFilename;
+
+    @Column(name = "content_type", length = 100)
+    private String contentType;
+
+    @Column(name = "file_size_bytes")
+    private Long fileSizeBytes;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
