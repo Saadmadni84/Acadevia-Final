@@ -16,6 +16,7 @@ interface Game {
   rating: number;
   xpReward: number;
   estimatedTime: string;
+  classes?: string;
 }
 
 interface GameGridProps {
