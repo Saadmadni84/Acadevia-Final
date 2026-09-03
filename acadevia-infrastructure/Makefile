@@ -59,13 +59,13 @@ help: ## Show this help
 # DEVELOPMENT
 # ============================================================
 
-dev: ## Start full local development stack
-	@echo "$(BLUE)Starting Acadevia development environment...$(NC)"
-	@cd "$(COMPOSE_DIR)" && $(DOCKER_COMPOSE) -f docker-compose.infra.yml up -d
-	@echo "$(YELLOW)Waiting for infrastructure to initialize...$(NC)"
-	@sleep 10
-	@cd "$(COMPOSE_DIR)" && $(DOCKER_COMPOSE) up -d
-	@echo "$(GREEN)✅ All services started$(NC)"
+dev: ## Start FULL stack in Docker (infra + control plane + all services + frontend)
+	@echo "$(BLUE)Starting Acadevia full development stack in Docker...$(NC)"
+	@echo "$(YELLOW)Building images (cached layers make rebuilds fast) and starting containers...$(NC)"
+	@cd "$(COMPOSE_DIR)" && $(DOCKER_COMPOSE) up -d --build
+	@echo "$(GREEN)✅ Compose is converging: infra → registry → config → services → gateway → frontend$(NC)"
+	@echo "$(GREEN)   No 'mvn spring-boot:run' needed — Docker owns every backend process.$(NC)"
+	@echo "$(YELLOW)   Verify with: make health   then   make smoke$(NC)"
 
 dev-infra: ## Start only infrastructure (DB, Kafka, Redis, MinIO)
 	@echo "$(BLUE)Starting infrastructure services...$(NC)"
@@ -313,6 +313,10 @@ monitoring-down: ## Stop monitoring stack
 health: ## Health check all services
 	@chmod +x "$(SCRIPTS_DIR)/health-check.sh"
 	@"$(SCRIPTS_DIR)/health-check.sh"
+
+smoke: ## Functional smoke test of the running full stack (infra→gateway→frontend)
+	@chmod +x "$(SCRIPTS_DIR)/stack-smoke-test.sh"
+	@"$(SCRIPTS_DIR)/stack-smoke-test.sh"
 
 clean: ## Remove all containers, images, volumes, and build artifacts
 	@echo "$(RED)⚠️  This will remove ALL Acadevia containers, images, and volumes$(NC)"

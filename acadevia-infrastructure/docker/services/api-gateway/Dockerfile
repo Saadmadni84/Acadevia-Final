@@ -23,6 +23,9 @@ RUN mvn package -pl api-gateway -am -DskipTests -B -q
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre
 
+# curl is required for the actuator-based health check below
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 # Security: create non-root user
 RUN groupadd -g 1001 appgroup && \
     useradd -u 1001 -g appgroup -s /bin/sh appuser
@@ -43,7 +46,7 @@ EXPOSE 8080
 
 # Health check using Spring Boot actuator
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:8080/actuator/health || exit 1
+  CMD curl -fsS http://localhost:8080/actuator/health || exit 1
 
 # Never run as root
 USER appuser

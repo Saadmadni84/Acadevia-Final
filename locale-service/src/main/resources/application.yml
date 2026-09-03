@@ -1,15 +1,13 @@
 server:
   port: 8092
-  servlet:
-    context-path: /api/locale
 
 spring:
   application:
-    name: locale-service
+    name: i18n-service
   profiles:
     active: dev
   config:
-    import: optional:configserver:http://localhost:8888
+    import: optional:configserver:http://${CONFIG_SERVER_HOST:localhost}:${CONFIG_SERVER_PORT:8888}
 
   datasource:
     url: jdbc:mysql://localhost:3306/acadevia_locale?useSSL=false&serverTimezone=Asia/Kolkata&createDatabaseIfNotExist=true&characterEncoding=UTF-8&useUnicode=true
