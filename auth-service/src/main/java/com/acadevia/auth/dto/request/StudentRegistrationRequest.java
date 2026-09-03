@@ -1,6 +1,7 @@
 package com.acadevia.auth.dto.request;
 
 import com.acadevia.auth.util.ValidationConstants;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -36,6 +37,7 @@ public class StudentRegistrationRequest {
     private String confirmPassword;
 
     @NotNull
+    @JsonAlias({"phoneNumber", "phone_number"})
     private String phone;
 
     @NotNull
@@ -51,6 +53,10 @@ public class StudentRegistrationRequest {
 
     @NotNull
     private Long cityId;
+
+    @Pattern(regexp = "^[0-9]{6}$", message = "PIN Code must contain exactly 6 digits")
+    @JsonAlias({"pincode", "pin_code"})
+    private String pinCode;
 
     @NotBlank
     private String studentSchoolId;

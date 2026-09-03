@@ -22,6 +22,10 @@ public class UserInfoResponse {
     private Long schoolId;
     private Long stateId;
     private Long cityId;
+    private String pinCode;
+    private String schoolName;
+    private String stateName;
+    private String cityName;
     private String preferredLanguage;
     private Long totalXp;
     private Integer currentLevel;

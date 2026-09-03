@@ -51,7 +51,7 @@ public class UserProfileService {
     // ─── /me support methods ───
 
     @Transactional(readOnly = true)
-    public UserMeResponse buildMeResponse(String userIdStr, String email, String role) {
+    public UserMeResponse buildMeResponse(String userIdStr, String email, String role, String fullName) {
         UserMeResponse.UserMeResponseBuilder builder = UserMeResponse.builder()
                 .id(userIdStr != null ? userIdStr : "0")
                 .email(email != null ? email : "")
@@ -66,6 +66,11 @@ public class UserProfileService {
                 Optional<UserProfile> profileOpt = userProfileRepository.findByUserId(userId);
                 if (profileOpt.isPresent()) {
                     UserProfile profile = profileOpt.get();
+                    builder.avatarUrl(profile.getAvatarUrl());
+                    builder.phone(profile.getPhone());
+                    builder.phoneNumber(profile.getPhone());
+                    builder.pinCode(profile.getPincode());
+                    builder.pincode(profile.getPincode());
                     builder.joinedAt(profile.getCreatedAt() != null
                             ? profile.getCreatedAt().toString()
                             : LocalDateTime.now().toString());
@@ -107,14 +112,21 @@ public class UserProfileService {
             }
         }
 
-        // fullName: use email prefix as fallback
-        if (email != null && email.contains("@")) {
+        // fullName: prioritized from authenticated token header
+        if (fullName != null && !fullName.isBlank()) {
+            builder.fullName(fullName.trim());
+        } else if (email != null && email.contains("@")) {
             builder.fullName(email.substring(0, email.indexOf('@')));
         } else {
-            builder.fullName("User");
+            builder.fullName("Student");
         }
 
         return builder.build();
+    }
+
+    @Transactional(readOnly = true)
+    public UserMeResponse buildMeResponse(String userIdStr, String email, String role) {
+        return buildMeResponse(userIdStr, email, role, null);
     }
 
     public void applyMeUpdates(Long userId, Map<String, Object> updates) {
@@ -127,14 +139,26 @@ public class UserProfileService {
         if (updates.containsKey("address")) {
             profile.setAddress((String) updates.get("address"));
         }
+        if (updates.containsKey("phone")) {
+            profile.setPhone((String) updates.get("phone"));
+        }
+        if (updates.containsKey("phoneNumber")) {
+            profile.setPhone((String) updates.get("phoneNumber"));
+        }
         if (updates.containsKey("pincode")) {
             profile.setPincode((String) updates.get("pincode"));
+        }
+        if (updates.containsKey("pinCode")) {
+            profile.setPincode((String) updates.get("pinCode"));
         }
         if (updates.containsKey("parentName")) {
             profile.setParentName((String) updates.get("parentName"));
         }
         if (updates.containsKey("parentPhone")) {
             profile.setParentPhone((String) updates.get("parentPhone"));
+        }
+        if (updates.containsKey("avatarUrl")) {
+            profile.setAvatarUrl((String) updates.get("avatarUrl"));
         }
 
         userProfileRepository.save(profile);

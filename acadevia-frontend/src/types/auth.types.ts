@@ -6,10 +6,13 @@ export interface StudentRegistrationRequest {
   password: string;
   confirmPassword: string;
   phone: string;
+  phoneNumber?: string;
   classGrade: number;
   schoolId: number;
   stateId: number;
   cityId: number;
+  pinCode?: string;
+  pincode?: string;
   studentSchoolId: string;
   preferredLanguage?: string;
   board?: string;
@@ -23,9 +26,12 @@ export interface TeacherRegistrationRequest {
   password: string;
   confirmPassword: string;
   phone: string;
+  phoneNumber?: string;
   schoolId: number;
   stateId: number;
   cityId: number;
+  pinCode?: string;
+  pincode?: string;
   preferredLanguage?: string;
   subject?: string;
 }
@@ -45,7 +51,10 @@ export interface AuthUser {
   section?: string;
   cityName?: string;
   stateName?: string;
+  pinCode?: string;
+  pincode?: string;
   phone?: string;
+  phoneNumber?: string;
   board?: string;
   joinedAt?: string;
   languagePreference: string;

@@ -16,6 +16,8 @@ public class UserMeResponse {
     private String fullName;
     private String role;
     private String avatarUrl;
+    private String phone;
+    private String phoneNumber;
 
     // School & location
     private String schoolId;
@@ -24,6 +26,8 @@ public class UserMeResponse {
     private String stateName;
     private String cityId;
     private String cityName;
+    private String pinCode;
+    private String pincode;
 
     // Class info
     private String className;

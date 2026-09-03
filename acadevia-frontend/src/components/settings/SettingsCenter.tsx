@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -10,22 +10,15 @@ import {
   Shield,
   Search,
   Save,
-  RotateCcw,
   CheckCircle2,
   AlertCircle,
   Camera,
   KeyRound,
   Trash2,
-  Download,
   ExternalLink,
   Moon,
   Sun,
   Laptop,
-  Volume2,
-  Eye,
-  EyeOff,
-  Sparkles,
-  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -57,7 +50,6 @@ export const SettingsCenter: React.FC = () => {
     isSaving,
     hasUnsavedChanges,
     updateSetting,
-    updateBatch,
     saveToServer,
     resetToDefaults,
   } = useSettingsStore();
@@ -70,9 +62,15 @@ export const SettingsCenter: React.FC = () => {
   } | null>(null);
 
   // Editable Account Form State
+  const initialPhone =
+    user?.phone ||
+    user?.phoneNumber ||
+    (user?.id ? dataService.getUserById(String(user.id))?.phone : '') ||
+    (user?.email ? dataService.getUserByEmail(user.email)?.phone : '') ||
+    '';
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState(user?.phone || '');
+  const [phone, setPhone] = useState(initialPhone);
   const [schoolName, setSchoolName] = useState(user?.schoolName || '');
   const [className, setClassName] = useState(user?.className || 'Class 10');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
@@ -93,7 +91,13 @@ export const SettingsCenter: React.FC = () => {
     if (user) {
       setFullName(user.fullName || '');
       setEmail(user.email || '');
-      setPhone(user.phone || '');
+      const dynamicPhone =
+        user.phone ||
+        user.phoneNumber ||
+        (user.id ? dataService.getUserById(String(user.id))?.phone : '') ||
+        (user.email ? dataService.getUserByEmail(user.email)?.phone : '') ||
+        '';
+      setPhone(dynamicPhone);
       setSchoolName(user.schoolName || '');
       setClassName(user.className || 'Class 10');
       setAvatarUrl(user.avatarUrl || '');
@@ -119,16 +123,32 @@ export const SettingsCenter: React.FC = () => {
           fullName,
           email,
           phone,
+          phoneNumber: phone,
           schoolName,
           className,
           avatarUrl,
         };
         setUser(updatedUser);
 
+        // Update dataService persistently
+        const existing =
+          dataService.getUserById(String(user.id)) ||
+          (user.email ? dataService.getUserByEmail(user.email) : undefined);
+        if (existing) {
+          dataService.upsertUser({
+            ...existing,
+            fullName,
+            phone,
+            phoneNumber: phone,
+            avatarUrl,
+          });
+        }
+
         try {
           await userService.updateProfile({
             fullName,
             phone,
+            phoneNumber: phone,
             schoolName,
             className,
           });
@@ -155,21 +175,26 @@ export const SettingsCenter: React.FC = () => {
   };
 
   // ----------------------------------------------------
-  // Profile Photo Upload Simulation / Real
+  // Profile Photo Upload (Real Persistence)
   // ----------------------------------------------------
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const preview = URL.createObjectURL(file);
-      setAvatarUrl(preview);
-      if (user) {
-        setUser({ ...user, avatarUrl: preview });
+      try {
+        const uploadedUrl = await userService.uploadAvatar(file);
+        setAvatarUrl(uploadedUrl);
+        setFeedback({
+          type: 'success',
+          message: 'Profile photo updated.',
+        });
+        setTimeout(() => setFeedback(null), 3000);
+      } catch (err: any) {
+        setFeedback({
+          type: 'error',
+          message: err.message || 'Unable to update profile photo. Please try again.',
+        });
+        setTimeout(() => setFeedback(null), 4000);
       }
-      setFeedback({
-        type: 'success',
-        message: 'Profile photo updated.',
-      });
-      setTimeout(() => setFeedback(null), 3000);
     }
   };
 
@@ -379,7 +404,7 @@ export const SettingsCenter: React.FC = () => {
                 <Input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 98765 43210"
+                  placeholder="Enter phone number"
                 />
               </div>
 
@@ -462,6 +487,49 @@ export const SettingsCenter: React.FC = () => {
                 <p className="text-xs text-gray-400 dark:text-gray-500">
                   City affiliation is permanently linked to your student account and cannot be modified.
                 </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-gray-700 dark:text-gray-300">
+                    PIN Code
+                  </label>
+
+                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800/50">
+                    Locked &bull; Assigned during registration
+                  </span>
+                </div>
+
+                <Input
+                  value={
+                    user?.pinCode ||
+                    (user as any)?.pincode ||
+                    (user?.id
+                      ? (
+                          dataService.getUserById(String(user.id))?.pinCode ||
+                          dataService.getUserById(String(user.id))?.pincode
+                        )
+                      : undefined) ||
+                    (user?.email
+                      ? (
+                          dataService.getUserByEmail(user.email)?.pinCode ||
+                          dataService.getUserByEmail(user.email)?.pincode
+                        )
+                      : undefined) ||
+                    'Not provided'
+                  }
+                  disabled
+                  readOnly
+                  className="bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 cursor-not-allowed border-dashed"
+                />
+
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  PIN code is permanently linked to your student account and cannot be modified.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
               </div>
             </div>
           </div>
