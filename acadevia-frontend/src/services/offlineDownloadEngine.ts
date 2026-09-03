@@ -1,4 +1,4 @@
-import type { OfflineDownloadItem, DownloadStatus, VideoQuality } from '@/types/download.types';
+import type { OfflineDownloadItem, DownloadStatus } from '@/types/download.types';
 import { offlineStorage } from '@/lib/offlineStorage';
 
 type ProgressListener = (item: OfflineDownloadItem) => void;

@@ -7,6 +7,8 @@
  * Designed to scale from demo users to thousands of students and teachers.
  */
 
+import { apiClient } from './api.client';
+
 export interface AppUser {
   id: string;
   email: string;
@@ -98,14 +100,18 @@ export interface QuizQuestion {
 
 export interface QuizRecord {
   id: string;
+  numericId?: string;
   teacherId: string;
   teacherName: string;
   classGrade: number; // Classes 1 through 12
   subject: string;
+  chapter?: string; // Chapter / Topic text
+  chapterInfo?: string;
   title: string;
   description: string;
   timeLimit: number; // in seconds
   difficulty: 'easy' | 'medium' | 'hard';
+  xpReward?: number;
   questions: QuizQuestion[];
   createdAt: string;
 }
@@ -126,6 +132,18 @@ export interface QuizResultRecord {
   completedAt: string;
   xpEarned: number;
   timeTakenSeconds?: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  avatar?: string;
+  level: number;
+  xp: number;
+  streak: number;
+  change: 'up' | 'down' | 'same';
+  isCurrentUser?: boolean;
 }
 
 export interface ActivityRecord {
@@ -948,11 +966,23 @@ if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
   } catch {}
 }
 
+const subscribers = new Set<() => void>();
+function notifySubscribers() {
+  subscribers.forEach((cb) => {
+    try {
+      cb();
+    } catch (e) {
+      console.error('[dataService] Subscriber error:', e);
+    }
+  });
+}
+
 function saveState(state: DataState): void {
   memoryState = state;
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('acadevia_data_updated'));
   }
+  notifySubscribers();
 }
 
 /* ------------------------------------------------------------------ */
@@ -960,6 +990,19 @@ function saveState(state: DataState): void {
 /* ------------------------------------------------------------------ */
 
 export const dataService = {
+  /** Subscribe to data updates */
+  subscribe(callback: () => void): () => void {
+    subscribers.add(callback);
+    return () => {
+      subscribers.delete(callback);
+    };
+  },
+
+  /** Manually trigger listener notifications */
+  notifyListeners(): void {
+    notifySubscribers();
+  },
+
   /** Get all users */
   getUsers(): AppUser[] {
     return loadState().users;
@@ -1033,7 +1076,11 @@ export const dataService = {
   /* ---------------------------------------------------------------- */
 
   /** Get all available quizzes */
-  /** Get all available quizzes */
+  getQuizzes(): QuizRecord[] {
+    return this.getAllQuizzes();
+  },
+
+  /** Get all available quizzes sorted newest first */
   getAllQuizzes(): QuizRecord[] {
     return loadState().quizzes.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -1093,13 +1140,17 @@ export const dataService = {
     const qStr = String(quizId).toLowerCase().trim();
     const mappedAlias = QUIZ_ALIAS_MAP[qStr] || '';
     const reverseNum = Object.keys(QUIZ_ALIAS_MAP).find((k) => QUIZ_ALIAS_MAP[k] === qStr) || '';
+    const rawNum = qStr.replace(/^quiz-/, '');
 
     return loadState().quizzes.find((q) => {
-      const idStr = String(q.id).toLowerCase();
+      const idStr = String(q.id).toLowerCase().trim();
+      const numIdStr = (q as any).numericId ? String((q as any).numericId).toLowerCase().trim() : '';
+
       if (idStr === qStr) return true;
-      if (mappedAlias && idStr === mappedAlias.toLowerCase()) return true;
-      if (reverseNum && ((q as any).numericId === reverseNum || idStr === reverseNum)) return true;
-      if ((q as any).numericId && String((q as any).numericId) === qStr) return true;
+      if (numIdStr && numIdStr === qStr) return true;
+      if (mappedAlias && (idStr === mappedAlias.toLowerCase() || numIdStr === mappedAlias.toLowerCase())) return true;
+      if (reverseNum && (idStr === reverseNum || numIdStr === reverseNum)) return true;
+      if (rawNum && (idStr === rawNum || numIdStr === rawNum || idStr.replace(/^quiz-/, '') === rawNum)) return true;
       return false;
     });
   },
@@ -1137,6 +1188,12 @@ export const dataService = {
       })
         .then((r) => r.json())
         .then((res) => {
+          if (res?.success && res?.data?.id) {
+            const realId = String(res.data.id);
+            newQuiz.id = realId;
+            (newQuiz as any).numericId = String(res.data.numericId || realId);
+            saveState(state);
+          }
           if (res?.data?.stateVersion) lastKnownVersion = Number(res.data.stateVersion);
         })
         .catch((err) => {
@@ -1145,6 +1202,38 @@ export const dataService = {
     }
 
     return newQuiz;
+  },
+
+  /** Teacher deletes or archives a quiz */
+  async deleteQuiz(quizId: string): Promise<{ success: boolean; mode: string; message: string }> {
+    const qStr = String(quizId).trim();
+    const state = loadState();
+
+    // Find quiz in local state
+    const quiz = state.quizzes.find(
+      (q) =>
+        String(q.id).toLowerCase() === qStr.toLowerCase() ||
+        String((q as any).numericId || '').toLowerCase() === qStr.toLowerCase()
+    );
+
+    // Call backend DELETE API
+    let resData: any = { success: true, mode: 'DELETED', message: 'Quiz removed' };
+    if (typeof window !== 'undefined') {
+      const res = await apiClient.delete(`/api/v1/quizzes/${encodeURIComponent(quiz?.numericId || quiz?.id || qStr)}`);
+      resData = res.data?.data || res.data || resData;
+    }
+
+    // Remove from local in-memory state
+    state.quizzes = state.quizzes.filter(
+      (q) =>
+        String(q.id).toLowerCase() !== qStr.toLowerCase() &&
+        String((q as any).numericId || '').toLowerCase() !== qStr.toLowerCase() &&
+        (quiz ? String(q.id) !== String(quiz.id) : true)
+    );
+    saveState(state);
+    this.notifyListeners();
+
+    return resData;
   },
 
   /* ---------------------------------------------------------------- */
@@ -1197,7 +1286,8 @@ export const dataService = {
     });
 
     const percentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
-    const xpEarned = Math.max(score * 10, 50);
+    const baseReward = Number(quiz.xpReward) || 50;
+    const xpEarned = Math.max(score * 10, baseReward);
     const timeTakenSeconds = params.timeTakenSeconds || 180;
     const completedAt = params.completedAt || new Date().toISOString();
 
@@ -1378,8 +1468,8 @@ export const dataService = {
         ? Math.round(results.reduce((sum, r) => sum + r.percentage, 0) / quizCount)
         : 0;
 
-    // Real XP calculated strictly from submissions
-    const totalXP = results.reduce((sum, r) => sum + (r.xpEarned || 0), 0);
+    // Real XP from authoritative user account
+    const totalXP = student?.totalXP ?? 0;
     const level = Math.floor(totalXP / 500) + 1;
 
     // Real streak calculation from dates
@@ -1427,6 +1517,81 @@ export const dataService = {
       overallProgress,
       subjectProgress,
     };
+  },
+
+  /**
+   * Fetch dynamic leaderboard from backend API with fallback to local state.
+   * Period: 'weekly' (last 7 days), 'monthly' (last 30 days), 'alltime' (total accumulated XP)
+   */
+  async fetchLeaderboard(period: 'weekly' | 'monthly' | 'alltime' = 'alltime'): Promise<LeaderboardEntry[]> {
+    try {
+      if (typeof window !== 'undefined') {
+        const res = await fetch(getApiUrl(`/api/v1/leaderboard?period=${period}`));
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.success && Array.isArray(json.data)) {
+            return json.data;
+          }
+        }
+      }
+    } catch {
+      // Network / offline fallback
+    }
+    return this.getLeaderboard(period);
+  },
+
+  /**
+   * Get dynamic leaderboard calculated strictly from real registered student accounts and quiz attempts.
+   * Period: 'weekly' (last 7 days), 'monthly' (last 30 days), 'alltime' (total accumulated XP)
+   */
+  getLeaderboard(period: 'weekly' | 'monthly' | 'alltime' = 'alltime'): LeaderboardEntry[] {
+    const state = loadState();
+    const students = state.users.filter((u) => u.role === 'STUDENT');
+    const results = state.results;
+
+    const now = Date.now();
+    const oneWeekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const oneMonthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+    const entries = students.map((st) => {
+      let xp = 0;
+      const stAttempts = results.filter((r) => String(r.studentId) === String(st.id));
+
+      if (period === 'weekly') {
+        xp = stAttempts
+          .filter((r) => r.completedAt && new Date(r.completedAt) >= oneWeekAgo)
+          .reduce((sum, r) => sum + (r.xpEarned || 0), 0);
+      } else if (period === 'monthly') {
+        xp = stAttempts
+          .filter((r) => r.completedAt && new Date(r.completedAt) >= oneMonthAgo)
+          .reduce((sum, r) => sum + (r.xpEarned || 0), 0);
+      } else {
+        xp = st.totalXP ?? 0;
+      }
+
+      const displayName = (st.fullName || st.username || `Student #${st.id}`).trim();
+      const avatar =
+        st.avatarUrl && st.avatarUrl !== 'NULL' && st.avatarUrl !== 'null'
+          ? st.avatarUrl
+          : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`;
+
+      return {
+        userId: String(st.id),
+        name: displayName,
+        avatar,
+        level: st.currentLevel || 1,
+        xp,
+        streak: st.currentStreak || 0,
+        change: 'same' as const,
+      };
+    });
+
+    entries.sort((a, b) => b.xp - a.xp || b.level - a.level || a.name.localeCompare(b.name));
+
+    return entries.map((entry, idx) => ({
+      rank: idx + 1,
+      ...entry,
+    }));
   },
 
   /** Calculate full real metrics for a teacher */

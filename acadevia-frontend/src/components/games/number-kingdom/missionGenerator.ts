@@ -5,6 +5,7 @@ import type {
   WorldId,
   PetConfig,
 } from './types';
+import { getVillageMission } from './villageCurriculum';
 
 export const PET_COMPANIONS: PetConfig[] = [
   { id: 'puppy', name: 'Barnaby the Pup', avatar: '🐶', greeting: "Woof! Let's explore together!" },
@@ -12,6 +13,21 @@ export const PET_COMPANIONS: PetConfig[] = [
   { id: 'fox', name: 'Rusty the Fox', avatar: '🦊', greeting: "Clever quests ahead! Let's go!" },
   { id: 'bunny', name: 'Pip the Bunny', avatar: '🐰', greeting: "Hop into adventure with me!" },
 ];
+
+/** One curriculum configuration drives the shared mission engine for Classes 2–5. */
+export const NUMBER_KINGDOM_GRADE_CONFIG: Record<Exclude<StudentClassGrade, 1>, {
+  subtraction: { initial: number; removed: number };
+  railway: { carriages: number; perCarriage: number };
+  sequence: { start: number; step: number };
+  bridge: { have: number; add: number };
+  wall: { rows: number; columns: number };
+  crownJewels: number;
+}> = {
+  2: { subtraction: { initial: 14, removed: 6 }, railway: { carriages: 3, perCarriage: 4 }, sequence: { start: 2, step: 2 }, bridge: { have: 7, add: 5 }, wall: { rows: 3, columns: 4 }, crownJewels: 10 },
+  3: { subtraction: { initial: 25, removed: 9 }, railway: { carriages: 4, perCarriage: 5 }, sequence: { start: 5, step: 5 }, bridge: { have: 14, add: 8 }, wall: { rows: 4, columns: 5 }, crownJewels: 15 },
+  4: { subtraction: { initial: 60, removed: 17 }, railway: { carriages: 5, perCarriage: 6 }, sequence: { start: 10, step: 10 }, bridge: { have: 35, add: 17 }, wall: { rows: 5, columns: 6 }, crownJewels: 20 },
+  5: { subtraction: { initial: 125, removed: 38 }, railway: { carriages: 6, perCarriage: 8 }, sequence: { start: 25, step: 25 }, bridge: { have: 75, add: 38 }, wall: { rows: 6, columns: 8 }, crownJewels: 25 },
+};
 
 export const KINGDOM_WORLDS: WorldDefinition[] = [
   {
@@ -291,27 +307,14 @@ export const getMissionsForWorld = (
     }
   }
 
-  // CLASSES 2, 3, 4 ADAPTIVE MISSIONS
+  // CLASSES 2–5 ADAPTIVE MISSIONS
+  const gradeConfig = NUMBER_KINGDOM_GRADE_CONFIG[classGrade];
   switch (worldId) {
     case 'village': {
-      const target = classGrade === 2 ? 12 : 15;
-      return [
-        {
-          id: `v_c${classGrade}_1`,
-          worldId: 'village',
-          classGrade,
-          title: `Harvest ${target} Apples`,
-          instruction: `Collect ${target} fresh apples into the harvest crate.`,
-          topic: 'counting',
-          prompt: `Gather ${target} apples.`,
-          mathExplanation: `${target} apples counted and ready!`,
-          payload: { targetQuantity: target, initialQuantity: target + 4, correctAnswer: target },
-        },
-      ];
+      return [getVillageMission(classGrade)];
     }
     case 'forest': {
-      const init = classGrade === 2 ? 14 : 25;
-      const sub = classGrade === 2 ? 6 : 9;
+      const { initial: init, removed: sub } = gradeConfig.subtraction;
       const rem = init - sub;
       return [
         {
@@ -328,8 +331,7 @@ export const getMissionsForWorld = (
       ];
     }
     case 'railway': {
-      const carriages = classGrade === 2 ? 3 : 4;
-      const perCarriage = classGrade === 2 ? 4 : 5;
+      const { carriages, perCarriage } = gradeConfig.railway;
       const total = carriages * perCarriage;
       return [
         {
@@ -346,8 +348,7 @@ export const getMissionsForWorld = (
       ];
     }
     case 'tower': {
-      const step = classGrade === 2 ? 2 : classGrade === 3 ? 5 : 10;
-      const start = classGrade === 2 ? 2 : classGrade === 3 ? 5 : 10;
+      const { step, start } = gradeConfig.sequence;
       const seq = [start, start + step, start + 2 * step, start + 3 * step, start + 4 * step];
       const missing = seq[3];
       return [
@@ -370,8 +371,7 @@ export const getMissionsForWorld = (
       ];
     }
     case 'bridge': {
-      const have = classGrade === 2 ? 7 : 14;
-      const need = classGrade === 2 ? 5 : 8;
+      const { have, add: need } = gradeConfig.bridge;
       const total = have + need;
       return [
         {
@@ -388,8 +388,7 @@ export const getMissionsForWorld = (
       ];
     }
     case 'builder': {
-      const rows = classGrade === 2 ? 3 : 4;
-      const cols = classGrade === 2 ? 4 : 5;
+      const { rows, columns: cols } = gradeConfig.wall;
       const total = rows * cols;
       return [
         {
@@ -426,17 +425,18 @@ export const getMissionsForWorld = (
       ];
     }
     case 'castle': {
+      const jewels = gradeConfig.crownJewels;
       return [
         {
           id: `c_c${classGrade}_1`,
           worldId: 'castle',
           classGrade,
           title: '🏰 The Royal Coronation Quest',
-          instruction: 'Place the 10 royal crown jewels onto the grand throne to complete your Number Kingdom journey!',
+          instruction: `Place the ${jewels} royal crown jewels onto the grand throne to complete your Number Kingdom journey!`,
           topic: 'multiStep',
           prompt: 'Complete the royal crown jewel alignment.',
           mathExplanation: 'All crown jewels in place! You are officially crowned the Number Master!',
-          payload: { targetQuantity: 10, correctAnswer: 10 },
+          payload: { targetQuantity: jewels, correctAnswer: jewels },
         },
       ];
     }

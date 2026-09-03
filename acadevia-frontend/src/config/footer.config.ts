@@ -28,8 +28,11 @@ export interface CompanyContactConfig {
   secondaryTagline: string;
   addressLine1: string;
   addressLine2: string;
+  addressPostal: string;
+  mapsUrl: string;
   supportEmail: string;
   phone: string;
+  phones: Array<{ display: string; tel: string }>;
   availability: string;
 }
 
@@ -40,9 +43,15 @@ export const COMPANY_CONTACT: CompanyContactConfig = {
     'Acadevia is an AI-powered learning platform designed to make education personalized, engaging, and accessible for every learner across Grades 1–12.',
   secondaryTagline: 'Learn. Practice. Compete. Grow.',
   addressLine1: 'Acadevia Education Technologies',
-  addressLine2: 'India',
-  supportEmail: 'support@acadevia.com',
-  phone: '+91 XXXXX XXXXX',
+  addressLine2: 'Gamma 1, Greater Noida',
+  addressPostal: '201310, India',
+  mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Gamma+1%2C+Greater+Noida%2C+201310%2C+India',
+  supportEmail: 'adityajr.asr07@gmail.com',
+  phone: '+91 88403 69569',
+  phones: [
+    { display: '+91 88403 69569', tel: 'tel:+918840369569' },
+    { display: '+91 97926 96413', tel: 'tel:+919792696413' },
+  ],
   availability: 'Available Monday to Saturday (9:00 AM – 6:00 PM IST)',
 };
 

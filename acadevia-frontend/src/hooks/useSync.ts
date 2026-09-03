@@ -54,7 +54,7 @@ export function useSync() {
         const result = await syncMutation.mutateAsync({ items: batch });
 
         const processedIds = batch
-          .filter((_, idx) => !result.errors.some((e) => e.id === batch[idx].id))
+          .filter((_, idx) => !result.errors.some((e) => String(e.id) === String(batch[idx].id)))
           .map((item) => item.id!)
           .filter(Boolean);
 

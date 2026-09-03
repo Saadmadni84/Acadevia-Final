@@ -8,9 +8,15 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const { accessToken } = useAuthStore.getState();
+  const { accessToken, user } = useAuthStore.getState();
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  if (user?.id) {
+    config.headers['X-User-Id'] = user.id;
+  }
+  if (user?.role) {
+    config.headers['X-User-Role'] = user.role;
   }
   const lang = localStorage.getItem('i18nextLng') || 'en';
   config.headers['Accept-Language'] = lang;

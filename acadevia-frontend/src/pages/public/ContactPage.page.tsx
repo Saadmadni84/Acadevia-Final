@@ -70,7 +70,6 @@ const ContactPage: React.FC = () => {
     }
 
     setLoading(true);
-    // Simulate structured handler for future API integration
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsSubmitted(true);
@@ -135,7 +134,8 @@ const ContactPage: React.FC = () => {
                 </h3>
                 <a
                   href={`mailto:${COMPANY_CONTACT.supportEmail}`}
-                  className="text-base font-semibold text-primary dark:text-primary-300 hover:underline mt-0.5 block"
+                  aria-label={`Send email to ${COMPANY_CONTACT.supportEmail}`}
+                  className="text-base font-semibold text-primary dark:text-primary-300 hover:underline mt-0.5 block break-all"
                 >
                   {COMPANY_CONTACT.supportEmail}
                 </a>
@@ -154,11 +154,20 @@ const ContactPage: React.FC = () => {
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Student & Parent Helpline
                 </h3>
-                <p className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">
-                  {COMPANY_CONTACT.phone}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Available Monday to Saturday (9:00 AM – 6:00 PM IST).
+                <div className="mt-1 flex flex-col gap-1">
+                  {COMPANY_CONTACT.phones.map((p) => (
+                    <a
+                      key={p.tel}
+                      href={p.tel}
+                      aria-label={`Call helpline at ${p.display}`}
+                      className="text-base font-semibold text-gray-900 dark:text-white hover:text-primary dark:hover:text-primary-300 transition-colors w-fit"
+                    >
+                      {p.display}
+                    </a>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  {COMPANY_CONTACT.availability}
                 </p>
               </div>
             </Card>
@@ -172,12 +181,23 @@ const ContactPage: React.FC = () => {
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Headquarters
                 </h3>
-                <p className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">
-                  {COMPANY_CONTACT.addressLine1}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {COMPANY_CONTACT.addressLine2}
-                </p>
+                <a
+                  href={COMPANY_CONTACT.mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="View Acadevia headquarters location on Google Maps"
+                  className="group block mt-0.5"
+                >
+                  <p className="text-base font-semibold text-gray-900 dark:text-white group-hover:text-primary dark:group-hover:text-primary-300 transition-colors">
+                    {COMPANY_CONTACT.addressLine1}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-primary-300 transition-colors">
+                    {COMPANY_CONTACT.addressLine2}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-primary-300 transition-colors">
+                    {COMPANY_CONTACT.addressPostal}
+                  </p>
+                </a>
               </div>
             </Card>
 

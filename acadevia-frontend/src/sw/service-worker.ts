@@ -90,7 +90,7 @@ self.addEventListener('push', (event: PushEvent) => {
   const data = event.data?.json() ?? {};
 
   const title: string = data.title ?? 'Acadevia';
-  const options: NotificationOptions = {
+  const options: NotificationOptions & { actions?: any } = {
     body: data.body ?? '',
     icon: data.icon ?? '/assets/icons/icon-192.png',
     badge: '/assets/icons/badge-72.png',
