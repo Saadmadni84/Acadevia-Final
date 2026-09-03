@@ -1,0 +1,39 @@
+# ============================================================
+# OPTIONAL override — publish backend service ports on the host
+# ============================================================
+# By default backend microservices are reachable only inside the
+# Docker network (through the API Gateway on :8080). When you need
+# direct host access for debugging (Swagger UI, actuator, IDE
+# remote debug), start the stack with:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.exposed-ports.yml up -d
+#
+# Then e.g. http://localhost:8081/actuator/health or
+#      http://localhost:8088/swagger-ui.html become reachable.
+# ============================================================
+
+services:
+  auth-service:
+    ports: ["8081:8081"]
+  user-service:
+    ports: ["8082:8082"]
+  course-service:
+    ports: ["8083:8083"]
+  content-service:
+    ports: ["8084:8084"]
+  quiz-service:
+    ports: ["8085:8085"]
+  game-service:
+    ports: ["8086:8086"]
+  gamification-service:
+    ports: ["8087:8087"]
+  leaderboard-service:
+    ports: ["8088:8088"]
+  notification-service:
+    ports: ["8090:8090"]
+  i18n-service:
+    ports: ["8092:8092"]
+  sync-service:
+    ports: ["8093:8093"]
+  admin-service:
+    ports: ["8097:8097"]

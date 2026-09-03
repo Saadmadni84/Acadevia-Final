@@ -1,5 +1,5 @@
 # ============================================================
-# Acadevia - sync-service Dockerfile
+# Acadevia - service-registry Dockerfile
 # Multi-stage build: Maven build → JRE runtime
 # ============================================================
 
@@ -10,16 +10,16 @@ WORKDIR /build
 # Copy parent POM and service POM for dependency caching
 COPY pom.xml ./pom.xml
 RUN sed -i '/<modules>/,/<\/modules>/d' pom.xml
-COPY sync-service/pom.xml ./sync-service/pom.xml
+COPY service-registry/pom.xml ./service-registry/pom.xml
 
 # Download dependencies (cached unless POM changes)
 # dependencies resolved during build
 
 # Copy source code
-COPY sync-service/src ./sync-service/src
+COPY service-registry/src ./service-registry/src
 
 # Build JAR (skip tests — they run in CI)
-RUN mvn -f sync-service/pom.xml package -DskipTests -B -q
+RUN mvn -f service-registry/pom.xml package -DskipTests -B -q
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre
@@ -34,7 +34,7 @@ RUN groupadd -g 1001 appgroup && \
 WORKDIR /app
 
 # Copy JAR from builder
-COPY --from=builder /build/sync-service/target/*.jar app.jar
+COPY --from=builder /build/service-registry/target/*.jar app.jar
 
 # JVM settings (overridable via JAVA_OPTS env)
 ENV JAVA_OPTS="-Xms256m -Xmx512m \
@@ -43,11 +43,11 @@ ENV JAVA_OPTS="-Xms256m -Xmx512m \
   -XX:MaxRAMPercentage=75.0 \
   -Djava.security.egd=file:/dev/./urandom"
 
-EXPOSE 8093
+EXPOSE 8761
 
 # Health check using Spring Boot actuator
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -fsS http://localhost:8093/actuator/health || exit 1
+  CMD curl -fsS http://localhost:8761/actuator/health || exit 1
 
 # Never run as root
 USER appuser
