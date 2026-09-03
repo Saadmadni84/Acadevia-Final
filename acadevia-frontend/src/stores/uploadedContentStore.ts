@@ -191,8 +191,14 @@ export const uploadedContentStore = {
       if (res.ok) {
         const json = await res.json();
         if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
-          memoryItems = json.data;
-          window.dispatchEvent(new CustomEvent('acadevia_content_updated'));
+          const hasChanged =
+            memoryItems.length !== json.data.length ||
+            memoryItems.some((m, idx) => m.id !== json.data[idx]?.id);
+
+          if (hasChanged) {
+            memoryItems = json.data;
+            window.dispatchEvent(new CustomEvent('acadevia_content_updated'));
+          }
         }
       }
     } catch {
@@ -201,7 +207,7 @@ export const uploadedContentStore = {
   },
 };
 
-// Initial sync in browser runtime & auto-revalidation polling
+// Initial sync in browser runtime & efficient auto-revalidation polling (45s)
 if (typeof window !== 'undefined') {
   uploadedContentStore.syncFromBackend().catch(() => {});
 
@@ -211,6 +217,6 @@ if (typeof window !== 'undefined') {
 
   setInterval(() => {
     uploadedContentStore.syncFromBackend().catch(() => {});
-  }, 5000);
+  }, 45000);
 }
 

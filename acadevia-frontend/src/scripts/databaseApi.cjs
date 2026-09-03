@@ -36,6 +36,42 @@ function execSqlMutation(query) {
 }
 
 // ---------------------------------------------------------------------------
+// Server In-Memory Cache with Instant Mutation-Based Invalidation
+// ---------------------------------------------------------------------------
+let stateVersion = Date.now();
+const CACHE_TTL_MS = 60000; // 60s fallback TTL
+
+const serverCache = {
+  teacherStudents: new Map(),
+  teacherAnalytics: new Map(),
+  users: null,
+  quizzes: null,
+  quizAttempts: null,
+  contentItems: null,
+  fullState: null,
+};
+
+function getStateVersion() {
+  return stateVersion;
+}
+
+function invalidateServerCache() {
+  stateVersion = Date.now();
+  serverCache.teacherStudents.clear();
+  serverCache.teacherAnalytics.clear();
+  serverCache.users = null;
+  serverCache.quizzes = null;
+  serverCache.quizAttempts = null;
+  serverCache.contentItems = null;
+  serverCache.fullState = null;
+}
+
+function isFresh(entry) {
+  return entry && (Date.now() - entry.timestamp < CACHE_TTL_MS);
+}
+
+
+// ---------------------------------------------------------------------------
 // Quiz ID Aliases Mapping (Numeric ID <-> String ID)
 // ---------------------------------------------------------------------------
 const QUIZ_ID_MAP = {
@@ -120,6 +156,11 @@ const CURRICULUM_QUESTIONS = {
 // 1. Get Students for Teacher View (Class 10 default)
 // ---------------------------------------------------------------------------
 function getTeacherStudentsFromDb(classGrade = 10) {
+  const cacheKey = String(classGrade);
+  const cached = serverCache.teacherStudents.get(cacheKey);
+  if (isFresh(cached)) {
+    return cached.data;
+  }
   const studentsQuery = `
     SELECT 
       u.id, 
@@ -171,7 +212,7 @@ function getTeacherStudentsFromDb(classGrade = 10) {
   const students = execSql(studentsQuery);
   const attempts = execSql(attemptsQuery);
 
-  return students.map((st) => {
+  const result = students.map((st) => {
     const studentAttempts = attempts.filter((att) => String(att.studentId) === String(st.id));
     const avgScore = Number(st.avgScore) || 0;
     const totalXP = Number(st.totalXP) || 0;
@@ -215,12 +256,20 @@ function getTeacherStudentsFromDb(classGrade = 10) {
       activities: [],
     };
   });
+
+  serverCache.teacherStudents.set(cacheKey, { data: result, timestamp: Date.now() });
+  return result;
 }
 
 // ---------------------------------------------------------------------------
 // 2. Get Teacher Analytics
 // ---------------------------------------------------------------------------
 function getTeacherAnalyticsFromDb(classGrade = 10, subject = 'All') {
+  const cacheKey = `${classGrade}_${subject}`;
+  const cached = serverCache.teacherAnalytics.get(cacheKey);
+  if (isFresh(cached)) {
+    return cached.data;
+  }
   const students = getTeacherStudentsFromDb(classGrade);
   const totalStudents = students.length;
 
@@ -334,7 +383,7 @@ function getTeacherAnalyticsFromDb(classGrade = 10, subject = 'All') {
     };
   });
 
-  return {
+  const result = {
     classGrade: Number(classGrade),
     availableClasses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
     subject: subject || 'All',
@@ -347,6 +396,9 @@ function getTeacherAnalyticsFromDb(classGrade = 10, subject = 'All') {
     atRiskStudents,
     subjectComparison,
   };
+
+  serverCache.teacherAnalytics.set(cacheKey, { data: result, timestamp: Date.now() });
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -438,6 +490,9 @@ function getUsersFromDb() {
 // 4. Get Quizzes with Questions
 // ---------------------------------------------------------------------------
 function getQuizzesFromDb() {
+  if (isFresh(serverCache.quizzes)) {
+    return serverCache.quizzes.data;
+  }
   const quizzesQuery = `
     SELECT 
       q.id,
@@ -497,7 +552,7 @@ function getQuizzesFromDb() {
     });
   });
 
-  return rows.map((q) => {
+  const result = rows.map((q) => {
     const numericId = String(q.id);
     const aliasId = resolveAliasQuizId(numericId);
     const fallbackQuestions = CURRICULUM_QUESTIONS[Number(numericId)] || [];
@@ -520,12 +575,17 @@ function getQuizzesFromDb() {
       questions,
     };
   });
+  serverCache.quizzes = { data: result, timestamp: Date.now() };
+  return result;
 }
 
 // ---------------------------------------------------------------------------
 // 5. Get Quiz Attempts
 // ---------------------------------------------------------------------------
 function getQuizAttemptsFromDb() {
+  if (isFresh(serverCache.quizAttempts)) {
+    return serverCache.quizAttempts.data;
+  }
   const query = `
     SELECT 
       a.id,
@@ -628,6 +688,7 @@ function submitAttemptToDb(params) {
     WHERE id = ${studentId};
   `;
   execSqlMutation(updateStudentSql);
+  invalidateServerCache();
 
   return {
     id: `res-${Date.now()}`,
@@ -697,6 +758,7 @@ function createQuizInDb(data) {
     `;
     execSqlMutation(qSql);
   });
+  invalidateServerCache();
 
   return {
     id: `quiz-${newQuizId}`,
@@ -718,6 +780,9 @@ function createQuizInDb(data) {
 // 8. Content Items (PDF, Video, Image) from acadevia_content_db
 // ---------------------------------------------------------------------------
 function getContentItemsFromDb() {
+  if (isFresh(serverCache.contentItems)) {
+    return serverCache.contentItems.data;
+  }
   const query = `
     SELECT 
       id,
@@ -740,7 +805,7 @@ function getContentItemsFromDb() {
     ORDER BY id DESC;
   `;
   const rows = execSql(query);
-  return rows.map((r) => ({
+  const result = rows.map((r) => ({
     id: `cnt-${r.id}`,
     title: r.title,
     description: r.description || '',
@@ -758,6 +823,8 @@ function getContentItemsFromDb() {
     fileName: r.fileName,
     mimeType: r.mimeType,
   }));
+  serverCache.contentItems = { data: result, timestamp: Date.now() };
+  return result;
 }
 
 function createContentItemInDb(data) {
@@ -781,6 +848,7 @@ function createContentItemInDb(data) {
     ('${title}', '${description}', ${classNumber}, ${classNumber * 10}, 1, ${classNumber}, '${subjectName}', '${chapterName}', '${contentType}', '${fileUrl}', '${fileName}', '${mimeType}', '${thumbnailUrl}', ${fileSize}, 'en', '${teacherName}', 'PUBLISHED');
   `;
   execSqlMutation(insertSql);
+  invalidateServerCache();
 
   return {
     id: `cnt-${Date.now()}`,
@@ -804,13 +872,18 @@ function createContentItemInDb(data) {
 function deleteContentItemFromDb(id) {
   const numericId = String(id).replace(/\D/g, '');
   if (!numericId) return true;
-  return execSqlMutation(`DELETE FROM acadevia_content_db.content_items WHERE id = ${numericId};`);
+  const res = execSqlMutation(`DELETE FROM acadevia_content_db.content_items WHERE id = ${numericId};`);
+  invalidateServerCache();
+  return res;
 }
 
 // ---------------------------------------------------------------------------
 // 9. Full Shared State Snapshot (Single Fast Roundtrip for Multiple Devices)
 // ---------------------------------------------------------------------------
 function getFullDatabaseState() {
+  if (isFresh(serverCache.fullState)) {
+    return serverCache.fullState.data;
+  }
   const users = getUsersFromDb();
   const quizzes = getQuizzesFromDb();
   const results = getQuizAttemptsFromDb();
@@ -831,16 +904,21 @@ function getFullDatabaseState() {
     });
   });
 
-  return {
+  const result = {
     users,
     quizzes,
     results,
     activities,
     contentItems,
+    stateVersion,
   };
+  serverCache.fullState = { data: result, timestamp: Date.now() };
+  return result;
 }
 
 module.exports = {
+  getStateVersion,
+  invalidateServerCache,
   execSql,
   execSqlMutation,
   resolveNumericQuizId,

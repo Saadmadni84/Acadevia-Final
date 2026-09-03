@@ -875,6 +875,10 @@ export function calculateStreakFromDates(dates: string[]): {
 /*  STORAGE ENGINE                                                     */
 /* ------------------------------------------------------------------ */
 
+// Version tracking to avoid redundant downloads of unchanged database state
+let lastKnownVersion = 0;
+let isSyncInProgress = false;
+
 function loadState(): DataState {
   if (!memoryState) {
     memoryState = {
@@ -894,6 +898,7 @@ if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
     localStorage.clear = function () {
       origClear();
       memoryState = null;
+      lastKnownVersion = 0;
     };
   } catch {}
 }
@@ -1084,9 +1089,14 @@ export const dataService = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      }).catch((err) => {
-        console.warn('[dataService] Backend quiz creation sync failed:', err);
-      });
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res?.data?.stateVersion) lastKnownVersion = Number(res.data.stateVersion);
+        })
+        .catch((err) => {
+          console.warn('[dataService] Backend quiz creation sync failed:', err);
+        });
     }
 
     return newQuiz;
@@ -1218,9 +1228,14 @@ export const dataService = {
           timeTakenSeconds,
           completedAt,
         }),
-      }).catch((err) => {
-        console.warn('[dataService] Backend attempt sync failed:', err);
-      });
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res?.data?.stateVersion) lastKnownVersion = Number(res.data.stateVersion);
+        })
+        .catch((err) => {
+          console.warn('[dataService] Backend attempt sync failed:', err);
+        });
     }
 
     return resultRecord;
@@ -1627,15 +1642,39 @@ export const dataService = {
   },
 
   /** Fetch and sync full data state from backend API */
-  async syncFromBackend(): Promise<void> {
+  async syncFromBackend(force: boolean = false): Promise<void> {
+    if (isSyncInProgress) return;
     try {
       if (typeof window === 'undefined') return;
+      isSyncInProgress = true;
+
+      // Fast version check: if state version has not changed, avoid downloading full database state
+      if (!force && lastKnownVersion > 0) {
+        try {
+          const vRes = await fetch(getApiUrl('/api/v1/data/version'));
+          if (vRes.ok) {
+            const vJson = await vRes.json();
+            const serverVer = Number(vJson?.data?.version) || 0;
+            if (serverVer > 0 && serverVer === lastKnownVersion) {
+              // State is completely identical; skip full download and prevent redundant re-renders
+              return;
+            }
+          }
+        } catch {
+          // If version endpoint unreachable, continue to standard sync
+        }
+      }
+
       const res = await fetch(getApiUrl('/api/v1/data/state'));
       if (res.ok) {
         const json = await res.json();
         if (json?.success && json.data) {
           const state = loadState();
-          const { users, quizzes, results, activities } = json.data;
+          const { users, quizzes, results, activities, stateVersion } = json.data;
+
+          if (stateVersion) {
+            lastKnownVersion = Number(stateVersion);
+          }
 
           if (Array.isArray(users) && users.length > 0) {
             users.forEach((apiU: any) => {
@@ -1687,13 +1726,15 @@ export const dataService = {
       }
     } catch {
       // Offline fallback
+    } finally {
+      isSyncInProgress = false;
     }
   },
 };
 
-// Initial sync in browser runtime & auto-revalidation polling every 4 seconds
+// Initial sync in browser runtime & efficient auto-revalidation polling (30s)
 if (typeof window !== 'undefined') {
-  dataService.syncFromBackend().catch(() => {});
+  dataService.syncFromBackend(true).catch(() => {});
 
   window.addEventListener('focus', () => {
     dataService.syncFromBackend().catch(() => {});
@@ -1701,5 +1742,5 @@ if (typeof window !== 'undefined') {
 
   setInterval(() => {
     dataService.syncFromBackend().catch(() => {});
-  }, 4000);
+  }, 30000);
 }

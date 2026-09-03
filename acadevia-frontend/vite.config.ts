@@ -37,8 +37,15 @@ function databaseApiPlugin() {
           return;
         }
 
-        delete require.cache[require.resolve('./src/scripts/databaseApi.cjs')];
         const db = require('./src/scripts/databaseApi.cjs');
+
+        // 0. Lightweight State Version Check (< 0.1ms, zero DB queries)
+        if (pathname === '/api/v1/data/version' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.end(JSON.stringify({ status: 200, success: true, data: { version: db.getStateVersion() } }));
+          return;
+        }
 
         // 1. Full Shared State
         if (pathname === '/api/v1/data/state' && req.method === 'GET') {
