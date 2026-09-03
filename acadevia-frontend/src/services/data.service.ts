@@ -18,15 +18,6 @@ export interface AppUser {
   schoolName: string;
   stateName?: string;
   cityName?: string;
-export interface AppUser {
-  id: string;
-  email: string;
-  fullName: string;
-  role: 'STUDENT' | 'TEACHER' | 'ADMIN';
-  avatarUrl?: string;
-  schoolName: string;
-  stateName?: string;
-  cityName?: string;
 
   // Registration & Contact Information
   pinCode?: string;
@@ -35,32 +26,6 @@ export interface AppUser {
   phoneNumber?: string;
 
   // Academic Information
-  classGrade?: number; // Classes 1 through 12
-  section?: string;
-  studentSchoolId?: string;
-  username?: string;
-  location?: string;
-  joinDate: string;
-
-  // Student specific relations
-  teacherId?: string; // Foreign key linking to teacher
-  enrolledSubjects?: string[];
-  totalXP: number;
-  currentLevel: number;
-  currentStreak: number;
-  longestStreak?: number;
-  lessonsCompleted: number;
-  coursesCompleted?: number;
-  studyMinutes?: number;
-
-  // Teacher specific relations
-  designation?: string;
-  subject?: string;
-  subjectsTaught?: string[];
-  classesTaught?: number[]; // Classes 1 through 12, e.g. [8, 9, 10, 11, 12]
-  experience?: string;
-  assignedStudentIds?: string[];
-}
   classGrade?: number; // Classes 1 through 12
   section?: string;
   studentSchoolId?: string;

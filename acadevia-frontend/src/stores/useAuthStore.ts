@@ -9,9 +9,16 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => void;
+  setAuth: (
+    user: AuthUser,
+    accessTokenOrTokens: string | { accessToken?: string; refreshToken?: string },
+    refreshToken?: string
+  ) => void;
   setUser: (user: AuthUser) => void;
-  setTokens: (accessToken: string, refreshToken: string) => void;
+  setTokens: (
+    accessTokenOrTokens: string | { accessToken?: string; refreshToken?: string },
+    refreshToken?: string
+  ) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
 }
@@ -24,10 +31,31 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       isAuthenticated: false,
       isLoading: true,
-      setAuth: (user, accessToken, refreshToken) =>
-        set({ user, accessToken, refreshToken, isAuthenticated: true, isLoading: false }),
+      setAuth: (user, accessTokenOrTokens, refreshTokenParam) => {
+        let accessToken: string | null = null;
+        let refreshToken: string | null = null;
+        if (typeof accessTokenOrTokens === 'object' && accessTokenOrTokens !== null) {
+          accessToken = accessTokenOrTokens.accessToken ?? null;
+          refreshToken = accessTokenOrTokens.refreshToken ?? null;
+        } else {
+          accessToken = accessTokenOrTokens ?? null;
+          refreshToken = refreshTokenParam ?? null;
+        }
+        set({ user, accessToken, refreshToken, isAuthenticated: true, isLoading: false });
+      },
       setUser: (user) => set({ user }),
-      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+      setTokens: (accessTokenOrTokens, refreshTokenParam) => {
+        let accessToken: string | null = null;
+        let refreshToken: string | null = null;
+        if (typeof accessTokenOrTokens === 'object' && accessTokenOrTokens !== null) {
+          accessToken = accessTokenOrTokens.accessToken ?? null;
+          refreshToken = accessTokenOrTokens.refreshToken ?? null;
+        } else {
+          accessToken = accessTokenOrTokens ?? null;
+          refreshToken = refreshTokenParam ?? null;
+        }
+        set({ accessToken, refreshToken });
+      },
       setLoading: (isLoading) => set({ isLoading }),
       logout: () => {
         try {
@@ -39,7 +67,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'acadevia-auth',
+      name: 'auth-storage',
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
