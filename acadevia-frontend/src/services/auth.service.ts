@@ -1,4 +1,5 @@
 import apiClient from './api.client';
+import { dataService } from './data.service';
 import type { LoginRequest, AuthResponse, ForgotPasswordRequest, OTPVerifyRequest, ResetPasswordRequest } from '@/types/auth.types';
 import type { ApiResponse } from '@/types/common.types';
 
@@ -24,10 +25,37 @@ export const authService = {
       preferredLanguage: data.preferredLanguage || 'en',
     };
 
+    const schoolName = data.schoolName || '';
+    const stateName = data.state || '';
+    const cityName = data.city || '';
+    const classGrade = parseInt(data.grade) || 10;
+
+    const registeredUser = {
+      id: `user-${Date.now()}`,
+      email: data.email,
+      fullName: (data.name || `${firstName} ${lastName}`).trim(),
+      role: role as 'STUDENT' | 'TEACHER',
+      schoolName: schoolName,
+      stateName: stateName,
+      cityName: cityName,
+      classGrade: role === 'STUDENT' ? classGrade : undefined,
+      joinDate: 'Just now',
+      totalXP: 0,
+      currentLevel: 1,
+      currentStreak: 0,
+      lessonsCompleted: 0,
+    };
+
     if (role === 'TEACHER') {
       return apiClient.post<ApiResponse<AuthResponse>>('/api/v1/auth/register/teacher', {
         ...base,
         subject: data.subject || '',
+      }).then(res => {
+        dataService.upsertUser(registeredUser as any);
+        return res;
+      }).catch(err => {
+        dataService.upsertUser(registeredUser as any);
+        throw err;
       });
     }
 
@@ -37,6 +65,12 @@ export const authService = {
       studentSchoolId: data.studentSchoolId || `STU-${Date.now()}`,
       board: data.board || '',
       medium: data.medium || '',
+    }).then(res => {
+      dataService.upsertUser(registeredUser as any);
+      return res;
+    }).catch(err => {
+      dataService.upsertUser(registeredUser as any);
+      throw err;
     });
   },
   refreshToken: (refreshToken: string) =>

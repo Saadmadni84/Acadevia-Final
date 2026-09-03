@@ -14,6 +14,8 @@ export interface AppUser {
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
   avatarUrl?: string;
   schoolName: string;
+  stateName?: string;
+  cityName?: string;
   classGrade?: number; // Classes 1 through 12
   section?: string;
   studentSchoolId?: string;

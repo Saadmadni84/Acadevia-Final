@@ -143,14 +143,28 @@ const ProfilePage: React.FC = () => {
       : combinedBadges;
 
   // Real educational fields from logged in student
-  const schoolDisplay = profile?.schoolName || 'Acadevia Demo School';
-  const classNameVal = profile?.className || (profile?.classGrade ? `Class ${profile.classGrade}` : 'Class 10');
-  const sectionVal = profile?.section || 'A';
-  const stateNameVal = profile?.stateName;
-  const cityNameVal = profile?.cityName;
-  const phoneVal = profile?.phone;
-  const boardVal = profile?.board;
-  const languageVal = profile?.languagePreference || 'English';
+  const schoolDisplay =
+    profile?.schoolName ||
+    user?.schoolName ||
+    dataService.getUserById(studentId)?.schoolName;
+  const classNameVal =
+    profile?.className ||
+    (profile?.classGrade ? `Class ${profile.classGrade}` : undefined) ||
+    user?.className ||
+    (user?.classGrade ? `Class ${user.classGrade}` : undefined) ||
+    (dataService.getUserById(studentId)?.classGrade ? `Class ${dataService.getUserById(studentId)?.classGrade}` : undefined);
+  const sectionVal = profile?.section || (profile as any)?.sectionName;
+  const stateNameVal =
+    profile?.stateName ||
+    user?.stateName ||
+    dataService.getUserById(studentId)?.stateName;
+  const cityNameVal =
+    profile?.cityName ||
+    user?.cityName ||
+    dataService.getUserById(studentId)?.cityName;
+  const phoneVal = profile?.phone || user?.phone;
+  const boardVal = profile?.board || (user as any)?.board;
+  const languageVal = profile?.languagePreference || user?.languagePreference || 'English';
 
   // Purely data-driven statistics without fake fallbacks
   const coursesCompleted = metrics.coursesCompleted;
