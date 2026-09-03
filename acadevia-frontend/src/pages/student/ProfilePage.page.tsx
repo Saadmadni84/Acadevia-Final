@@ -63,36 +63,41 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // 1. User Profile Data from /api/v1/users/me
+  // 1. User Profile Data from /api/v1/users/me (parameterized by authenticated user id)
   const { data: userProfile } = useQuery({
-    queryKey: ['user-profile'],
+    queryKey: ['user-profile', user?.id],
     queryFn: async () => (await userService.getProfile()).data.data,
     enabled: Boolean(user),
   });
 
   // 2. Gamification Data from /api/v1/gamification/profile
   const { data: gamification } = useQuery({
-    queryKey: ['gamification-profile'],
+    queryKey: ['gamification-profile', user?.id],
     queryFn: async () => (await gamificationService.getProfile()).data.data,
     enabled: Boolean(user),
   });
 
   // 3. Enrolled Courses from /api/v1/courses/enrolled
   const { data: enrolledCourses } = useQuery({
-    queryKey: ['enrolled-courses'],
+    queryKey: ['enrolled-courses', user?.id],
     queryFn: async () => (await courseService.getEnrolled()).data.data,
     enabled: Boolean(user),
   });
 
   // 4. Student Analytics from /api/v1/analytics/student
   const { data: studentAnalytics } = useQuery({
-    queryKey: ['student-analytics'],
+    queryKey: ['student-analytics', user?.id],
     queryFn: async () => (await analyticsService.getStudentAnalytics()).data.data,
     enabled: Boolean(user),
   });
 
   const profile = userProfile ?? user;
   const studentId = user?.id ? String(user.id) : '20';
+  const studentName =
+    user?.fullName ||
+    userProfile?.fullName ||
+    (user?.id ? dataService.getUserById(String(user.id))?.fullName : undefined) ||
+    'Student';
 
   // Retrieve actual student metrics from persistent data layer
   const metrics = dataService.getStudentMetrics(studentId);
@@ -215,7 +220,7 @@ const ProfilePage: React.FC = () => {
 
       {/* 1. Main Reference-Styled Profile Card */}
       <ProfileHeader
-        name={profile?.fullName || 'Student'}
+        name={studentName}
         email={profile?.email || ''}
         avatar={profile?.avatarUrl || user?.avatarUrl || (studentId ? dataService.getUserById(studentId)?.avatarUrl : undefined)}
         phone={phoneVal}

@@ -253,4 +253,125 @@ describe('Dynamic Student School Name, Class, and State Profile Flow', () => {
     expect(dataService.getUserById('student_a_123')?.avatarUrl).toBe(photoUrlA);
     expect(dataService.getUserById('student_a_123')?.avatarUrl).not.toBe(photoUrlB);
   });
+
+  it('ensures three-student dynamic name switching without stale test1 fallback or cross-student leakage', async () => {
+    const { useAuthStore } = await import('@/stores/useAuthStore');
+
+    // 1. Student 1: TEST 11
+    const student1 = {
+      id: 'student-101',
+      email: 'test1@example.com',
+      fullName: 'TEST 11',
+      role: 'STUDENT' as const,
+      schoolName: 'DPS 1',
+      classGrade: 1,
+      stateName: 'Uttar Pradesh',
+      cityName: 'Ghazipur',
+      pinCode: '233001',
+      phone: '+919876543210',
+    };
+    dataService.upsertUser(student1);
+    useAuthStore.getState().setAuth(
+      {
+        id: student1.id,
+        email: student1.email,
+        fullName: student1.fullName,
+        role: student1.role,
+        schoolName: student1.schoolName,
+        className: 'Class 1',
+        stateName: student1.stateName,
+        cityName: student1.cityName,
+        pinCode: student1.pinCode,
+        phone: student1.phone,
+        languagePreference: 'en',
+      },
+      'access-token-1',
+      'refresh-token-1'
+    );
+
+    expect(useAuthStore.getState().user?.fullName).toBe('TEST 11');
+    expect(useAuthStore.getState().user?.fullName.charAt(0).toUpperCase()).toBe('T');
+
+    // 2. Student 1 Logs Out
+    useAuthStore.getState().logout();
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+
+    // 3. Student 2: TEST 22
+    const student2 = {
+      id: 'student-202',
+      email: 'test2@example.com',
+      fullName: 'TEST 22',
+      role: 'STUDENT' as const,
+      schoolName: 'DPS 2',
+      classGrade: 2,
+      stateName: 'Jharkhand',
+      cityName: 'Chaibasa',
+      pinCode: '231211',
+      phone: '+919123456789',
+    };
+    dataService.upsertUser(student2);
+    useAuthStore.getState().setAuth(
+      {
+        id: student2.id,
+        email: student2.email,
+        fullName: student2.fullName,
+        role: student2.role,
+        schoolName: student2.schoolName,
+        className: 'Class 2',
+        stateName: student2.stateName,
+        cityName: student2.cityName,
+        pinCode: student2.pinCode,
+        phone: student2.phone,
+        languagePreference: 'en',
+      },
+      'access-token-2',
+      'refresh-token-2'
+    );
+
+    expect(useAuthStore.getState().user?.fullName).toBe('TEST 22');
+    expect(useAuthStore.getState().user?.fullName).not.toBe('test1');
+    expect(useAuthStore.getState().user?.fullName).not.toBe('TEST 11');
+    expect(useAuthStore.getState().user?.fullName.charAt(0).toUpperCase()).toBe('T');
+
+    // 4. Student 2 Logs Out
+    useAuthStore.getState().logout();
+    expect(useAuthStore.getState().user).toBeNull();
+
+    // 5. Student 3: TEST 33
+    const student3 = {
+      id: 'student-303',
+      email: 'test3@example.com',
+      fullName: 'TEST 33',
+      role: 'STUDENT' as const,
+      schoolName: 'DPS 3',
+      classGrade: 3,
+      stateName: 'Bihar',
+      cityName: 'Patna',
+      pinCode: '800001',
+      phone: '+919777788888',
+    };
+    dataService.upsertUser(student3);
+    useAuthStore.getState().setAuth(
+      {
+        id: student3.id,
+        email: student3.email,
+        fullName: student3.fullName,
+        role: student3.role,
+        schoolName: student3.schoolName,
+        className: 'Class 3',
+        stateName: student3.stateName,
+        cityName: student3.cityName,
+        pinCode: student3.pinCode,
+        phone: student3.phone,
+        languagePreference: 'en',
+      },
+      'access-token-3',
+      'refresh-token-3'
+    );
+
+    expect(useAuthStore.getState().user?.fullName).toBe('TEST 33');
+    expect(useAuthStore.getState().user?.fullName).not.toBe('test1');
+    expect(useAuthStore.getState().user?.fullName).not.toBe('TEST 22');
+  });
 });

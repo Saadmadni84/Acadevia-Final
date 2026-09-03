@@ -51,7 +51,7 @@ public class UserProfileService {
     // ─── /me support methods ───
 
     @Transactional(readOnly = true)
-    public UserMeResponse buildMeResponse(String userIdStr, String email, String role) {
+    public UserMeResponse buildMeResponse(String userIdStr, String email, String role, String fullName) {
         UserMeResponse.UserMeResponseBuilder builder = UserMeResponse.builder()
                 .id(userIdStr != null ? userIdStr : "0")
                 .email(email != null ? email : "")
@@ -112,14 +112,21 @@ public class UserProfileService {
             }
         }
 
-        // fullName: use email prefix as fallback
-        if (email != null && email.contains("@")) {
+        // fullName: prioritized from authenticated token header
+        if (fullName != null && !fullName.isBlank()) {
+            builder.fullName(fullName.trim());
+        } else if (email != null && email.contains("@")) {
             builder.fullName(email.substring(0, email.indexOf('@')));
         } else {
-            builder.fullName("User");
+            builder.fullName("Student");
         }
 
         return builder.build();
+    }
+
+    @Transactional(readOnly = true)
+    public UserMeResponse buildMeResponse(String userIdStr, String email, String role) {
+        return buildMeResponse(userIdStr, email, role, null);
     }
 
     public void applyMeUpdates(Long userId, Map<String, Object> updates) {

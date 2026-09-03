@@ -77,12 +77,14 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
                 String userId = jwtUtil.getUserId(token);
                 String email = jwtUtil.getUserEmail(token);
                 String role = jwtUtil.getUserRole(token);
+                String fullName = jwtUtil.getUserFullName(token);
 
                 ServerWebExchange modifiedExchange = exchange.mutate()
                         .request(r -> r.headers(headers -> {
                             if (userId != null) headers.add("X-User-Id", userId);
                             if (email != null) headers.add("X-User-Email", email);
                             if (role != null) headers.add("X-User-Role", role);
+                            if (fullName != null) headers.add("X-User-Name", fullName);
                         }))
                         .build();
 
