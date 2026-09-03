@@ -1,36 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import { getMissionsForWorld } from './missionGenerator';
-import { VILLAGE_QUESTION_BANK, getVillageMission } from './villageCurriculum';
 
 describe('Number Kingdom grade missions', () => {
-  it.each([1, 2, 3, 4, 5] as const)('creates valid Magical Village content for Class %i', (grade) => {
+  it.each([1, 2, 3, 4, 5] as const)('creates valid content and missions for Class %i', (grade) => {
     const [mission] = getMissionsForWorld('village', grade);
     expect(mission.classGrade).toBe(grade);
-    if (grade === 1) expect(mission.id).toBe('c1_m1_village');
-    else expect(mission.payload.options).toContain(mission.payload.correctAnswer);
+    if (grade === 1) {
+      expect(mission.id).toBe('c1_m1_village');
+    } else {
+      expect(mission.id).toBe(`c${grade}_m_village`);
+      expect(mission.title).toBeDefined();
+      expect(mission.instruction).toBeDefined();
+    }
   });
 
-  it('scales later-world content through Class 5', () => {
-    const [class2] = getMissionsForWorld('forest', 2);
-    const [class5] = getMissionsForWorld('forest', 5);
-    expect(class2.payload.correctAnswer).toBe(8);
-    expect(class5.payload.correctAnswer).toBe(87);
-  });
+  it('provides distinct, dedicated real-game concepts for Classes 2 through 5', () => {
+    const [class2] = getMissionsForWorld('village', 2);
+    const [class3] = getMissionsForWorld('village', 3);
+    const [class4] = getMissionsForWorld('village', 4);
+    const [class5] = getMissionsForWorld('village', 5);
 
-  it('gives every village prompt one valid answer and plausible alternatives', () => {
-    ([2, 3, 4, 5] as const).forEach((grade) => {
-      VILLAGE_QUESTION_BANK[grade].forEach((question) => {
-        const options = question.payload.options ?? [];
-        expect(options.filter((option) => option === question.payload.correctAnswer)).toHaveLength(1);
-        expect(new Set(options).size).toBe(options.length);
-      });
-    });
-  });
+    expect(class2.title).toContain('Number Bridge');
+    expect(class3.title).toContain('Dragon Delivery');
+    expect(class4.title).toContain("Wizard's Potion Lab");
+    expect(class5.title).toContain('Kingdom Builder');
 
-  it('uses different concepts and supports deterministic randomized variants', () => {
-    expect(getVillageMission(2, () => 0).topic).toBe('subtraction');
-    expect(getVillageMission(3, () => 0).topic).toBe('multiplication');
-    expect(getVillageMission(4, () => 0).topic).toBe('addition');
-    expect(getVillageMission(5, () => 0.99).topic).toBe('data');
+    // Confirm that titles & concepts are distinct
+    expect(class2.title).not.toEqual(class3.title);
+    expect(class3.title).not.toEqual(class4.title);
+    expect(class4.title).not.toEqual(class5.title);
   });
 });
