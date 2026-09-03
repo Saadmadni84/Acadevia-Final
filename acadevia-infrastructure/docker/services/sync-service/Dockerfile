@@ -7,19 +7,13 @@
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 
-# Copy parent POM and service POM for dependency caching
 COPY pom.xml ./pom.xml
 RUN sed -i '/<modules>/,/<\/modules>/d' pom.xml
 COPY sync-service/pom.xml ./sync-service/pom.xml
-
-# Download dependencies (cached unless POM changes)
-# dependencies resolved during build
-
-# Copy source code
 COPY sync-service/src ./sync-service/src
+COPY sync-service/target/*.jar ./sync-service/target/
 
-# Build JAR (skip tests — they run in CI)
-RUN mvn -f sync-service/pom.xml package -DskipTests -B -q
+RUN if [ ! -f sync-service/target/*.jar ]; then       mvn -f sync-service/pom.xml package -DskipTests -B -q;     fi
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre
