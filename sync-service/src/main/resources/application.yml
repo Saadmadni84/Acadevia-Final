@@ -38,13 +38,20 @@ spring:
 
   cloud:
     aws:
+      # Credentials and endpoint are injected by Docker Compose via x-minio-env anchor:
+      #   SPRING_CLOUD_AWS_ENDPOINT                  → spring.cloud.aws.endpoint
+      #   SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY    → spring.cloud.aws.credentials.access-key
+      #   SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY    → spring.cloud.aws.credentials.secret-key
+      #   SPRING_CLOUD_AWS_REGION_STATIC             → spring.cloud.aws.region.static
+      endpoint: ${SPRING_CLOUD_AWS_ENDPOINT:http://minio:9000}
       credentials:
-        access-key: ${AWS_ACCESS_KEY:dummy}
-        secret-key: ${AWS_SECRET_KEY:dummy}
+        access-key: ${SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY:minioadmin}
+        secret-key: ${SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY:minioadmin}
       region:
-        static: us-east-1
+        static: ${SPRING_CLOUD_AWS_REGION_STATIC:us-east-1}
       s3:
-        bucket: acadevia-sync-content
+        # sync-service stores downloadable offline content in acadevia-documents
+        bucket: acadevia-documents
 
 eureka:
   client:
