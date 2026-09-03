@@ -7,19 +7,13 @@
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 
-# Copy parent POM and service POM for dependency caching
 COPY pom.xml ./pom.xml
 RUN sed -i '/<modules>/,/<\/modules>/d' pom.xml
 COPY api-gateway/pom.xml ./api-gateway/pom.xml
-
-# Download dependencies (cached unless POM changes)
-# dependencies resolved during build
-
-# Copy source code
 COPY api-gateway/src ./api-gateway/src
+COPY api-gateway/target/*.jar ./api-gateway/target/
 
-# Build JAR (skip tests — they run in CI)
-RUN mvn -f api-gateway/pom.xml package -DskipTests -B -q
+RUN if [ ! -f api-gateway/target/*.jar ]; then       mvn -f api-gateway/pom.xml package -DskipTests -B -q;     fi
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre

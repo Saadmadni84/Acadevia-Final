@@ -7,19 +7,13 @@
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 
-# Copy parent POM and service POM for dependency caching
 COPY pom.xml ./pom.xml
 RUN sed -i '/<modules>/,/<\/modules>/d' pom.xml
 COPY gamification-service/pom.xml ./gamification-service/pom.xml
-
-# Download dependencies (cached unless POM changes)
-# dependencies resolved during build
-
-# Copy source code
 COPY gamification-service/src ./gamification-service/src
+COPY gamification-service/target/*.jar ./gamification-service/target/
 
-# Build JAR (skip tests — they run in CI)
-RUN mvn -f gamification-service/pom.xml package -DskipTests -B -q
+RUN if [ ! -f gamification-service/target/*.jar ]; then       mvn -f gamification-service/pom.xml package -DskipTests -B -q;     fi
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre
