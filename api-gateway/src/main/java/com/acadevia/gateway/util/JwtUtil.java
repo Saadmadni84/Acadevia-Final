@@ -76,4 +76,17 @@ public class JwtUtil {
     public String getUserRole(String token) {
         return extractClaim(token, claims -> claims.get("role", String.class));
     }
+
+    public String getUserFullName(String token) {
+        return extractClaim(token, claims -> {
+            String fullName = claims.get("fullName", String.class);
+            if (fullName != null && !fullName.isBlank()) return fullName;
+            String first = claims.get("firstName", String.class);
+            String last = claims.get("lastName", String.class);
+            if (first != null || last != null) {
+                return ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
+            }
+            return null;
+        });
+    }
 }

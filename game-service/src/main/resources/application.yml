@@ -2,6 +2,8 @@ server:
   port: 8086
 
 spring:
+  config:
+    import: optional:configserver:http://${CONFIG_SERVER_HOST:localhost}:${CONFIG_SERVER_PORT:8888}
   application:
     name: game-service
   datasource:

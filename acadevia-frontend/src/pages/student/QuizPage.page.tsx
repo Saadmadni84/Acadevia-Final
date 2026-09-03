@@ -16,6 +16,9 @@ import {
   Play,
   RotateCcw,
   ArrowLeft,
+  AlertCircle,
+  Zap,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -58,15 +61,24 @@ const QuizPage: React.FC = () => {
   const effectiveQuizId = paramQuizId || queryQuizId;
   const [activeQuiz, setActiveQuiz] = useState<QuizRecord | null>(null);
   const [submissionResult, setSubmissionResult] = useState<QuizResultRecord | null>(null);
+  const [notFound, setNotFound] = useState<boolean>(false);
 
   useEffect(() => {
     if (effectiveQuizId) {
       const found =
         dataService.getQuizById(effectiveQuizId) ||
-        quizzes.find((q) => String(q.id).toLowerCase() === String(effectiveQuizId).toLowerCase());
+        quizzes.find((q) => String(q.id).toLowerCase() === String(effectiveQuizId).toLowerCase()) ||
+        quizzes.find((q) => (q as any).numericId && String((q as any).numericId) === String(effectiveQuizId));
       if (found) {
         setActiveQuiz(found);
+        setNotFound(false);
+      } else if (quizzes.length > 0) {
+        setActiveQuiz(null);
+        setNotFound(true);
       }
+    } else {
+      setActiveQuiz(null);
+      setNotFound(false);
     }
   }, [effectiveQuizId, quizzes]);
 
@@ -90,6 +102,7 @@ const QuizPage: React.FC = () => {
 
   const handleStartQuiz = (quiz: QuizRecord) => {
     setSubmissionResult(null);
+    setNotFound(false);
     setActiveQuiz(quiz);
     setSearchParams({ id: quiz.id });
   };
@@ -97,6 +110,7 @@ const QuizPage: React.FC = () => {
   const handleBackToList = () => {
     setActiveQuiz(null);
     setSubmissionResult(null);
+    setNotFound(false);
     setSearchParams({});
     loadData();
   };
@@ -232,10 +246,23 @@ const QuizPage: React.FC = () => {
           {/* Interactive Player */}
           <QuizPlayer
             title={activeQuiz.title}
+            chapter={activeQuiz.chapter}
             questions={activeQuiz.questions}
             timeLimit={activeQuiz.timeLimit || 300}
             onComplete={handleQuizComplete}
           />
+        </div>
+      ) : notFound ? (
+        /* Quiz Not Found View */
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-card-dark p-8 text-center max-w-lg mx-auto space-y-4 shadow-sm my-8">
+          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Quiz Not Found</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            The requested assessment could not be found or has not been published for your class.
+          </p>
+          <Button variant="outline" onClick={handleBackToList} leftIcon={<ArrowLeft className="h-4 w-4" />}>
+            Back to All Quizzes
+          </Button>
         </div>
       ) : (
         /* 3. Quiz Listing & Discovery View */
@@ -312,9 +339,15 @@ const QuizPage: React.FC = () => {
                     <div className="space-y-3">
                       {/* Badge strip */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary dark:text-[#D4A843]">
-                          {quiz.subject}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary dark:text-[#D4A843]">
+                            {quiz.subject}
+                          </span>
+                          <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full">
+                            <Zap className="h-3 w-3 fill-amber-500 text-amber-500" />
+                            +{quiz.xpReward || 50} XP
+                          </span>
+                        </div>
                         {isCompleted ? (
                           <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
                             <CheckCircle2 className="h-3 w-3" />
@@ -326,6 +359,14 @@ const QuizPage: React.FC = () => {
                           </span>
                         )}
                       </div>
+
+                      {/* Chapter info if present */}
+                      {quiz.chapter && (
+                        <p className="text-xs font-semibold text-primary dark:text-[#D4A843] flex items-center gap-1">
+                          <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                          <span>{quiz.chapter}</span>
+                        </p>
+                      )}
 
                       {/* Quiz Title */}
                       <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors line-clamp-2">

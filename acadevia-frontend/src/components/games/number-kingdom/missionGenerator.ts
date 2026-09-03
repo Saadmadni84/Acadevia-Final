@@ -5,6 +5,7 @@ import type {
   WorldId,
   PetConfig,
 } from './types';
+import { getVillageMission } from './villageCurriculum';
 
 export const PET_COMPANIONS: PetConfig[] = [
   { id: 'puppy', name: 'Barnaby the Pup', avatar: '🐶', greeting: "Woof! Let's explore together!" },
@@ -12,6 +13,21 @@ export const PET_COMPANIONS: PetConfig[] = [
   { id: 'fox', name: 'Rusty the Fox', avatar: '🦊', greeting: "Clever quests ahead! Let's go!" },
   { id: 'bunny', name: 'Pip the Bunny', avatar: '🐰', greeting: "Hop into adventure with me!" },
 ];
+
+/** One curriculum configuration drives the shared mission engine for Classes 2–5. */
+export const NUMBER_KINGDOM_GRADE_CONFIG: Record<Exclude<StudentClassGrade, 1>, {
+  subtraction: { initial: number; removed: number };
+  railway: { carriages: number; perCarriage: number };
+  sequence: { start: number; step: number };
+  bridge: { have: number; add: number };
+  wall: { rows: number; columns: number };
+  crownJewels: number;
+}> = {
+  2: { subtraction: { initial: 14, removed: 6 }, railway: { carriages: 3, perCarriage: 4 }, sequence: { start: 2, step: 2 }, bridge: { have: 7, add: 5 }, wall: { rows: 3, columns: 4 }, crownJewels: 10 },
+  3: { subtraction: { initial: 25, removed: 9 }, railway: { carriages: 4, perCarriage: 5 }, sequence: { start: 5, step: 5 }, bridge: { have: 14, add: 8 }, wall: { rows: 4, columns: 5 }, crownJewels: 15 },
+  4: { subtraction: { initial: 60, removed: 17 }, railway: { carriages: 5, perCarriage: 6 }, sequence: { start: 10, step: 10 }, bridge: { have: 35, add: 17 }, wall: { rows: 5, columns: 6 }, crownJewels: 20 },
+  5: { subtraction: { initial: 125, removed: 38 }, railway: { carriages: 6, perCarriage: 8 }, sequence: { start: 25, step: 25 }, bridge: { have: 75, add: 38 }, wall: { rows: 6, columns: 8 }, crownJewels: 25 },
+};
 
 export const KINGDOM_WORLDS: WorldDefinition[] = [
   {

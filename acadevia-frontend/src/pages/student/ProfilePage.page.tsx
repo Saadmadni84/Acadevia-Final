@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { XPProgressBar } from '@/components/gamification/XPProgressBar';
 import { BadgeShowcase } from '@/components/gamification/BadgeShowcase';
@@ -30,9 +31,16 @@ const acadeviaBadgeCatalog = [
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const user = useAuthStore((state) => state.user);
   const [badgeFilter, setBadgeFilter] = useState<'all' | 'earned' | 'locked'>('all');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [, setSyncCount] = useState(0);
+
+  const queryStudentId = searchParams.get('id') || searchParams.get('studentId');
+  const targetStudent = queryStudentId ? dataService.getUserById(queryStudentId) : null;
+  const isViewingOther = Boolean(queryStudentId && (!user?.id || String(queryStudentId) !== String(user.id)) && targetStudent);
 
   useEffect(() => {
     let mounted = true;
@@ -44,36 +52,75 @@ const ProfilePage: React.FC = () => {
     };
   }, []);
 
-  // 1. User Profile Data from /api/v1/users/me
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      await userService.uploadAvatar(file);
+      setSyncCount((c) => c + 1);
+    } catch (err: any) {
+      setUploadError(err.message || 'Unable to update profile photo. Please try again.');
+      setTimeout(() => setUploadError(null), 5000);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // 1. User Profile Data from /api/v1/users/me (parameterized by authenticated user id)
   const { data: userProfile } = useQuery({
-    queryKey: ['user-profile'],
+    queryKey: ['user-profile', user?.id],
     queryFn: async () => (await userService.getProfile()).data.data,
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !isViewingOther,
   });
 
   // 2. Gamification Data from /api/v1/gamification/profile
   const { data: gamification } = useQuery({
-    queryKey: ['gamification-profile'],
+    queryKey: ['gamification-profile', user?.id],
     queryFn: async () => (await gamificationService.getProfile()).data.data,
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !isViewingOther,
   });
 
   // 3. Enrolled Courses from /api/v1/courses/enrolled
   const { data: enrolledCourses } = useQuery({
-    queryKey: ['enrolled-courses'],
+    queryKey: ['enrolled-courses', user?.id],
     queryFn: async () => (await courseService.getEnrolled()).data.data,
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !isViewingOther,
   });
 
   // 4. Student Analytics from /api/v1/analytics/student
   const { data: studentAnalytics } = useQuery({
-    queryKey: ['student-analytics'],
+    queryKey: ['student-analytics', user?.id],
     queryFn: async () => (await analyticsService.getStudentAnalytics()).data.data,
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !isViewingOther,
   });
 
-  const profile = userProfile ?? user;
-  const studentId = user?.id ? String(user.id) : '20';
+  const profile = isViewingOther && targetStudent
+    ? {
+        id: targetStudent.id,
+        name: targetStudent.fullName,
+        fullName: targetStudent.fullName,
+        email: targetStudent.email,
+        role: targetStudent.role,
+        avatar: targetStudent.avatarUrl,
+        avatarUrl: targetStudent.avatarUrl,
+        classGrade: targetStudent.classGrade,
+        section: targetStudent.section,
+        schoolName: targetStudent.schoolName,
+      }
+    : (userProfile ?? user);
+
+  const studentId = queryStudentId || (user?.id ? String(user.id) : '20');
+  const studentName =
+    (isViewingOther && targetStudent?.fullName) ||
+    user?.fullName ||
+    (profile as any)?.fullName ||
+    (profile as any)?.name ||
+    userProfile?.fullName ||
+    (studentId ? dataService.getUserById(String(studentId))?.fullName : undefined) ||
+    'Student';
 
   // Retrieve actual student metrics from persistent data layer
   const metrics = dataService.getStudentMetrics(studentId);
@@ -89,9 +136,9 @@ const ProfilePage: React.FC = () => {
   }));
 
   const level = gamification?.level ?? metrics.level ?? 1;
-  const xp = gamification?.xp ?? metrics.totalXP ?? 0;
-  const requiredXP = Math.max(100, Math.ceil((xp + 1) / 100) * 100);
-  const streak = gamification?.streak ?? metrics.streak ?? 0;
+  const totalXP = gamification?.totalXP ?? gamification?.xp ?? metrics.totalXP ?? 0;
+  const streak = gamification?.streakDays ?? gamification?.streak ?? metrics.streak ?? 0;
+  const requiredXP = Math.max(100, Math.ceil((totalXP + 1) / 100) * 100);
 
   // Real criteria-driven badge evaluation
   const liveBadges = gamification?.badges ?? [];
@@ -144,27 +191,47 @@ const ProfilePage: React.FC = () => {
 
   // Real educational fields from logged in student
   const schoolDisplay =
-    profile?.schoolName ||
+    (profile as any)?.schoolName ||
     user?.schoolName ||
-    dataService.getUserById(studentId)?.schoolName;
+    dataService.getUserById(studentId)?.schoolName ||
+    'Not enrolled';
+
   const classNameVal =
-    profile?.className ||
-    (profile?.classGrade ? `Class ${profile.classGrade}` : undefined) ||
+    (profile as any)?.className ||
+    ((profile as any)?.classGrade ? `Class ${(profile as any).classGrade}` : undefined) ||
     user?.className ||
     (user?.classGrade ? `Class ${user.classGrade}` : undefined) ||
-    (dataService.getUserById(studentId)?.classGrade ? `Class ${dataService.getUserById(studentId)?.classGrade}` : undefined);
-  const sectionVal = profile?.section || (profile as any)?.sectionName;
+    (dataService.getUserById(studentId)?.classGrade
+      ? `Class ${dataService.getUserById(studentId)?.classGrade}`
+      : undefined);
+
+  const sectionVal = (profile as any)?.section || user?.section || (profile as any)?.sectionName;
   const stateNameVal =
-    profile?.stateName ||
+    (profile as any)?.stateName ||
     user?.stateName ||
     dataService.getUserById(studentId)?.stateName;
   const cityNameVal =
-    profile?.cityName ||
+    (profile as any)?.cityName ||
     user?.cityName ||
     dataService.getUserById(studentId)?.cityName;
-  const phoneVal = profile?.phone || user?.phone;
-  const boardVal = profile?.board || (user as any)?.board;
-  const languageVal = profile?.languagePreference || user?.languagePreference || 'English';
+  const pinCodeVal =
+    (profile as any)?.pinCode ||
+    (profile as any)?.pincode ||
+    user?.pinCode ||
+    (user as any)?.pincode ||
+    dataService.getUserById(studentId)?.pinCode ||
+    dataService.getUserById(studentId)?.pincode;
+
+  const phoneVal =
+    (profile as any)?.phone ||
+    (profile as any)?.phoneNumber ||
+    user?.phone ||
+    (user as any)?.phoneNumber ||
+    (studentId ? dataService.getUserById(studentId)?.phone : undefined) ||
+    (studentId ? dataService.getUserById(studentId)?.phoneNumber : undefined);
+
+  const boardVal = (profile as any)?.board || (user as any)?.board;
+  const languageVal = (profile as any)?.languagePreference || user?.languagePreference || 'English';
 
   // Purely data-driven statistics without fake fallbacks
   const coursesCompleted = metrics.coursesCompleted;
@@ -174,31 +241,41 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4">
+      {uploadError && (
+        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center justify-between">
+          <span>{uploadError}</span>
+          <button type="button" onClick={() => setUploadError(null)} className="text-rose-500 hover:text-rose-700">✕</button>
+        </div>
+      )}
+
       {/* 1. Main Reference-Styled Profile Card */}
       <ProfileHeader
-        name={profile?.fullName || 'Student'}
+        name={studentName}
         email={profile?.email || ''}
-        avatar={profile?.avatarUrl}
+        avatar={profile?.avatarUrl || user?.avatarUrl || (studentId ? dataService.getUserById(studentId)?.avatarUrl : undefined)}
         phone={phoneVal}
         school={schoolDisplay}
         classNameVal={classNameVal}
         section={sectionVal}
         stateName={stateNameVal}
         cityName={cityNameVal}
+        pinCode={pinCodeVal}
         board={boardVal}
         language={languageVal}
         level={level}
-        totalXP={xp}
+        totalXP={totalXP}
         badgeCount={earnedBadgesList.length}
         streak={streak}
         role={profile?.role || 'Student'}
+        isUploading={isUploading}
+        onAvatarChange={handleAvatarUpload}
         onEdit={() => navigate(ROUTES.SETTINGS || '/settings')}
       />
 
       {/* 2. Level / XP Progress Card */}
       <div className="rounded-3xl border border-gray-200/80 dark:border-gray-800 bg-white dark:bg-card-dark p-5 sm:p-6 shadow-sm">
         <XPProgressBar
-          currentXP={xp}
+          currentXP={totalXP}
           requiredXP={requiredXP}
           level={level}
           levelName={`Level ${level}`}

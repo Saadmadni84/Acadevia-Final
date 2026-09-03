@@ -9,16 +9,17 @@ WORKDIR /build
 
 # Copy parent POM and service POM for dependency caching
 COPY pom.xml ./pom.xml
+RUN sed -i '/<modules>/,/<\/modules>/d' pom.xml
 COPY analytics-service/pom.xml ./analytics-service/pom.xml
 
 # Download dependencies (cached unless POM changes)
-RUN mvn dependency:go-offline -pl analytics-service -am -B -q
+# dependencies resolved during build
 
 # Copy source code
 COPY analytics-service/src ./analytics-service/src
 
 # Build JAR (skip tests — they run in CI)
-RUN mvn package -pl analytics-service -am -DskipTests -B -q
+RUN mvn -f analytics-service/pom.xml package -DskipTests -B -q
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre
