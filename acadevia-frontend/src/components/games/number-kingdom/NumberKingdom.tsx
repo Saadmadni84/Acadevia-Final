@@ -2,15 +2,12 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-  Trophy,
   Star,
   Sparkles,
   ArrowLeft,
   RotateCcw,
   Heart,
   Award,
-  Crown,
-  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -23,6 +20,7 @@ import type {
   MathTopic,
   NumberKingdomAnalyticsReport,
   MissionResult,
+  SchoolClass,
 } from './types';
 import {
   KINGDOM_WORLDS,
@@ -34,6 +32,26 @@ import { InteractiveMissionView } from './InteractiveMissionView';
 import { cn } from '@/lib/utils';
 
 type KingdomGameState = 'intro' | 'map' | 'mission' | 'game-over' | 'completed';
+
+interface NumberKingdomSession {
+  grade: SchoolClass;
+  companion: PetType;
+  gameState: Exclude<KingdomGameState, 'intro'>;
+  activeWorldId: WorldId;
+  unlockedWorlds: WorldId[];
+  completedWorlds: WorldId[];
+  worldStars: Record<WorldId, number>;
+  score: number;
+  lives: number;
+  earnedXP: number;
+  resultsLog: MissionResult[];
+}
+
+const SCHOOL_CLASSES: SchoolClass[] = [1, 2, 3, 4, 5];
+const isSchoolClass = (value: unknown): value is SchoolClass =>
+  typeof value === 'number' && SCHOOL_CLASSES.includes(value as SchoolClass);
+const isPetType = (value: unknown): value is PetType =>
+  typeof value === 'string' && PET_COMPANIONS.some((pet) => pet.id === value);
 
 export const NumberKingdom: React.FC = () => {
   const navigate = useNavigate();
@@ -47,7 +65,7 @@ export const NumberKingdom: React.FC = () => {
       const match = user.className.match(/\d+/);
       if (match) {
         const parsed = parseInt(match[0], 10);
-        if (parsed >= 1 && parsed <= 4) return parsed as StudentClassGrade;
+        if (parsed >= 1 && parsed <= 5) return parsed as StudentClassGrade;
       }
     }
     return 2;
@@ -64,6 +82,7 @@ export const NumberKingdom: React.FC = () => {
     village: 0,
     forest: 0,
     bridge: 0,
+    garden: 0,
     market: 0,
     builder: 0,
     railway: 0,
@@ -77,6 +96,55 @@ export const NumberKingdom: React.FC = () => {
   const [earnedXP, setEarnedXP] = useState(0);
   const [hasSubmittedScore, setHasSubmittedScore] = useState(false);
   const [resultsLog, setResultsLog] = useState<MissionResult[]>([]);
+  const [hasHydratedSession, setHasHydratedSession] = useState(false);
+  const [sessionGrade, setSessionGrade] = useState<SchoolClass | null>(null);
+
+  const sessionStorageKey = `acadevia_number_kingdom_session_${studentId}`;
+
+  // A Number Kingdom session travels with the student through setup → map → mission and survives refresh.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(sessionStorageKey);
+      if (!saved) return;
+      const session = JSON.parse(saved) as Partial<NumberKingdomSession>;
+      if (!isSchoolClass(session.grade) || !isPetType(session.companion) || !session.activeWorldId || !session.worldStars) return;
+
+      setSelectedClassGrade(session.grade);
+      setSelectedPet(session.companion);
+      setSessionGrade(session.grade);
+      setActiveWorldId(session.activeWorldId);
+      setUnlockedWorlds(session.unlockedWorlds ?? ['village']);
+      setCompletedWorlds(session.completedWorlds ?? []);
+      setWorldStars(session.worldStars);
+      setScore(session.score ?? 0);
+      setLives(session.lives ?? 3);
+      setEarnedXP(session.earnedXP ?? 0);
+      setResultsLog(session.resultsLog ?? []);
+      setGameState(session.gameState === 'mission' ? 'mission' : 'map');
+    } catch {
+      localStorage.removeItem(sessionStorageKey);
+    } finally {
+      setHasHydratedSession(true);
+    }
+  }, [sessionStorageKey]);
+
+  useEffect(() => {
+    if (!hasHydratedSession || gameState === 'intro') return;
+    const session: NumberKingdomSession = {
+      grade: selectedClassGrade,
+      companion: selectedPet,
+      gameState,
+      activeWorldId,
+      unlockedWorlds,
+      completedWorlds,
+      worldStars,
+      score,
+      lives,
+      earnedXP,
+      resultsLog,
+    };
+    try { localStorage.setItem(sessionStorageKey, JSON.stringify(session)); } catch { /* storage unavailable */ }
+  }, [activeWorldId, completedWorlds, earnedXP, gameState, hasHydratedSession, lives, resultsLog, score, selectedClassGrade, selectedPet, sessionStorageKey, unlockedWorlds, worldStars]);
 
   // Get active mission
   const currentWorldMissions = useMemo(
@@ -84,6 +152,22 @@ export const NumberKingdom: React.FC = () => {
     [activeWorldId, selectedClassGrade]
   );
   const activeMission = currentWorldMissions[0];
+
+  const enterKingdom = () => {
+    // Starting a different class must never reuse another class's missions or rewards.
+    if (sessionGrade !== selectedClassGrade) {
+      setActiveWorldId('village');
+      setUnlockedWorlds(['village']);
+      setCompletedWorlds([]);
+      setWorldStars({ village: 0, forest: 0, bridge: 0, garden: 0, market: 0, builder: 0, railway: 0, tower: 0, dragon: 0, castle: 0 });
+      setScore(0);
+      setLives(3);
+      setEarnedXP(0);
+      setResultsLog([]);
+    }
+    setSessionGrade(selectedClassGrade);
+    setGameState('map');
+  };
 
   // Total stars collected
   const totalStars = useMemo(
@@ -202,6 +286,12 @@ export const NumberKingdom: React.FC = () => {
       'subtraction',
       'money',
       'multiplication',
+      'division',
+      'fractions',
+      'measurement',
+      'data',
+      'angles',
+      'spatial',
       'geometry',
       'patterns',
       'multiStep',
@@ -216,6 +306,16 @@ export const NumberKingdom: React.FC = () => {
       geometry: 'Geometry & Grid Construction',
       patterns: 'Number Patterns & Sequences',
       multiStep: 'Multi-Step Problem Solving',
+      numberRecognition: 'Number Recognition',
+      quantity: 'Counting & Quantities',
+      moreLess: 'Number Comparison',
+      shapes: 'Shapes & Geometry',
+      division: 'Equal Sharing & Division',
+      fractions: 'Fractions',
+      measurement: 'Measurement & Time',
+      data: 'Data Interpretation',
+      angles: 'Angles & Turns',
+      spatial: 'Maps & Spatial Reasoning',
     };
 
     const breakdown = topics.map((t) => {
@@ -324,7 +424,7 @@ export const NumberKingdom: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-4 text-center md:text-left">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 text-xs font-bold uppercase tracking-wider">
-                👑 Mathematics Adventure · Class 1–4
+                👑 Mathematics Adventure · Classes 1–5
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
@@ -343,7 +443,7 @@ export const NumberKingdom: React.FC = () => {
                   Select Your School Grade (Adapts Missions):
                 </span>
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                  {[1, 2, 3, 4].map((grade) => (
+                  {[1, 2, 3, 4, 5].map((grade) => (
                     <button
                       key={grade}
                       type="button"
@@ -391,7 +491,7 @@ export const NumberKingdom: React.FC = () => {
                 <Button
                   variant="gradient"
                   size="lg"
-                  onClick={() => setGameState('map')}
+                  onClick={enterKingdom}
                   leftIcon={<Sparkles className="h-5 w-5" />}
                   className="shadow-md text-base px-8 py-3.5 cursor-pointer"
                 >
@@ -610,6 +710,14 @@ export const NumberKingdom: React.FC = () => {
           </div>
         </div>
 
+        <button
+          type="button"
+          onClick={() => setGameState('intro')}
+          className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 transition hover:border-primary hover:text-primary dark:border-gray-700 dark:text-gray-300"
+        >
+          Change class or companion
+        </button>
+
         {/* Stats */}
         <div className="flex items-center gap-5 text-xs font-extrabold">
           {/* Stars */}
@@ -652,13 +760,19 @@ export const NumberKingdom: React.FC = () => {
             setGameState('mission');
           }}
         />
-      ) : (
+      ) : activeMission ? (
         <InteractiveMissionView
           mission={activeMission}
           selectedPet={selectedPet}
           onComplete={handleMissionComplete}
           onBackToMap={() => setGameState('map')}
         />
+      ) : (
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center">
+          <p className="text-lg font-extrabold text-amber-950">Oops! We couldn’t load this adventure.</p>
+          <p className="mt-2 text-sm text-amber-800">Please go back and select your class again.</p>
+          <Button className="mt-5" variant="outline" onClick={() => setGameState('intro')}>Back to setup</Button>
+        </div>
       )}
     </div>
   );

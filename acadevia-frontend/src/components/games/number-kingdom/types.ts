@@ -9,10 +9,17 @@ export type MathTopic =
   | 'patterns'
   | 'money'
   | 'multiplication'
+  | 'division'
+  | 'fractions'
+  | 'measurement'
+  | 'data'
+  | 'angles'
+  | 'spatial'
   | 'geometry'
   | 'multiStep';
 
-export type StudentClassGrade = 1 | 2 | 3 | 4;
+export type SchoolClass = 1 | 2 | 3 | 4 | 5;
+export type StudentClassGrade = SchoolClass;
 
 export type WorldId =
   | 'village'
@@ -47,6 +54,8 @@ export interface WorldDefinition {
   description: string;
   requiredStarsToUnlock: number;
 }
+
+export type VillageInteraction = 'choice' | 'fraction' | 'map' | 'data' | 'angle';
 
 export interface InteractiveMission {
   id: string;
@@ -103,6 +112,10 @@ export interface InteractiveMission {
     missingIndex?: number;
     missingOptions?: number[];
     correctAnswer: number | string;
+    options?: Array<number | string>;
+    interactionType?: VillageInteraction;
+    visualData?: Array<{ label: string; value: number }>;
+    companionHint?: string;
   };
 }
 
