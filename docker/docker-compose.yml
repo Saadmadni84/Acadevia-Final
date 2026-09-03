@@ -154,18 +154,24 @@ services:
 
   user-service:
 <<<<<<< HEAD
+<<<<<<< HEAD
     build:
       context: ../user-service
     container_name: acadevia-user-service
     ports:
       - "8082:8082"
 =======
+=======
+>>>>>>> 62a9ab1d6e592919a02e3fdc91ae43534bb944d0
     build: 
       context: ../user-service
     container_name: acadevia-user-service
     ports:
       - "8083:8083"
+<<<<<<< HEAD
 >>>>>>> origin/main
+=======
+>>>>>>> 62a9ab1d6e592919a02e3fdc91ae43534bb944d0
     depends_on:
       service-registry:
         condition: service_healthy
@@ -182,6 +188,7 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+<<<<<<< HEAD
 <<<<<<< HEAD
       - JAVA_OPTS=-Xms128m -Xmx256m
 
