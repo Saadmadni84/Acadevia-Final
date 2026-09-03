@@ -27,7 +27,7 @@ services:
     image: adminer:4
     container_name: acadevia-adminer
     ports:
-      - "8082:8080"
+      - "8182:8080"
     environment:
       ADMINER_DEFAULT_SERVER: mysql
     depends_on:
@@ -153,11 +153,25 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
 
   user-service:
+<<<<<<< HEAD
+<<<<<<< HEAD
+    build:
+      context: ../user-service
+    container_name: acadevia-user-service
+    ports:
+      - "8082:8082"
+=======
+=======
+>>>>>>> 62a9ab1d6e592919a02e3fdc91ae43534bb944d0
     build: 
       context: ../user-service
     container_name: acadevia-user-service
     ports:
       - "8083:8083"
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> 62a9ab1d6e592919a02e3fdc91ae43534bb944d0
     depends_on:
       service-registry:
         condition: service_healthy
@@ -174,6 +188,208 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+<<<<<<< HEAD
+<<<<<<< HEAD
+      - JAVA_OPTS=-Xms128m -Xmx256m
+
+  course-service:
+    build:
+      context: ../course-service
+    container_name: acadevia-course-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/acadevia_course_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - JAVA_OPTS=-Xms128m -Xmx256m
+
+  content-service:
+    build:
+      context: ../content-service
+    container_name: acadevia-content-service
+    ports:
+      - "8084:8084"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/acadevia_content_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - JAVA_OPTS=-Xms128m -Xmx256m
+
+  quiz-service:
+    build:
+      context: ../quiz-service
+    container_name: acadevia-quiz-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/acadevia_quiz_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - JAVA_OPTS=-Xms128m -Xmx256m
+
+  game-service:
+    build:
+      context: ../game-service
+    container_name: acadevia-game-service
+    ports:
+      - "8086:8086"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/acadevia_game_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SPRING_DATA_REDIS_HOST=redis
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - JAVA_OPTS=-Xms128m -Xmx256m
+
+  gamification-service:
+    build:
+      context: ../gamification-service
+    container_name: acadevia-gamification-service
+    ports:
+      - "8088:8087"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/acadevia_gamification_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - JAVA_OPTS=-Xms128m -Xmx256m
+
+  leaderboard-service:
+    build:
+      context: ../leaderboard-service
+    container_name: acadevia-leaderboard-service
+    ports:
+      - "8089:8088"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/acadevia_leaderboard_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - REDIS_HOST=redis
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - JAVA_OPTS=-Xms128m -Xmx256m
+
+  sync-service:
+    build:
+      context: ../sync-service
+    container_name: acadevia-sync-service
+    ports:
+      - "8087:8093"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/acadevia_sync_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SPRING_DATA_REDIS_HOST=redis
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - JAVA_OPTS=-Xms128m -Xmx256m
+
+  notification-service:
+    build:
+      context: ../notification-service
+    container_name: acadevia-notification-service
+    ports:
+      - "8090:8090"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/acadevia_notification_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - JAVA_OPTS=-Xms128m -Xmx256m
 
 volumes:
   mysql_data:

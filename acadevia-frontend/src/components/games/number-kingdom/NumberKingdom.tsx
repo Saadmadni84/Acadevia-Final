@@ -432,9 +432,9 @@ export const NumberKingdom: React.FC = () => {
               </h1>
 
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-lg">
-                Welcome {studentName}! Embark on an interactive math adventure across 9 magical
-                realms. Harvest apples, repair stone bridges, run the royal market, and build
-                multiplication houses!
+                Welcome {studentName}! Embark on an interactive math adventure across magical
+                realms. Master Star Village, repair Number Bridge, dispatch Dragon Deliveries,
+                brew in Wizard's Potion Lab, and expand the realm in Kingdom Builder!
               </p>
 
               {/* Class Level Selector */}
