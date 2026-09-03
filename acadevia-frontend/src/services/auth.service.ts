@@ -28,6 +28,7 @@ export const authService = {
     const schoolName = data.schoolName || '';
     const stateName = data.state || '';
     const cityName = data.city || '';
+    const pinCode = (data.pinCode || data.pincode || '').trim();
     const classGrade = parseInt(data.grade) || 10;
 
     const registeredUser = {
@@ -38,6 +39,10 @@ export const authService = {
       schoolName: schoolName,
       stateName: stateName,
       cityName: cityName,
+      pinCode: pinCode,
+      pincode: pinCode,
+      phone: (data.phone || data.phoneNumber || '').trim(),
+      phoneNumber: (data.phone || data.phoneNumber || '').trim(),
       classGrade: role === 'STUDENT' ? classGrade : undefined,
       joinDate: 'Just now',
       totalXP: 0,
@@ -50,6 +55,8 @@ export const authService = {
       return apiClient.post<ApiResponse<AuthResponse>>('/api/v1/auth/register/teacher', {
         ...base,
         subject: data.subject || '',
+        pinCode: pinCode,
+        pincode: pinCode,
       }).then(res => {
         dataService.upsertUser(registeredUser as any);
         return res;
@@ -65,6 +72,8 @@ export const authService = {
       studentSchoolId: data.studentSchoolId || `STU-${Date.now()}`,
       board: data.board || '',
       medium: data.medium || '',
+      pinCode: pinCode,
+      pincode: pinCode,
     }).then(res => {
       dataService.upsertUser(registeredUser as any);
       return res;

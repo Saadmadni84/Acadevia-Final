@@ -16,6 +16,10 @@ export interface AppUser {
   schoolName: string;
   stateName?: string;
   cityName?: string;
+  pinCode?: string;
+  pincode?: string;
+  phone?: string;
+  phoneNumber?: string;
   classGrade?: number; // Classes 1 through 12
   section?: string;
   studentSchoolId?: string;

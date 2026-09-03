@@ -67,6 +67,10 @@ public class UserProfileService {
                 if (profileOpt.isPresent()) {
                     UserProfile profile = profileOpt.get();
                     builder.avatarUrl(profile.getAvatarUrl());
+                    builder.phone(profile.getPhone());
+                    builder.phoneNumber(profile.getPhone());
+                    builder.pinCode(profile.getPincode());
+                    builder.pincode(profile.getPincode());
                     builder.joinedAt(profile.getCreatedAt() != null
                             ? profile.getCreatedAt().toString()
                             : LocalDateTime.now().toString());
@@ -128,8 +132,17 @@ public class UserProfileService {
         if (updates.containsKey("address")) {
             profile.setAddress((String) updates.get("address"));
         }
+        if (updates.containsKey("phone")) {
+            profile.setPhone((String) updates.get("phone"));
+        }
+        if (updates.containsKey("phoneNumber")) {
+            profile.setPhone((String) updates.get("phoneNumber"));
+        }
         if (updates.containsKey("pincode")) {
             profile.setPincode((String) updates.get("pincode"));
+        }
+        if (updates.containsKey("pinCode")) {
+            profile.setPincode((String) updates.get("pinCode"));
         }
         if (updates.containsKey("parentName")) {
             profile.setParentName((String) updates.get("parentName"));

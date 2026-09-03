@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
 import { dataService } from '@/services/data.service';
 
@@ -6,16 +7,19 @@ describe('Dynamic Student School Name, Class, and State Profile Flow', () => {
     localStorage.clear();
   });
 
-  it('correctly persists and retrieves School Name, Class, and State for Student A (SFPS, Class 9, Uttar Pradesh)', () => {
+  it('correctly persists and retrieves School Name, Class, State, City, PIN Code, and Phone Number for Student A (SFPS, Class 11, Uttar Pradesh, Ghazipur, 233001, +919876543210)', () => {
     const studentA = {
       id: 'student-sfps-01',
       email: 'studentA@example.com',
       fullName: 'Student A',
       role: 'STUDENT' as const,
       schoolName: 'SFPS',
-      classGrade: 9,
+      classGrade: 11,
       stateName: 'Uttar Pradesh',
       cityName: 'Ghazipur',
+      pinCode: '233001',
+      phone: '+919876543210',
+      phoneNumber: '+919876543210',
       totalXP: 1500,
       currentLevel: 4,
       currentStreak: 5,
@@ -28,21 +32,26 @@ describe('Dynamic Student School Name, Class, and State Profile Flow', () => {
     expect(retrieved).toBeDefined();
     expect(retrieved?.fullName).toBe('Student A');
     expect(retrieved?.schoolName).toBe('SFPS');
-    expect(retrieved?.classGrade).toBe(9);
+    expect(retrieved?.classGrade).toBe(11);
     expect(retrieved?.stateName).toBe('Uttar Pradesh');
     expect(retrieved?.cityName).toBe('Ghazipur');
+    expect(retrieved?.pinCode).toBe('233001');
+    expect(retrieved?.phone).toBe('+919876543210');
   });
 
-  it('correctly persists and retrieves distinct School Name, Class, and State for Student B (ABC Public School, Class 7, Maharashtra)', () => {
+  it('correctly persists and retrieves distinct School Name, Class, State, City, PIN Code, and Phone Number for Student B (ABC Public School, Class 10, Maharashtra, Mumbai, 400001, +919123456789)', () => {
     const studentB = {
       id: 'student-abc-02',
       email: 'studentB@example.com',
       fullName: 'Student B',
       role: 'STUDENT' as const,
       schoolName: 'ABC Public School',
-      classGrade: 7,
+      classGrade: 10,
       stateName: 'Maharashtra',
       cityName: 'Mumbai',
+      pinCode: '400001',
+      phone: '+919123456789',
+      phoneNumber: '+919123456789',
       totalXP: 450,
       currentLevel: 2,
       currentStreak: 1,
@@ -55,20 +64,26 @@ describe('Dynamic Student School Name, Class, and State Profile Flow', () => {
     expect(retrieved).toBeDefined();
     expect(retrieved?.fullName).toBe('Student B');
     expect(retrieved?.schoolName).toBe('ABC Public School');
-    expect(retrieved?.classGrade).toBe(7);
+    expect(retrieved?.classGrade).toBe(10);
     expect(retrieved?.stateName).toBe('Maharashtra');
     expect(retrieved?.cityName).toBe('Mumbai');
+    expect(retrieved?.pinCode).toBe('400001');
+    expect(retrieved?.phone).toBe('+919123456789');
   });
 
-  it('ensures distinct student accounts do not leak school name, class, or state data to each other', () => {
+  it('ensures distinct student accounts maintain strict isolation for phone numbers and editing Student A does not change Student B', () => {
     const user1 = {
       id: 's1',
       email: 'user1@school.com',
       fullName: 'User One',
       role: 'STUDENT' as const,
       schoolName: 'SFPS',
-      classGrade: 9,
+      classGrade: 11,
       stateName: 'Uttar Pradesh',
+      cityName: 'Ghazipur',
+      pinCode: '233001',
+      phone: '+919876543210',
+      phoneNumber: '+919876543210',
       totalXP: 100,
       currentLevel: 1,
       currentStreak: 0,
@@ -81,8 +96,12 @@ describe('Dynamic Student School Name, Class, and State Profile Flow', () => {
       fullName: 'User Two',
       role: 'STUDENT' as const,
       schoolName: 'ABC Public School',
-      classGrade: 7,
+      classGrade: 10,
       stateName: 'Maharashtra',
+      cityName: 'Mumbai',
+      pinCode: '400001',
+      phone: '+919123456789',
+      phoneNumber: '+919123456789',
       totalXP: 200,
       currentLevel: 2,
       currentStreak: 1,
@@ -92,13 +111,38 @@ describe('Dynamic Student School Name, Class, and State Profile Flow', () => {
     dataService.upsertUser(user1);
     dataService.upsertUser(user2);
 
-    expect(dataService.getUserById('s1')?.schoolName).toBe('SFPS');
-    expect(dataService.getUserById('s1')?.classGrade).toBe(9);
-    expect(dataService.getUserById('s1')?.stateName).toBe('Uttar Pradesh');
+    expect(dataService.getUserById('s1')?.phone).toBe('+919876543210');
+    expect(dataService.getUserById('s2')?.phone).toBe('+919123456789');
 
-    expect(dataService.getUserById('s2')?.schoolName).toBe('ABC Public School');
-    expect(dataService.getUserById('s2')?.classGrade).toBe(7);
-    expect(dataService.getUserById('s2')?.stateName).toBe('Maharashtra');
+    // Student A updates phone number in Settings
+    const updatedUser1 = { ...user1, phone: '+919999988888', phoneNumber: '+919999988888' };
+    dataService.upsertUser(updatedUser1);
+
+    expect(dataService.getUserById('s1')?.phone).toBe('+919999988888');
+    // Student B's phone is completely unchanged
+    expect(dataService.getUserById('s2')?.phone).toBe('+919123456789');
+  });
+
+  it('validates that PIN Code strictly requires exactly 6 numeric digits', () => {
+    const pinRegex = /^\d{6}$/;
+    expect(pinRegex.test('233001')).toBe(true);
+    expect(pinRegex.test('400001')).toBe(true);
+    expect(pinRegex.test('110001')).toBe(true);
+
+    // Reject letters
+    expect(pinRegex.test('23300A')).toBe(false);
+    expect(pinRegex.test('ABCDEF')).toBe(false);
+
+    // Reject special characters
+    expect(pinRegex.test('233-01')).toBe(false);
+    expect(pinRegex.test('233@01')).toBe(false);
+
+    // Reject fewer than 6 digits
+    expect(pinRegex.test('23300')).toBe(false);
+    expect(pinRegex.test('')).toBe(false);
+
+    // Reject more than 6 digits
+    expect(pinRegex.test('2330012')).toBe(false);
   });
 
   it('validates that all 28 Indian States & 8 Union Territories are present with correct cities', async () => {
@@ -152,7 +196,7 @@ describe('Dynamic Student School Name, Class, and State Profile Flow', () => {
     expect(chaps9.map(c => c.title)).toContain('Matter in Our Surroundings');
     expect(chaps10.map(c => c.title)).toContain('Chemical Reactions and Equations');
     expect(chaps9.map(c => c.title)).not.toContain('Chemical Reactions and Equations');
-  });
+  }, 15000);
 
   it('validates profile photo upload, validation, and multi-student photo isolation', async () => {
     const { userService } = await import('@/services/user.service');

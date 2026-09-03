@@ -181,7 +181,20 @@ const ProfilePage: React.FC = () => {
     profile?.cityName ||
     user?.cityName ||
     dataService.getUserById(studentId)?.cityName;
-  const phoneVal = profile?.phone || user?.phone;
+  const pinCodeVal =
+    profile?.pinCode ||
+    (profile as any)?.pincode ||
+    user?.pinCode ||
+    (user as any)?.pincode ||
+    dataService.getUserById(studentId)?.pinCode ||
+    dataService.getUserById(studentId)?.pincode;
+  const phoneVal =
+    profile?.phone ||
+    (profile as any)?.phoneNumber ||
+    user?.phone ||
+    (user as any)?.phoneNumber ||
+    (studentId ? dataService.getUserById(studentId)?.phone : undefined) ||
+    (studentId ? dataService.getUserById(studentId)?.phoneNumber : undefined);
   const boardVal = profile?.board || (user as any)?.board;
   const languageVal = profile?.languagePreference || user?.languagePreference || 'English';
 
@@ -211,6 +224,7 @@ const ProfilePage: React.FC = () => {
         section={sectionVal}
         stateName={stateNameVal}
         cityName={cityNameVal}
+        pinCode={pinCodeVal}
         board={boardVal}
         language={languageVal}
         level={level}

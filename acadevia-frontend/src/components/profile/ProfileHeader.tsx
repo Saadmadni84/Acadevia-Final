@@ -13,6 +13,7 @@ interface ProfileHeaderProps {
   section?: string;
   stateName?: string;
   cityName?: string;
+  pinCode?: string;
   board?: string;
   language?: string;
   level: number;
@@ -32,6 +33,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   classNameVal,
   stateName,
   cityName,
+  pinCode,
   level,
   totalXP,
   isUploading,
@@ -163,7 +165,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <span>Academic Affiliation</span>
                 <span className="text-xs font-normal text-gray-400 dark:text-gray-500">Verified Student Record</span>
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                 <div className="p-3 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-700/40">
                   <p className="text-xs text-gray-400 font-medium">School / Institution</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5 truncate">
@@ -186,6 +188,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <p className="text-xs text-gray-400 font-medium">City</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5 truncate">
                     {cityName || 'Not provided'}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-700/40">
+                  <p className="text-xs text-gray-400 font-medium">PIN Code</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5 truncate">
+                    {pinCode || 'Not provided'}
                   </p>
                 </div>
               </div>

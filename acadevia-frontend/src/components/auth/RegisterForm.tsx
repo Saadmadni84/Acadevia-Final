@@ -20,7 +20,7 @@ const steps = ['Personal Info', 'Location', 'School', 'Account'];
 const Step1: React.FC<StepProps> = ({ form, setField }) => (
   <div className="space-y-4">
     <Input label="Full Name" leftIcon={<User className="h-4 w-4" />} value={form.name || ''} onChange={e => setField('name', e.target.value)} required placeholder="Your full name" />
-    <Input label="Phone" type="tel" leftIcon={<Phone className="h-4 w-4" />} value={form.phone || ''} onChange={e => setField('phone', e.target.value)} required placeholder="+91 XXXXX XXXXX" />
+    <Input label="Phone" type="tel" leftIcon={<Phone className="h-4 w-4" />} value={form.phone || ''} onChange={e => setField('phone', e.target.value)} required placeholder="Enter phone number" />
     <div>
       <label className="block text-sm font-medium mb-1.5">Role</label>
       <select className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary" value={form.role || 'STUDENT'} onChange={e => setField('role', e.target.value)}>
@@ -102,12 +102,20 @@ const Step2: React.FC<StepProps> = ({ form, setField }) => {
         </div>
       </div>
 
-      <Input
-        label="Pin Code"
-        value={form.pinCode || ''}
-        onChange={e => setField('pinCode', e.target.value)}
-        placeholder="6-digit pin code"
-      />
+      <div>
+        <Input
+          label="PIN Code"
+          value={form.pinCode || ''}
+          onChange={e => {
+            const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 6);
+            setField('pinCode', digitsOnly);
+          }}
+          placeholder="6-digit PIN code (e.g. 233001)"
+          maxLength={6}
+          required
+        />
+        <p className="text-[11px] text-gray-500 mt-1">Must be exactly 6 numeric digits.</p>
+      </div>
     </div>
   );
 };
@@ -160,6 +168,14 @@ const RegisterForm: React.FC = () => {
       }
       if (!form.city?.trim()) {
         setError('Please select your city.');
+        return false;
+      }
+      if (!form.pinCode?.trim()) {
+        setError('PIN Code is required.');
+        return false;
+      }
+      if (!/^\d{6}$/.test(form.pinCode.trim())) {
+        setError('PIN Code must contain exactly 6 digits.');
         return false;
       }
     } else if (currStep === 2) {
