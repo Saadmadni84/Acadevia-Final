@@ -84,6 +84,7 @@ const LEGACY_SEEDED_QUIZ_MAP = {
   '105': 'quiz-c10-soc',
   '106': 'quiz-c10-cs',
   '107': 'quiz-10-math-1',
+  '108': 'quiz-10-math-2',
 };
 
 const REVERSE_LEGACY_QUIZ_MAP = {};
@@ -853,16 +854,11 @@ function deleteQuizFromDb({ quizId, requestingUserId, requestingUserRole, authHe
     throw err;
   }
 
-  // 3. Resolve target quiz numeric ID
-  let numericQuizId = Number(quizId);
-  if (isNaN(numericQuizId) || numericQuizId <= 0) {
-    const rev = Object.keys(QUIZ_ALIAS_MAP).find(
-      (k) => QUIZ_ALIAS_MAP[k]?.toLowerCase() === String(quizId).toLowerCase()
-    );
-    if (rev) numericQuizId = Number(rev);
-  }
+  // 3. Resolve target quiz numeric ID using existing alias-resolution mechanism
+  const resolvedStr = resolveNumericQuizId(quizId);
+  const numericQuizId = Number(resolvedStr);
 
-  if (!numericQuizId || isNaN(numericQuizId)) {
+  if (!numericQuizId || isNaN(numericQuizId) || numericQuizId <= 0) {
     const err = new Error(`Quiz not found for ID: ${quizId}`);
     err.statusCode = 404;
     throw err;

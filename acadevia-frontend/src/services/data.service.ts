@@ -176,6 +176,7 @@ const QUIZ_ALIAS_MAP: Record<string, string> = {
   '105': 'quiz-c10-soc',
   '106': 'quiz-c10-cs',
   '107': 'quiz-10-math-1',
+  '108': 'quiz-10-math-2',
 };
 
 function getApiUrl(path: string): string {
