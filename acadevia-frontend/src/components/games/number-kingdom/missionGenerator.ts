@@ -5,7 +5,6 @@ import type {
   WorldId,
   PetConfig,
 } from './types';
-import { getVillageMission } from './villageCurriculum';
 
 export const PET_COMPANIONS: PetConfig[] = [
   { id: 'puppy', name: 'Barnaby the Pup', avatar: '🐶', greeting: "Woof! Let's explore together!" },
@@ -13,21 +12,6 @@ export const PET_COMPANIONS: PetConfig[] = [
   { id: 'fox', name: 'Rusty the Fox', avatar: '🦊', greeting: "Clever quests ahead! Let's go!" },
   { id: 'bunny', name: 'Pip the Bunny', avatar: '🐰', greeting: "Hop into adventure with me!" },
 ];
-
-/** One curriculum configuration drives the shared mission engine for Classes 2–5. */
-export const NUMBER_KINGDOM_GRADE_CONFIG: Record<Exclude<StudentClassGrade, 1>, {
-  subtraction: { initial: number; removed: number };
-  railway: { carriages: number; perCarriage: number };
-  sequence: { start: number; step: number };
-  bridge: { have: number; add: number };
-  wall: { rows: number; columns: number };
-  crownJewels: number;
-}> = {
-  2: { subtraction: { initial: 14, removed: 6 }, railway: { carriages: 3, perCarriage: 4 }, sequence: { start: 2, step: 2 }, bridge: { have: 7, add: 5 }, wall: { rows: 3, columns: 4 }, crownJewels: 10 },
-  3: { subtraction: { initial: 25, removed: 9 }, railway: { carriages: 4, perCarriage: 5 }, sequence: { start: 5, step: 5 }, bridge: { have: 14, add: 8 }, wall: { rows: 4, columns: 5 }, crownJewels: 15 },
-  4: { subtraction: { initial: 60, removed: 17 }, railway: { carriages: 5, perCarriage: 6 }, sequence: { start: 10, step: 10 }, bridge: { have: 35, add: 17 }, wall: { rows: 5, columns: 6 }, crownJewels: 20 },
-  5: { subtraction: { initial: 125, removed: 38 }, railway: { carriages: 6, perCarriage: 8 }, sequence: { start: 25, step: 25 }, bridge: { have: 75, add: 38 }, wall: { rows: 6, columns: 8 }, crownJewels: 25 },
-};
 
 export const KINGDOM_WORLDS: WorldDefinition[] = [
   {
@@ -308,138 +292,79 @@ export const getMissionsForWorld = (
   }
 
   // CLASSES 2–5 ADAPTIVE MISSIONS
-  const gradeConfig = NUMBER_KINGDOM_GRADE_CONFIG[classGrade];
-  switch (worldId) {
-    case 'village': {
-      return [getVillageMission(classGrade)];
-    }
-    case 'forest': {
-      const { initial: init, removed: sub } = gradeConfig.subtraction;
-      const rem = init - sub;
+  switch (classGrade) {
+    case 2:
       return [
         {
-          id: `f_c${classGrade}_1`,
-          worldId: 'forest',
-          classGrade,
-          title: `${init} Berries - ${sub} Picked`,
-          instruction: `${init} berries grew in the grove. ${sub} were picked. Move the remaining ${rem}.`,
-          topic: 'subtraction',
-          prompt: `${init} - ${sub} = ?`,
-          mathExplanation: `${init} - ${sub} = ${rem} berries remain!`,
-          payload: { initialQuantity: init, subtractedQuantity: sub, correctAnswer: rem },
-        },
-      ];
-    }
-    case 'railway': {
-      const { carriages, perCarriage } = gradeConfig.railway;
-      const total = carriages * perCarriage;
-      return [
-        {
-          id: `r_c${classGrade}_1`,
-          worldId: 'railway',
-          classGrade,
-          title: `Load ${carriages} Trains × ${perCarriage} Travelers`,
-          instruction: `Load ${total} travelers equally into ${carriages} train cars (${perCarriage} each).`,
-          topic: 'multiplication',
-          prompt: `${carriages} × ${perCarriage} = ?`,
-          mathExplanation: `${carriages} × ${perCarriage} = ${total} travelers boarded!`,
-          payload: { trainCarriages: carriages, passengersPerCarriage: perCarriage, targetQuantity: total, correctAnswer: total },
-        },
-      ];
-    }
-    case 'tower': {
-      const { step, start } = gradeConfig.sequence;
-      const seq = [start, start + step, start + 2 * step, start + 3 * step, start + 4 * step];
-      const missing = seq[3];
-      return [
-        {
-          id: `t_c${classGrade}_1`,
-          worldId: 'tower',
-          classGrade,
-          title: `Magic Pattern (+${step})`,
-          instruction: `Place the missing crystal: ${seq[0]} → ${seq[1]} → ${seq[2]} → ? → ${seq[4]}`,
-          topic: 'patterns',
-          prompt: `What number comes next adding ${step}?`,
-          mathExplanation: `${seq[2]} + ${step} = ${missing}!`,
-          payload: {
-            sequence: [seq[0], seq[1], seq[2], null, seq[4]],
-            missingIndex: 3,
-            missingOptions: [missing - 1, missing, missing + 2, missing + step].sort(() => Math.random() - 0.5),
-            correctAnswer: missing,
-          },
-        },
-      ];
-    }
-    case 'bridge': {
-      const { have, add: need } = gradeConfig.bridge;
-      const total = have + need;
-      return [
-        {
-          id: `b_c${classGrade}_1`,
-          worldId: 'bridge',
-          classGrade,
-          title: `Repair Bridge: ${have} + ${need} = ${total}`,
-          instruction: `The bridge requires ${total} stones. You have ${have}. Add ${need} more!`,
+          id: `c2_m_${worldId}`,
+          worldId,
+          classGrade: 2,
+          title: '🌉 Number Bridge: Mathematical Repair',
+          instruction: 'Collect, arrange, and place missing number stones to complete the bridge and cross safely.',
           topic: 'addition',
-          prompt: `${have} + ${need} = ?`,
-          mathExplanation: `${have} + ${need} = ${total} stones. Bridge repaired!`,
-          payload: { haveQuantity: have, neededTotal: total, targetQuantity: need, correctAnswer: need },
-        },
-      ];
-    }
-    case 'builder': {
-      const { rows, columns: cols } = gradeConfig.wall;
-      const total = rows * cols;
-      return [
-        {
-          id: `bd_c${classGrade}_1`,
-          worldId: 'builder',
-          classGrade,
-          title: `Build Wall: ${rows} Rows × ${cols} Columns`,
-          instruction: `Place ${total} blocks to build a wall of ${rows} rows with ${cols} blocks each.`,
-          topic: 'geometry',
-          prompt: `${rows} × ${cols} = ?`,
-          mathExplanation: `${rows} × ${cols} = ${total} blocks placed!`,
-          payload: { gridRows: rows, gridCols: cols, targetQuantity: total, correctAnswer: total },
-        },
-      ];
-    }
-    case 'garden': {
-      return [
-        {
-          id: `g_c${classGrade}_1`,
-          worldId: 'garden',
-          classGrade,
-          title: '🌸 Royal Pattern Garden',
-          instruction: 'Complete the pattern: 🔴 🟡 🔴 🟡 ?',
-          topic: 'patterns',
-          prompt: 'What comes next in the garden sequence?',
-          mathExplanation: 'The pattern continues with 🔴!',
+          prompt: 'Repair the royal bridge using place value, skip counting, and ascending sequence stones.',
+          mathExplanation: 'All bridge stones placed in correct mathematical order! Bridge restored!',
           payload: {
-            patternSequence: ['🔴', '🟡', '🔴', '🟡', '?'],
-            patternOptions: ['🔴', '🟡', '🟢', '🔵'],
-            patternMissingIndex: 4,
-            correctAnswer: '🔴',
+            correctAnswer: 'Bridge Repaired',
+            targetQuantity: 6,
           },
         },
       ];
-    }
-    case 'castle': {
-      const jewels = gradeConfig.crownJewels;
+
+    case 3:
       return [
         {
-          id: `c_c${classGrade}_1`,
-          worldId: 'castle',
-          classGrade,
-          title: '🏰 The Royal Coronation Quest',
-          instruction: `Place the ${jewels} royal crown jewels onto the grand throne to complete your Number Kingdom journey!`,
-          topic: 'multiStep',
-          prompt: 'Complete the royal crown jewel alignment.',
-          mathExplanation: 'All crown jewels in place! You are officially crowned the Number Master!',
-          payload: { targetQuantity: jewels, correctAnswer: jewels },
+          id: `c3_m_${worldId}`,
+          worldId,
+          classGrade: 3,
+          title: '🐉 Dragon Delivery: Equal Cargo Dispatch',
+          instruction: 'Load equal item crates onto the Dragon Delivery Cart and calculate required totals.',
+          topic: 'multiplication',
+          prompt: 'Evenly pack crystals and grain sacks for the royal guilds and bakeries.',
+          mathExplanation: 'Cargo balanced and verified! Dragon cart successfully dispatched!',
+          payload: {
+            correctAnswer: 'Delivery Dispatched',
+            targetQuantity: 24,
+          },
         },
       ];
-    }
+
+    case 4:
+      return [
+        {
+          id: `c4_m_${worldId}`,
+          worldId,
+          classGrade: 4,
+          title: "🧪 Wizard's Potion Lab: Volumetric Distribution",
+          instruction: 'Measure, dispense, and distribute enchanted elixirs equally into laboratory crystal vials.',
+          topic: 'division',
+          prompt: 'Distribute 864 ml equally among vials to complete the alchemical brew.',
+          mathExplanation: 'All vials filled with exact mathematical measurements! Potion brewed!',
+          payload: {
+            correctAnswer: 'Potion Brewed',
+            targetQuantity: 108,
+          },
+        },
+      ];
+
+    case 5:
+      return [
+        {
+          id: `c5_m_${worldId}`,
+          worldId,
+          classGrade: 5,
+          title: '🏰 Kingdom Builder: Architectural & Treasury Master',
+          instruction: 'Manage multi-step construction expenses and calibrate perimeter & area grid dimensions.',
+          topic: 'multiStep',
+          prompt: 'Expand the citadel while maintaining financial balance and geometric dimensions.',
+          mathExplanation: 'Treasury verified and citadel walls built to exact perimeter and area specifications!',
+          payload: {
+            correctAnswer: 'Kingdom Built',
+            targetQuantity: 1160,
+          },
+        },
+      ];
+
     default:
       return [];
   }

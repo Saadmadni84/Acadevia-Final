@@ -5,6 +5,8 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { GamePlayer } from '@/components/games/GamePlayer';
 import { TrigonometryQuest } from '@/components/games/trigonometry/TrigonometryQuest';
 import { NumberKingdom } from '@/components/games/number-kingdom/NumberKingdom';
+import { HistoryQuest } from '@/components/games/history-quest/HistoryQuest';
+import { ScienceLab } from '@/components/games/science-lab/ScienceLab';
 import { AcademicGame } from '@/components/games/AcademicGame';
 import { getGameById } from '@/components/games/gameCatalog';
 
@@ -16,6 +18,22 @@ const GamePlayPage: React.FC = () => {
     return (
       <div className="space-y-4">
         <NumberKingdom />
+      </div>
+    );
+  }
+
+  if (gameId === 'history-quest') {
+    return (
+      <div className="space-y-4">
+        <HistoryQuest />
+      </div>
+    );
+  }
+
+  if (gameId === 'science-lab') {
+    return (
+      <div className="space-y-4">
+        <ScienceLab />
       </div>
     );
   }
