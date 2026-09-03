@@ -44,6 +44,7 @@ const CACHE_TTL_MS = 60000; // 60s fallback TTL
 const serverCache = {
   teacherStudents: new Map(),
   teacherAnalytics: new Map(),
+  leaderboard: new Map(),
   users: null,
   quizzes: null,
   quizAttempts: null,
@@ -59,6 +60,7 @@ function invalidateServerCache() {
   stateVersion = Date.now();
   serverCache.teacherStudents.clear();
   serverCache.teacherAnalytics.clear();
+  serverCache.leaderboard.clear();
   serverCache.users = null;
   serverCache.quizzes = null;
   serverCache.quizAttempts = null;
@@ -72,9 +74,9 @@ function isFresh(entry) {
 
 
 // ---------------------------------------------------------------------------
-// Quiz ID Aliases Mapping (Numeric ID <-> String ID)
+// Legacy Seeded Quiz ID Aliases Mapping (Preserved for Backward Compatibility)
 // ---------------------------------------------------------------------------
-const QUIZ_ID_MAP = {
+const LEGACY_SEEDED_QUIZ_MAP = {
   '101': 'quiz-c10-math',
   '102': 'quiz-c10-sci',
   '103': 'quiz-c10-eng',
@@ -82,25 +84,24 @@ const QUIZ_ID_MAP = {
   '105': 'quiz-c10-soc',
   '106': 'quiz-c10-cs',
   '107': 'quiz-10-math-1',
-  '108': 'quiz-10-math-2',
 };
 
-const REVERSE_QUIZ_ID_MAP = {};
-Object.entries(QUIZ_ID_MAP).forEach(([num, alias]) => {
-  REVERSE_QUIZ_ID_MAP[alias] = num;
+const REVERSE_LEGACY_QUIZ_MAP = {};
+Object.entries(LEGACY_SEEDED_QUIZ_MAP).forEach(([num, alias]) => {
+  REVERSE_LEGACY_QUIZ_MAP[alias] = num;
 });
 
 function resolveNumericQuizId(id) {
   const str = String(id);
   if (/^\d+$/.test(str)) return str;
-  if (REVERSE_QUIZ_ID_MAP[str]) return REVERSE_QUIZ_ID_MAP[str];
+  if (REVERSE_LEGACY_QUIZ_MAP[str]) return REVERSE_LEGACY_QUIZ_MAP[str];
   const numMatch = str.match(/\d+/);
-  return numMatch ? numMatch[0] : '101';
+  return numMatch ? numMatch[0] : str;
 }
 
 function resolveAliasQuizId(id) {
   const str = String(id);
-  if (QUIZ_ID_MAP[str]) return QUIZ_ID_MAP[str];
+  if (LEGACY_SEEDED_QUIZ_MAP[str]) return LEGACY_SEEDED_QUIZ_MAP[str];
   return str;
 }
 
@@ -502,11 +503,14 @@ function getQuizzesFromDb() {
       q.class_grade as classGrade,
       q.time_limit_minutes as timeLimitMinutes,
       q.difficulty_level as difficulty,
+      q.xp_reward as xpReward,
       q.created_by as teacherId,
       CONCAT(u.first_name, ' ', u.last_name) as teacherName,
-      q.created_at as createdAt
+      q.created_at as createdAt,
+      q.chapter_info as chapterInfo
     FROM acadevia_quiz_db.quizzes q
     LEFT JOIN acadevia_auth_db.users u ON q.created_by = u.id
+    WHERE q.is_active = 1
     ORDER BY q.id ASC;
   `;
 
@@ -526,6 +530,7 @@ function getQuizzesFromDb() {
       marks as points,
       topic
     FROM acadevia_quiz_db.questions
+    WHERE is_active = 1
     ORDER BY id ASC;
   `;
   const dbQuestions = execSql(questionsQuery);
@@ -567,10 +572,13 @@ function getQuizzesFromDb() {
       teacherName: (q.teacherName || 'Faculty').trim(),
       classGrade: Number(q.classGrade) || 10,
       subject: q.subject,
+      chapter: q.chapterInfo || '',
+      chapterInfo: q.chapterInfo || '',
       title: q.title,
       description: q.description || '',
       timeLimit: (Number(q.timeLimitMinutes) || 5) * 60,
       difficulty: (q.difficulty || 'medium').toLowerCase(),
+      xpReward: Number(q.xpReward) || 50,
       createdAt: q.createdAt || new Date().toISOString(),
       questions,
     };
@@ -665,7 +673,8 @@ function submitAttemptToDb(params) {
   }
 
   const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 80;
-  const xpEarned = Math.max(score * 10, 100);
+  const baseReward = Number(quiz?.xpReward) || 50;
+  const xpEarned = Math.max(score * 10, baseReward);
   const isPassed = percentage >= 60 ? 1 : 0;
   const answersJson = JSON.stringify(answers).replace(/'/g, "\\'");
 
@@ -719,60 +728,212 @@ function createQuizInDb(data) {
   const subject = (data.subject || 'Mathematics').replace(/'/g, "\\'");
   const title = (data.title || 'New Assessment').replace(/'/g, "\\'");
   const description = (data.description || '').replace(/'/g, "\\'");
+  const chapterInfo = (data.chapterInfo || data.chapter || '').replace(/'/g, "\\'");
+  const chapterSql = chapterInfo ? `'${chapterInfo}'` : 'NULL';
   const timeLimitMin = Math.max(1, Math.round((Number(data.timeLimit) || 300) / 60));
   const difficulty = (data.difficulty || 'MEDIUM').toUpperCase();
   const questions = Array.isArray(data.questions) ? data.questions : [];
   const totalQuestions = questions.length || 5;
   const totalMarks = questions.reduce((acc, q) => acc + (Number(q.points) || 10), 0) || 50;
+  const xpReward = Math.max(10, Math.min(500, Number(data.xpReward) || 50));
 
-  const insertQuizSql = `
-    INSERT INTO acadevia_quiz_db.quizzes
-    (title, description, quiz_type, quiz_status, difficulty_level, subject, class_grade, board, language, total_questions, time_limit_minutes, pass_percentage, max_attempts, xp_reward, marks_per_question, total_marks, created_by)
-    VALUES
-    ('${title}', '${description}', 'PRACTICE', 'ACTIVE', '${difficulty}', '${subject}', ${classGrade}, 'CBSE', 'en', ${totalQuestions}, ${timeLimitMin}, 60, 5, 50, 10, ${totalMarks}, ${teacherId});
-  `;
-  execSqlMutation(insertQuizSql);
+  const sqlStatements = [
+    'START TRANSACTION;',
+    `INSERT INTO acadevia_quiz_db.quizzes
+     (title, description, chapter_info, quiz_type, quiz_status, difficulty_level, subject, class_grade, board, language, total_questions, time_limit_minutes, pass_percentage, max_attempts, xp_reward, marks_per_question, total_marks, created_by)
+     VALUES
+     ('${title}', '${description}', ${chapterSql}, 'PRACTICE', 'ACTIVE', '${difficulty}', '${subject}', ${classGrade}, 'CBSE', 'en', ${totalQuestions}, ${timeLimitMin}, 60, 5, ${xpReward}, 10, ${totalMarks}, ${teacherId});`,
+    'SET @new_quiz_id = LAST_INSERT_ID();',
+  ];
 
-  // Retrieve generated quiz ID
-  const lastIdRows = execSql('SELECT LAST_INSERT_ID() as id;');
-  const newQuizId = lastIdRows[0]?.id || String(Date.now());
-
-  // Insert questions
+  const letters = ['A', 'B', 'C', 'D'];
   questions.forEach((q, idx) => {
     const qText = (q.question || `Question ${idx + 1}`).replace(/'/g, "\\'");
     const optA = (q.options?.[0] || 'Option A').replace(/'/g, "\\'");
     const optB = (q.options?.[1] || 'Option B').replace(/'/g, "\\'");
     const optC = (q.options?.[2] || 'Option C').replace(/'/g, "\\'");
     const optD = (q.options?.[3] || 'Option D').replace(/'/g, "\\'");
-    const letters = ['A', 'B', 'C', 'D'];
     const correctLetter = letters[q.correctIndex] || 'A';
     const explanation = (q.explanation || '').replace(/'/g, "\\'");
     const points = Number(q.points) || 10;
-    const topic = (q.topic || 'General').replace(/'/g, "\\'");
+    const topic = (q.topic || title).replace(/'/g, "\\'");
 
-    const qSql = `
+    sqlStatements.push(`
       INSERT INTO acadevia_quiz_db.questions
       (quiz_id, question_text, question_type, option_a, option_b, option_c, option_d, correct_answer, explanation, subject, class_grade, board, topic, concept, difficulty_level, language, marks, xp_value, created_by)
       VALUES
-      (${newQuizId}, '${qText}', 'MCQ', '${optA}', '${optB}', '${optC}', '${optD}', '${correctLetter}', '${explanation}', '${subject}', ${classGrade}, 'CBSE', '${topic}', '${topic}', '${difficulty}', 'en', ${points}, ${points}, ${teacherId});
-    `;
-    execSqlMutation(qSql);
+      (@new_quiz_id, '${qText}', 'MCQ', '${optA}', '${optB}', '${optC}', '${optD}', '${correctLetter}', '${explanation}', '${subject}', ${classGrade}, 'CBSE', '${topic}', '${topic}', '${difficulty}', 'en', ${points}, ${points}, ${teacherId});
+    `);
   });
+
+  sqlStatements.push('COMMIT;');
+  sqlStatements.push('SELECT @new_quiz_id as id;');
+
+  const combinedSql = sqlStatements.join('\n');
+  const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
+  let out;
+  try {
+    out = execSync(cmd, { input: combinedSql, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8' });
+  } catch (err) {
+    console.error('createQuizInDb transaction failed:', err.message);
+    throw new Error(`Failed to create quiz in MySQL: ${err.message}`);
+  }
+
+  // Parse stdout for the returned @new_quiz_id
+  const lines = out.split('\n').map((l) => l.trim()).filter(Boolean);
+  const idIndex = lines.indexOf('id');
+  const newQuizId = idIndex >= 0 && lines[idIndex + 1] ? lines[idIndex + 1] : null;
+
+  if (!newQuizId || newQuizId === '0') {
+    throw new Error(`Failed to retrieve real inserted quiz ID from MySQL. Output was: ${out}`);
+  }
+
   invalidateServerCache();
 
   return {
-    id: `quiz-${newQuizId}`,
+    id: String(newQuizId),
     numericId: String(newQuizId),
     teacherId: String(teacherId),
-    teacherName: 'Teacher',
+    teacherName: data.teacherName || 'Teacher',
     classGrade,
     subject: data.subject,
+    chapter: chapterInfo,
+    chapterInfo,
     title: data.title,
     description: data.description,
     timeLimit: Number(data.timeLimit) || 300,
-    difficulty: data.difficulty || 'medium',
-    questions,
+    difficulty: (data.difficulty || 'medium').toLowerCase(),
+    xpReward,
+    questions: questions.map((q, idx) => ({
+      id: q.id || `q-${idx}`,
+      question: q.question,
+      options: q.options || [],
+      correctIndex: q.correctIndex || 0,
+      explanation: q.explanation || '',
+      points: Number(q.points) || 10,
+      topic: q.topic || data.title,
+    })),
     createdAt: new Date().toISOString(),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 7.5 Delete / Archive Quiz (With Role & Ownership Authorization)
+// ---------------------------------------------------------------------------
+function deleteQuizFromDb({ quizId, requestingUserId, requestingUserRole, authHeader }) {
+  if (!quizId) {
+    const err = new Error('Quiz ID is required');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // 1. Authenticate user from MySQL
+  const reqUserId = Number(requestingUserId);
+  if (!reqUserId || isNaN(reqUserId)) {
+    const err = new Error('Authentication required to delete a quiz');
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const userQuery = `SELECT id, role, is_active FROM acadevia_auth_db.users WHERE id = ${reqUserId} LIMIT 1;`;
+  const userRows = execSql(userQuery);
+  if (!userRows || userRows.length === 0 || Number(userRows[0].is_active) === 0) {
+    const err = new Error('Authentication required: user not found or inactive');
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const dbUser = userRows[0];
+  const userRole = String(dbUser.role).toUpperCase();
+
+  // 2. Authorize role (TEACHER or ADMIN only, Students NEVER allowed)
+  if (userRole !== 'TEACHER' && userRole !== 'ADMIN' && userRole !== 'SCHOOL_ADMIN') {
+    const err = new Error('Access denied: Only teachers and administrators can delete quizzes');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  // 3. Resolve target quiz numeric ID
+  let numericQuizId = Number(quizId);
+  if (isNaN(numericQuizId) || numericQuizId <= 0) {
+    const rev = Object.keys(QUIZ_ALIAS_MAP).find(
+      (k) => QUIZ_ALIAS_MAP[k]?.toLowerCase() === String(quizId).toLowerCase()
+    );
+    if (rev) numericQuizId = Number(rev);
+  }
+
+  if (!numericQuizId || isNaN(numericQuizId)) {
+    const err = new Error(`Quiz not found for ID: ${quizId}`);
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // 4. Retrieve quiz from MySQL to verify ownership
+  const quizQuery = `SELECT id, title, created_by as teacherId, is_active FROM acadevia_quiz_db.quizzes WHERE id = ${numericQuizId} LIMIT 1;`;
+  const quizRows = execSql(quizQuery);
+  if (!quizRows || quizRows.length === 0) {
+    const err = new Error(`Quiz not found for ID: ${quizId}`);
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const quiz = quizRows[0];
+
+  // Check ownership: Teacher can only delete quizzes they created
+  if (userRole !== 'ADMIN' && userRole !== 'SCHOOL_ADMIN' && Number(quiz.teacherId) !== reqUserId) {
+    const err = new Error('Access denied: You are only authorized to delete quizzes that you created');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  // 5. Check student attempts count
+  const attemptCountQuery = `SELECT COUNT(*) as cnt FROM acadevia_quiz_db.quiz_attempts WHERE quiz_id = ${numericQuizId};`;
+  const attemptRows = execSql(attemptCountQuery);
+  const attemptCount = Number(attemptRows?.[0]?.cnt || 0);
+
+  let mode = 'DELETED';
+  let message = '';
+
+  const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
+  if (attemptCount > 0) {
+    // Safe soft-delete / archive: preserves student attempts, answers, and XP
+    const archiveSql = `
+      START TRANSACTION;
+      UPDATE acadevia_quiz_db.quizzes 
+      SET is_active = 0, quiz_status = 'ARCHIVED', updated_at = NOW() 
+      WHERE id = ${numericQuizId};
+      UPDATE acadevia_quiz_db.questions 
+      SET is_active = 0 
+      WHERE quiz_id = ${numericQuizId};
+      COMMIT;
+    `;
+    execSync(cmd, { input: archiveSql, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8' });
+    mode = 'ARCHIVED';
+    message = `Quiz "${quiz.title}" has ${attemptCount} student submission(s) and was safely archived to preserve student history.`;
+  } else {
+    // Hard delete in atomic transaction (no student attempts exist)
+    const deleteSql = `
+      START TRANSACTION;
+      DELETE FROM acadevia_quiz_db.questions WHERE quiz_id = ${numericQuizId};
+      DELETE FROM acadevia_quiz_db.quizzes WHERE id = ${numericQuizId};
+      COMMIT;
+    `;
+    execSync(cmd, { input: deleteSql, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8' });
+    mode = 'DELETED';
+    message = `Quiz "${quiz.title}" was permanently deleted.`;
+  }
+
+  // 6. Invalidate caches and bump state version
+  invalidateServerCache();
+
+  return {
+    success: true,
+    quizId: String(quizId),
+    numericId: String(numericQuizId),
+    title: quiz.title,
+    mode,
+    message,
+    attemptCount,
   };
 }
 
@@ -916,6 +1077,69 @@ function getFullDatabaseState() {
   return result;
 }
 
+// ---------------------------------------------------------------------------
+// 10. Get Dynamic Leaderboard (Weekly, Monthly, All Time)
+// ---------------------------------------------------------------------------
+function getLeaderboardFromDb(period = 'alltime') {
+  const normPeriod = (period || 'alltime').toLowerCase();
+  const cached = serverCache.leaderboard.get(normPeriod);
+  if (isFresh(cached)) {
+    return cached.data;
+  }
+
+  const users = getUsersFromDb();
+  const students = users.filter((u) => u.role === 'STUDENT');
+  const attempts = getQuizAttemptsFromDb();
+
+  const now = Date.now();
+  const oneWeekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  const oneMonthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+  const entries = students.map((st) => {
+    let xp = 0;
+    const stAttempts = attempts.filter((a) => String(a.studentId) === String(st.id));
+
+    if (normPeriod === 'weekly') {
+      xp = stAttempts
+        .filter((a) => a.completedAt && new Date(a.completedAt) >= oneWeekAgo)
+        .reduce((sum, a) => sum + (Number(a.xpEarned) || 0), 0);
+    } else if (normPeriod === 'monthly') {
+      xp = stAttempts
+        .filter((a) => a.completedAt && new Date(a.completedAt) >= oneMonthAgo)
+        .reduce((sum, a) => sum + (Number(a.xpEarned) || 0), 0);
+    } else {
+      // 'alltime' - unconditional authoritative source: users.total_xp
+      xp = st.totalXP ?? 0;
+    }
+
+    const displayName = (st.fullName || st.username || `Student #${st.id}`).trim();
+    const rawAvatar = st.avatarUrl && st.avatarUrl !== 'NULL' && st.avatarUrl !== 'null' ? st.avatarUrl : '';
+    const avatar = rawAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`;
+
+    return {
+      userId: String(st.id),
+      name: displayName,
+      avatar,
+      level: Number(st.currentLevel) || 1,
+      xp,
+      streak: Number(st.currentStreak) || 0,
+      change: 'same',
+    };
+  });
+
+  // Sort descending by XP, then level, then name
+  entries.sort((a, b) => b.xp - a.xp || b.level - a.level || a.name.localeCompare(b.name));
+
+  // Assign sequential ranks: 1, 2, 3...
+  const ranked = entries.map((entry, idx) => ({
+    rank: idx + 1,
+    ...entry,
+  }));
+
+  serverCache.leaderboard.set(normPeriod, { data: ranked, timestamp: Date.now() });
+  return ranked;
+}
+
 module.exports = {
   getStateVersion,
   invalidateServerCache,
@@ -930,8 +1154,10 @@ module.exports = {
   getQuizAttemptsFromDb,
   submitAttemptToDb,
   createQuizInDb,
+  deleteQuizFromDb,
   getContentItemsFromDb,
   createContentItemInDb,
   deleteContentItemFromDb,
   getFullDatabaseState,
+  getLeaderboardFromDb,
 };

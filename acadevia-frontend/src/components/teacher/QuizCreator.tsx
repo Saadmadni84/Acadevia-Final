@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { ROUTES } from '@/config/routes.config';
 import { dataService } from '@/services/data.service';
+import { NCERT_CHAPTERS } from '@/services/content.service';
 import {
   Plus,
   Trash2,
@@ -31,6 +32,7 @@ const questionSchema = z.object({
     z.string().min(1, 'Option D is required'),
   ]),
   correctAnswer: z.number().min(0).max(3),
+  points: z.number().min(1, 'Min 1 mark').max(50, 'Max 50 marks').default(10).optional(),
   hint: z.string().optional(),
   explanation: z.string().optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
@@ -39,8 +41,10 @@ const questionSchema = z.object({
 const quizSchema = z.object({
   title: z.string().min(1, 'Quiz title is required').max(200),
   description: z.string().min(1, 'Description is required').max(1000),
+  chapterInfo: z.string().optional(),
   timeLimit: z.number().min(1).max(180),
   difficulty: z.enum(['easy', 'medium', 'hard']),
+  xpReward: z.number().min(10, 'Min 10 XP').max(500, 'Max 500 XP').default(50),
   questions: z.array(questionSchema).min(1, 'At least one question is required'),
 });
 
@@ -63,6 +67,15 @@ const QuizCreator: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [published, setPublished] = useState(false);
 
+  const chapterSuggestions = useMemo(() => {
+    try {
+      const key = `${classGrade}-${subject}`;
+      return (NCERT_CHAPTERS && NCERT_CHAPTERS[key]) || [];
+    } catch {
+      return [];
+    }
+  }, [classGrade, subject]);
+
   const {
     register,
     control,
@@ -71,18 +84,21 @@ const QuizCreator: React.FC = () => {
     setValue,
     formState: { errors },
   } = useForm<QuizForm>({
-    resolver: zodResolver(quizSchema),
+    resolver: zodResolver(quizSchema) as any,
     defaultValues: {
       title: '',
       description: '',
+      chapterInfo: '',
       timeLimit: 30,
       difficulty: 'medium',
+      xpReward: 50,
       questions: [
         {
           id: 'q-init-1',
           text: '',
           options: ['', '', '', ''],
           correctAnswer: 0,
+          points: 10,
           hint: '',
           explanation: '',
           difficulty: 'medium',
@@ -100,6 +116,7 @@ const QuizCreator: React.FC = () => {
       text: '',
       options: ['', '', '', ''],
       correctAnswer: 0,
+      points: 10,
       hint: '',
       explanation: '',
       difficulty: 'medium',
@@ -135,18 +152,21 @@ const QuizCreator: React.FC = () => {
       teacherName,
       classGrade: Number(classGrade),
       subject,
+      chapter: data.chapterInfo || undefined,
+      chapterInfo: data.chapterInfo || undefined,
       title: data.title,
       description: data.description,
       timeLimit: (data.timeLimit || 5) * 60,
       difficulty: data.difficulty,
+      xpReward: Number(data.xpReward) || 50,
       questions: data.questions.map((q, idx) => ({
         id: q.id || `q-${idx}`,
         question: q.text,
         options: q.options,
         correctIndex: q.correctAnswer,
         explanation: q.explanation,
-        points: 10,
-        topic: data.title,
+        points: Number(q.points) || 10,
+        topic: data.chapterInfo || data.title,
       })),
     });
     setPublished(true);
@@ -252,6 +272,30 @@ const QuizCreator: React.FC = () => {
             </select>
           </div>
 
+          <div className="sm:col-span-2">
+            <label htmlFor="chapterInfo" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Chapter / Topic
+            </label>
+            <input
+              id="chapterInfo"
+              list="chapter-suggestions"
+              placeholder="e.g. Chapter 1 - Real Numbers"
+              {...register('chapterInfo')}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+              readOnly={previewMode}
+            />
+            {chapterSuggestions.length > 0 && (
+              <datalist id="chapter-suggestions">
+                {chapterSuggestions.map((ch, idx) => (
+                  <option key={ch} value={`Chapter ${idx + 1} - ${ch}`} />
+                ))}
+              </datalist>
+            )}
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Specify the chapter or curriculum unit for this assessment (e.g. Chapter 1 - Real Numbers).
+            </p>
+          </div>
+
           <div>
             <label htmlFor="timeLimit" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t('teacher.quiz.timeLimit', 'Time Limit (minutes)')}
@@ -281,6 +325,22 @@ const QuizCreator: React.FC = () => {
               <option value="medium">{t('common.medium', 'Medium')}</option>
               <option value="hard">{t('common.hard', 'Hard')}</option>
             </select>
+          </div>
+
+          <div>
+            <label htmlFor="xpReward" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              XP Reward
+            </label>
+            <input
+              id="xpReward"
+              type="number"
+              min={10}
+              max={500}
+              step={10}
+              {...register('xpReward', { valueAsNumber: true })}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+              readOnly={previewMode}
+            />
           </div>
         </div>
       </div>
@@ -322,6 +382,18 @@ const QuizCreator: React.FC = () => {
                           </select>
                         )}
                       />
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        <span>Marks:</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          defaultValue={10}
+                          {...register(`questions.${index}.points`, { valueAsNumber: true })}
+                          disabled={previewMode}
+                          className="w-14 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500 text-center font-semibold"
+                        />
+                      </div>
                       {!previewMode && (
                         <button
                           type="button"
@@ -474,7 +546,7 @@ const QuizCreator: React.FC = () => {
       <div className="flex justify-end gap-3">
         <button
           type="button"
-          onClick={handleSubmit(onSaveDraft)}
+          onClick={handleSubmit(onSaveDraft as any)}
           className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
           <Save className="h-4 w-4" />
@@ -482,7 +554,7 @@ const QuizCreator: React.FC = () => {
         </button>
         <button
           type="button"
-          onClick={handleSubmit(onPublish)}
+          onClick={handleSubmit(onPublish as any)}
           disabled={published}
           className="flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
         >

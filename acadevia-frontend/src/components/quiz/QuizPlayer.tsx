@@ -16,12 +16,13 @@ interface QuizQuestion {
 
 interface QuizPlayerProps {
   title: string;
+  chapter?: string;
   questions: QuizQuestion[];
   timeLimit?: number;
   onComplete: (result: { score: number; totalPoints: number; answers: number[]; timeTaken: number }) => void;
 }
 
-const QuizPlayer: React.FC<QuizPlayerProps> = ({ title, questions, timeLimit, onComplete }) => {
+const QuizPlayer: React.FC<QuizPlayerProps> = ({ title, chapter, questions, timeLimit, onComplete }) => {
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answers, setAnswers] = useState<number[]>([]);
@@ -68,13 +69,32 @@ const QuizPlayer: React.FC<QuizPlayerProps> = ({ title, questions, timeLimit, on
     }
   };
 
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto rounded-2xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 p-8 text-center space-y-3 shadow-sm">
+        <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          This quiz has no questions available.
+        </p>
+      </div>
+    );
+  }
+
   const q = questions[current];
   const progress = ((current + 1) / questions.length) * 100;
 
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold">{title}</h2>
+        <div>
+          {chapter && (
+            <p className="text-xs font-semibold text-primary dark:text-[#D4A843] mb-0.5">
+              {chapter}
+            </p>
+          )}
+          <h2 className="text-lg font-bold">{title}</h2>
+        </div>
         {timeLimit && !showResult && (
           <div className={cn('flex items-center gap-1 text-sm font-mono px-3 py-1 rounded-full', timeLeft < 30 ? 'bg-accent/10 text-accent animate-pulse' : 'bg-gray-100 dark:bg-gray-800 text-gray-600')}>
             <Clock className="h-4 w-4" />
