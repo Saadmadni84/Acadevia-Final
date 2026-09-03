@@ -58,15 +58,18 @@ const LoginForm: React.FC = () => {
           password: credentials.password,
         });
         const d: any = (res.data as any)?.data ? (res.data as any).data : res.data;
+        const storedUser = dataService.getUserByEmail(credentials.email) || dataService.getUserByEmail(normalizedEmail);
         userRecord = d.user ?? {
-          id: String(d.userId ?? d.id ?? ''),
+          id: String(d.userId ?? d.id ?? storedUser?.id ?? ''),
           email: d.email ?? normalizedEmail,
-          fullName: [d.firstName, d.lastName].filter(Boolean).join(' ') || d.fullName || '',
-          role: d.role ?? 'STUDENT',
+          fullName: [d.firstName, d.lastName].filter(Boolean).join(' ') || d.fullName || storedUser?.fullName || '',
+          role: d.role ?? storedUser?.role ?? 'STUDENT',
           languagePreference: d.preferredLanguage ?? d.languagePreference ?? 'en',
-          schoolName: d.schoolName || 'Acadevia Demo School',
-          classGrade: d.classGrade ?? (d.className ? parseInt(d.className.replace(/\D/g, '')) : undefined),
-          className: d.classGrade ? `Class ${d.classGrade}` : d.className,
+          schoolName: d.schoolName || storedUser?.schoolName || undefined,
+          stateName: d.stateName || storedUser?.stateName || undefined,
+          cityName: d.cityName || storedUser?.cityName || undefined,
+          classGrade: d.classGrade ?? (d.className ? parseInt(d.className.replace(/\D/g, '')) : storedUser?.classGrade),
+          className: d.className || (d.classGrade ? `Class ${d.classGrade}` : (storedUser?.classGrade ? `Class ${storedUser.classGrade}` : undefined)),
         };
         accessToken = d.accessToken;
         refreshToken = d.refreshToken;
@@ -82,6 +85,8 @@ const LoginForm: React.FC = () => {
             role: storedUser.role,
             avatarUrl: storedUser.avatarUrl,
             schoolName: storedUser.schoolName,
+            stateName: storedUser.stateName,
+            cityName: storedUser.cityName,
             classGrade: storedUser.classGrade,
             className: storedUser.classGrade ? `Class ${storedUser.classGrade}` : undefined,
             languagePreference: 'en',
@@ -97,7 +102,10 @@ const LoginForm: React.FC = () => {
         userRecord = {
           ...userRecord,
           avatarUrl: userRecord.avatarUrl || existingUser.avatarUrl,
-          classGrade: userRecord.classGrade || existingUser.classGrade,
+          schoolName: userRecord.schoolName || existingUser.schoolName,
+          stateName: userRecord.stateName || existingUser.stateName,
+          cityName: userRecord.cityName || existingUser.cityName,
+          classGrade: userRecord.classGrade ?? existingUser.classGrade,
           className: userRecord.className || (existingUser.classGrade ? `Class ${existingUser.classGrade}` : undefined),
         };
       } else {
@@ -107,9 +115,11 @@ const LoginForm: React.FC = () => {
           fullName: userRecord.fullName,
           role: userRecord.role as any,
           avatarUrl: userRecord.avatarUrl,
-          schoolName: userRecord.schoolName || 'Acadevia Demo School',
-          classGrade: userRecord.classGrade || (userRecord.className ? parseInt(userRecord.className.replace(/\D/g, '')) || 10 : undefined),
-          joinDate: 'January 2024',
+          schoolName: userRecord.schoolName,
+          stateName: userRecord.stateName,
+          cityName: userRecord.cityName,
+          classGrade: userRecord.classGrade ?? (userRecord.className ? parseInt(userRecord.className.replace(/\D/g, '')) || undefined : undefined),
+          joinDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
           totalXP: 0,
           currentLevel: 1,
           currentStreak: 0,

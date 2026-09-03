@@ -30,7 +30,7 @@ export interface UploadedContentItem {
 // Backward-compatibility alias
 export type UploadedVideo = UploadedContentItem;
 
-const STORAGE_KEY = 'acadevia_uploaded_videos';
+// In-memory store synchronized with MySQL backend API (independent of LocalStorage)
 
 const SEED_CONTENT_ITEMS: UploadedContentItem[] = [
   {
@@ -87,22 +87,17 @@ const SEED_CONTENT_ITEMS: UploadedContentItem[] = [
   },
 ];
 
-function getAll(): UploadedContentItem[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_CONTENT_ITEMS));
-    return [...SEED_CONTENT_ITEMS];
-  } catch {
-    return [...SEED_CONTENT_ITEMS];
+function getApiUrl(path: string): string {
+  if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
+    return window.location.origin + path;
   }
+  return 'http://localhost:5173' + path;
 }
 
-function save(items: UploadedContentItem[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+let memoryItems: UploadedContentItem[] = [...SEED_CONTENT_ITEMS];
+
+function getAll(): UploadedContentItem[] {
+  return memoryItems;
 }
 
 export const uploadedContentStore = {
@@ -111,27 +106,34 @@ export const uploadedContentStore = {
 
   /** Add a new content entry */
   add(item: UploadedContentItem): void {
-    const all = getAll();
-    // Replace if existing with same id
-    const existingIdx = all.findIndex((x) => x.id === item.id);
+    const existingIdx = memoryItems.findIndex((x) => x.id === item.id);
     if (existingIdx >= 0) {
-      all[existingIdx] = item;
+      memoryItems[existingIdx] = item;
     } else {
-      all.push(item);
+      memoryItems.push(item);
     }
-    save(all);
+    if (typeof window !== 'undefined') {
+      fetch(getApiUrl('/api/v1/content/items'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item),
+      }).catch((err) => {
+        console.warn('Failed to persist content item to backend API:', err);
+      });
+      window.dispatchEvent(new CustomEvent('acadevia_content_updated'));
+    }
   },
 
   /** Get content for a specific class and subject */
   getByClassAndSubject(classGrade: number, subject: string): UploadedContentItem[] {
-    return getAll().filter(
+    return memoryItems.filter(
       (v) => v.classGrade === classGrade && v.subject.toLowerCase() === subject.toLowerCase(),
     );
   },
 
   /** Get content for a specific chapter */
   getByChapter(classGrade: number, subject: string, chapter: string): UploadedContentItem[] {
-    return getAll().filter(
+    return memoryItems.filter(
       (v) =>
         v.classGrade === classGrade &&
         v.subject.toLowerCase() === subject.toLowerCase() &&
@@ -141,14 +143,14 @@ export const uploadedContentStore = {
 
   /** Get unique classes that have content */
   getAvailableClasses(): number[] {
-    const classes = new Set(getAll().map((v) => v.classGrade));
+    const classes = new Set(memoryItems.map((v) => v.classGrade));
     return Array.from(classes).sort((a, b) => a - b);
   },
 
   /** Get unique subjects for a class */
   getSubjectsForClass(classGrade: number): string[] {
     const subjects = new Set(
-      getAll()
+      memoryItems
         .filter((v) => v.classGrade === classGrade)
         .map((v) => v.subject),
     );
@@ -158,7 +160,7 @@ export const uploadedContentStore = {
   /** Get unique chapters for a class+subject */
   getChaptersForSubject(classGrade: number, subject: string): string[] {
     const chapters = new Set(
-      getAll()
+      memoryItems
         .filter(
           (v) => v.classGrade === classGrade && v.subject.toLowerCase() === subject.toLowerCase(),
         )
@@ -169,12 +171,52 @@ export const uploadedContentStore = {
 
   /** Remove a content item by id */
   remove(id: string): void {
-    const all = getAll().filter((v) => v.id !== id);
-    save(all);
+    memoryItems = memoryItems.filter((v) => v.id !== id);
+    if (typeof window !== 'undefined') {
+      fetch(getApiUrl(`/api/v1/content/items/${id}`), { method: 'DELETE' }).catch(() => {});
+      window.dispatchEvent(new CustomEvent('acadevia_content_updated'));
+    }
   },
 
   /** Clear all */
   clear(): void {
-    localStorage.removeItem(STORAGE_KEY);
+    memoryItems = [];
+  },
+
+  /** Synchronize content items from MySQL database API */
+  async syncFromBackend(): Promise<void> {
+    try {
+      if (typeof window === 'undefined') return;
+      const res = await fetch(getApiUrl('/api/v1/content/items'));
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
+          const hasChanged =
+            memoryItems.length !== json.data.length ||
+            memoryItems.some((m, idx) => m.id !== json.data[idx]?.id);
+
+          if (hasChanged) {
+            memoryItems = json.data;
+            window.dispatchEvent(new CustomEvent('acadevia_content_updated'));
+          }
+        }
+      }
+    } catch {
+      // Offline fallback
+    }
   },
 };
+
+// Initial sync in browser runtime & efficient auto-revalidation polling (45s)
+if (typeof window !== 'undefined') {
+  uploadedContentStore.syncFromBackend().catch(() => {});
+
+  window.addEventListener('focus', () => {
+    uploadedContentStore.syncFromBackend().catch(() => {});
+  });
+
+  setInterval(() => {
+    uploadedContentStore.syncFromBackend().catch(() => {});
+  }, 45000);
+}
+

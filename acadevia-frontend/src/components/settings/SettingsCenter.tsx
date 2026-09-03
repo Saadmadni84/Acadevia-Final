@@ -34,6 +34,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { userService } from '@/services/user.service';
+import { dataService } from '@/services/data.service';
 import { offlineStorage } from '@/lib/offlineStorage';
 import { ROUTES } from '@/config/routes.config';
 import { formatFileSize, cn } from '@/lib/utils';
@@ -383,14 +384,23 @@ export const SettingsCenter: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-bold text-gray-700 dark:text-gray-300">
-                  School / Institution
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    School / Institution
+                  </label>
+                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800/50">
+                    Locked &bull; Assigned during registration
+                  </span>
+                </div>
                 <Input
-                  value={schoolName}
-                  onChange={(e) => setSchoolName(e.target.value)}
-                  placeholder="e.g. Delhi Public School"
+                  value={schoolName || 'School not assigned'}
+                  disabled
+                  readOnly
+                  className="bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 cursor-not-allowed border-dashed"
                 />
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  School affiliation is permanently linked to your student account and cannot be modified.
+                </p>
               </div>
 
               <div className="space-y-1.5">
@@ -405,14 +415,53 @@ export const SettingsCenter: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-bold text-gray-700 dark:text-gray-300">
-                  State / Region
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-gray-700 dark:text-gray-300">
+                    State / Region
+                  </label>
+                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800/50">
+                    Locked &bull; Assigned during registration
+                  </span>
+                </div>
                 <Input
-                  value={user?.stateName || 'Delhi NCR'}
+                  value={
+                    user?.stateName ||
+                    (user?.id ? dataService.getUserById(String(user.id))?.stateName : undefined) ||
+                    (user?.email ? dataService.getUserByEmail(user.email)?.stateName : undefined) ||
+                    'Not provided'
+                  }
                   disabled
-                  className="bg-gray-50 dark:bg-gray-800/40 text-gray-500"
+                  readOnly
+                  className="bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 cursor-not-allowed border-dashed"
                 />
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  State affiliation is permanently linked to your student account and cannot be modified.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-gray-700 dark:text-gray-300">
+                    City
+                  </label>
+                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800/50">
+                    Locked &bull; Assigned during registration
+                  </span>
+                </div>
+                <Input
+                  value={
+                    user?.cityName ||
+                    (user?.id ? dataService.getUserById(String(user.id))?.cityName : undefined) ||
+                    (user?.email ? dataService.getUserByEmail(user.email)?.cityName : undefined) ||
+                    'Not provided'
+                  }
+                  disabled
+                  readOnly
+                  className="bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 cursor-not-allowed border-dashed"
+                />
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  City affiliation is permanently linked to your student account and cannot be modified.
+                </p>
               </div>
             </div>
           </div>
@@ -900,7 +949,7 @@ export const SettingsCenter: React.FC = () => {
                 </div>
 
                 <Button
-                  variant="destructive"
+                  variant="danger"
                   size="sm"
                   onClick={() => setIsDeleteModalOpen(true)}
                   leftIcon={<Trash2 className="h-3.5 w-3.5" />}
@@ -1075,7 +1124,7 @@ export const SettingsCenter: React.FC = () => {
                 Cancel
               </Button>
               <Button
-                variant="destructive"
+                variant="danger"
                 size="sm"
                 onClick={() => {
                   setIsDeleteModalOpen(false);

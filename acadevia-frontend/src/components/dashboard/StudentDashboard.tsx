@@ -37,9 +37,16 @@ export const StudentDashboard: React.FC = () => {
   const dailyGoalSetting = useSettingsStore((s) => s.settings.dailyGoalMinutes) || 45;
 
   const xpInfo = getXPForNextLevel(xp);
-  const studentName = user?.fullName?.split(' ')[0] || 'Gaurav';
-  const studentClass = user?.className || 'Class 10';
-  const schoolName = user?.schoolName || 'Delhi Public School';
+  const studentName = user?.fullName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Student');
+  const studentClass =
+    user?.className ||
+    (user?.classGrade ? `Class ${user.classGrade}` : undefined) ||
+    (user?.id ? (dataService.getUserById(String(user.id))?.classGrade ? `Class ${dataService.getUserById(String(user.id))?.classGrade}` : undefined) : undefined) ||
+    'Class not assigned';
+  const schoolName =
+    user?.schoolName ||
+    (user?.id ? dataService.getUserById(String(user.id))?.schoolName : undefined) ||
+    'School not assigned';
 
   // Greeting based on time of day
   const greeting = useMemo(() => {

@@ -27,6 +27,10 @@ interface ProfileHeaderProps {
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   name,
   avatar,
+  school,
+  classNameVal,
+  stateName,
+  cityName,
   level,
   totalXP,
   onEdit,
@@ -131,7 +135,39 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </div>
             </div>
 
-
+            {/* B. Academic & School Affiliation Info Box */}
+            <div className="bg-white dark:bg-card-dark rounded-2xl p-5 border border-gray-200/80 dark:border-gray-700/60 shadow-2xs">
+              <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center justify-between">
+                <span>Academic Affiliation</span>
+                <span className="text-xs font-normal text-gray-400 dark:text-gray-500">Verified Student Record</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="p-3 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-700/40">
+                  <p className="text-xs text-gray-400 font-medium">School / Institution</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5 truncate">
+                    {school || 'School not assigned'}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-700/40">
+                  <p className="text-xs text-gray-400 font-medium">Enrolled Class</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
+                    {classNameVal || 'Class not assigned'}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-700/40">
+                  <p className="text-xs text-gray-400 font-medium">State / Region</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5 truncate">
+                    {stateName || 'Not provided'}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-700/40">
+                  <p className="text-xs text-gray-400 font-medium">City</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5 truncate">
+                    {cityName || 'Not provided'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>

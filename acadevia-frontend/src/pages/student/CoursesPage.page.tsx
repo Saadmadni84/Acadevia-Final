@@ -26,23 +26,50 @@ import { dataService } from '@/services/data.service';
 import { contentService, type AcademicSubject, type AcademicChapter } from '@/services/content.service';
 import { useAuthStore } from '@/stores/useAuthStore';
 
-type View = 'school' | 'class' | 'subject' | 'chapters' | 'content';
-
-const CLASSES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+type View = 'subject' | 'chapters' | 'content';
 
 export const CoursesPage: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
 
-  // Default to student's class grade if student
-  const studentGrade = user?.role === 'STUDENT' && user.classGrade ? Number(user.classGrade) : null;
+  // Derive student's exact class grade from authenticated session or persistent store
+  const studentGrade = useMemo(() => {
+    if (user?.classGrade) return Number(user.classGrade);
+    if (user?.className) {
+      const parsed = parseInt(user.className.replace(/\D/g, ''));
+      if (!isNaN(parsed)) return parsed;
+    }
+    if (user?.id) {
+      const stored = dataService.getUserById(String(user.id));
+      if (stored?.classGrade) return Number(stored.classGrade);
+    }
+    if (user?.email) {
+      const stored = dataService.getUserByEmail(user.email);
+      if (stored?.classGrade) return Number(stored.classGrade);
+    }
+    return null;
+  }, [user]);
 
-  const [view, setView] = useState<View>('school');
-  const [selectedClass, setSelectedClass] = useState<number | null>(studentGrade || 10);
+  const schoolDisplayName =
+    user?.schoolName ||
+    (user?.id ? dataService.getUserById(String(user.id))?.schoolName : undefined) ||
+    (user?.email ? dataService.getUserByEmail(user.email)?.schoolName : undefined) ||
+    'School not assigned';
+
+  const [view, setView] = useState<View>('subject');
+  const [selectedClass, setSelectedClass] = useState<number | null>(studentGrade);
   const [subjects, setSubjects] = useState<AcademicSubject[]>([]);
-  const [selectedSubject, setSelectedSubject] = useState<string>('Science');
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [chapters, setChapters] = useState<AcademicChapter[]>([]);
   const [selectedChapter, setSelectedChapter] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Sync selectedClass with studentGrade when auth user resolves
+  useEffect(() => {
+    if (studentGrade) {
+      setSelectedClass(studentGrade);
+    }
+  }, [studentGrade]);
 
   // Currently active/playing content item
   const [activeItem, setActiveItem] = useState<UploadedContentItem | null>(null);
@@ -60,14 +87,21 @@ export const CoursesPage: React.FC = () => {
     setAllItems(uploadedContentStore.getAll());
   }, [view]);
 
-  // Load subjects when class changes
+  // Load subjects directly for the student's class
   useEffect(() => {
-    if (!selectedClass) return;
+    if (!selectedClass) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
     contentService.getSubjectsForClass(selectedClass).then((subs) => {
       setSubjects(subs);
-      if (subs.length > 0 && !subs.some((s) => s.name.toLowerCase() === selectedSubject.toLowerCase())) {
+      if (subs.length > 0) {
         setSelectedSubject(subs[0].name);
       }
+      setIsLoading(false);
+    }).catch(() => {
+      setIsLoading(false);
     });
   }, [selectedClass]);
 
@@ -106,9 +140,6 @@ export const CoursesPage: React.FC = () => {
     return counts;
   }, [selectedClass, selectedSubject, allItems]);
 
-  const totalItemsForClass = (cls: number) =>
-    allItems.filter((v) => v.classGrade === cls).length;
-
   const formatDuration = (seconds?: number): string => {
     if (!seconds) return '';
     const m = Math.floor(seconds / 60);
@@ -124,164 +155,97 @@ export const CoursesPage: React.FC = () => {
   };
 
   /* ================================================================== */
-  /*  View 1: School Selector                                           */
+  /*  View 1: Direct Subjects Selector for Student                      */
   /* ================================================================== */
-  const renderSchool = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      className="space-y-6"
-    >
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Your School</h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Select your affiliated educational institution to browse academic courses
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={() => setView('class')}
-        className="w-full flex items-center gap-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-primary/50 p-5 transition-all hover:shadow-md group"
+  const renderSubject = () => {
+    if (isLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent mb-4" />
+          <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Loading your courses...</p>
+        </div>
+      );
+    }
+
+    if (!selectedClass) {
+      return (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 p-8 text-center max-w-lg mx-auto">
+          <GraduationCap className="h-12 w-12 text-amber-600 dark:text-amber-400 mx-auto mb-3" />
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Academic Class Not Assigned</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+            Your school or class information is not available. Please contact your school administrator or complete your registration.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0 }}
+        className="space-y-6"
       >
-        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-          <School className="h-7 w-7" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-gray-100 dark:border-gray-800">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider mb-1">
+              <School className="h-3.5 w-3.5" />
+              <span>{schoolDisplayName}</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+              Class {selectedClass} Courses
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Select a subject to explore syllabus, video lessons, notes, and interactive quizzes
+            </p>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+              Class {selectedClass}
+            </span>
+          </div>
         </div>
-        <div className="text-left flex-1">
-          <p className="text-lg font-semibold text-gray-900 dark:text-white">
-            Shah Faiz Public School
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Classes 1–12 &bull; {allItems.length} learning item{allItems.length !== 1 ? 's' : ''} available
-          </p>
+
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {subjects.map((sub) => {
+            const subItemsCount = allItems.filter(
+              (v) =>
+                v.classGrade === selectedClass &&
+                v.subject.toLowerCase() === sub.name.toLowerCase(),
+            ).length;
+
+            return (
+              <motion.button
+                key={sub.id}
+                type="button"
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setSelectedSubject(sub.name);
+                  setView('chapters');
+                }}
+                className="flex items-center gap-4 rounded-2xl border-2 border-gray-200/80 dark:border-gray-800 hover:border-primary/50 bg-white dark:bg-card-dark p-5 transition-all hover:shadow-md text-left group cursor-pointer"
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
+                  <Beaker className="h-7 w-7" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-bold text-gray-900 dark:text-white truncate">
+                    {sub.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {subItemsCount > 0
+                      ? `${subItemsCount} learning item${subItemsCount > 1 ? 's' : ''}`
+                      : 'Full curriculum available'}
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors shrink-0" />
+              </motion.button>
+            );
+          })}
         </div>
-        <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
-      </button>
-    </motion.div>
-  );
-
-  /* ================================================================== */
-  /*  View 2: Class Selector (Classes 1 through 12)                     */
-  /* ================================================================== */
-  const renderClass = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      className="space-y-6"
-    >
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setView('school')}
-          className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5 text-gray-500" />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Shah Faiz Public School</h2>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Select your academic class</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-        {CLASSES.map((cls) => {
-          const count = totalItemsForClass(cls);
-          const isStudentClass = studentGrade === cls;
-          return (
-            <motion.button
-              key={cls}
-              type="button"
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setSelectedClass(cls);
-                setView('subject');
-              }}
-              className={`flex flex-col items-center gap-2 rounded-xl border-2 p-5 transition-all hover:shadow-md ${
-                isStudentClass
-                  ? 'border-primary bg-primary/5 shadow-sm'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
-              }`}
-            >
-              <GraduationCap className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">Class {cls}</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">Syllabus & Videos</span>
-              {count > 0 && (
-                <span className="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-medium">
-                  {count} video{count > 1 ? 's' : ''}
-                </span>
-              )}
-            </motion.button>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-
-  /* ================================================================== */
-  /*  View 3: Subject Selector                                          */
-  /* ================================================================== */
-  const renderSubject = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      className="space-y-6"
-    >
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setView('class')}
-          className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5 text-gray-500" />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Class {selectedClass}</h2>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            Select a subject to explore syllabus and lessons
-          </p>
-        </div>
-      </div>
-
-      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {subjects.map((sub) => {
-          const subItemsCount = allItems.filter(
-            (v) =>
-              v.classGrade === selectedClass &&
-              v.subject.toLowerCase() === sub.name.toLowerCase(),
-          ).length;
-
-          return (
-            <motion.button
-              key={sub.id}
-              type="button"
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setSelectedSubject(sub.name);
-                setView('chapters');
-              }}
-              className="flex items-center gap-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-primary/50 p-4 transition-all hover:shadow-md text-left group"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                <Beaker className="h-6 w-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-base font-semibold text-gray-900 dark:text-white truncate">
-                  {sub.name}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {subItemsCount > 0
-                    ? `${subItemsCount} learning item${subItemsCount > 1 ? 's' : ''}`
-                    : 'Curriculum available'}
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
-            </motion.button>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
+      </motion.div>
+    );
+  };
 
   /* ================================================================== */
   /*  View 4: Chapters Selector                                         */
@@ -602,8 +566,6 @@ export const CoursesPage: React.FC = () => {
   return (
     <div className="space-y-6 p-1">
       <AnimatePresence mode="wait">
-        {view === 'school' && <React.Fragment key="school">{renderSchool()}</React.Fragment>}
-        {view === 'class' && <React.Fragment key="class">{renderClass()}</React.Fragment>}
         {view === 'subject' && <React.Fragment key="subject">{renderSubject()}</React.Fragment>}
         {view === 'chapters' && <React.Fragment key="chapters">{renderChapters()}</React.Fragment>}
         {view === 'content' && <React.Fragment key="content">{renderContent()}</React.Fragment>}
