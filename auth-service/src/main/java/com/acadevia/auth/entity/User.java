@@ -64,6 +64,9 @@ public class User {
     @Column(name = "city_id")
     private Long cityId;
 
+    @Column(name = "pin_code", length = 10)
+    private String pinCode;
+
     @Column(name = "student_school_id", length = 50)
     private String studentSchoolId;
 

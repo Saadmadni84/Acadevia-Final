@@ -6,8 +6,15 @@
  */
 
 import { fileStorageService } from './fileStorage.service';
-import { uploadedContentStore, type UploadedContentItem } from '@/stores/uploadedContentStore';
+import { uploadedContentStore } from '@/stores/uploadedContentStore';
 import { apiClient } from '@/services/api.client';
+
+function getApiUrl(path: string): string {
+  if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
+    return window.location.origin + path;
+  }
+  return 'http://localhost:5173' + path;
+}
 
 export type ContentType = 'VIDEO' | 'PDF' | 'IMAGE';
 
@@ -329,19 +336,56 @@ class ContentService {
 
     params.onProgress?.(15);
 
-    // 2. Persistent Storage in IndexedDB
+    // 2. Upload actual binary file to server storage endpoint
+    let serverFileUrl = '';
+    let serverFileName = file.name;
+    let serverFileSize = file.size;
+
+    try {
+      const uploadRes = await fetch(getApiUrl('/api/v1/content/upload'), {
+        method: 'POST',
+        headers: {
+          'x-filename': encodeURIComponent(file.name),
+          'x-mime-type': mimeType,
+          'x-content-type': resolvedType,
+          'Content-Type': mimeType,
+        },
+        body: file,
+      });
+
+      if (uploadRes.ok) {
+        const uploadData = await uploadRes.json();
+        if (uploadData?.data?.fileUrl) {
+          serverFileUrl = uploadData.data.fileUrl;
+          serverFileName = uploadData.data.fileName || file.name;
+          serverFileSize = uploadData.data.fileSize || file.size;
+        }
+      } else {
+        console.warn('[contentService] Backend upload endpoint returned non-200:', uploadRes.status);
+      }
+    } catch (err) {
+      console.warn('[contentService] Backend file upload failed, fallback to local storage:', err);
+    }
+
+    params.onProgress?.(55);
+
+    // 3. Local IndexedDB storage (retained as local cache / offline fallback)
     const contentId = `cnt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    const storedRecord = await fileStorageService.storeFile(contentId, file, file.name);
+    let localDataUrl: string | undefined;
+    try {
+      const storedRecord = await fileStorageService.storeFile(contentId, file, file.name);
+      localDataUrl = storedRecord.dataUrl;
+    } catch {
+      // Ignore IndexedDB failures if unsupported
+    }
 
-    params.onProgress?.(60);
+    // Use stable server URL for shared accessibility across devices, with local fallback
+    const finalFileUrl = serverFileUrl || localDataUrl || '';
 
-    // 3. Generate accessible file URL from persistent storage
-    const fileUrl = storedRecord.dataUrl || (await fileStorageService.getFileUrl(contentId)) || '';
-
-    // Generate thumbnail if image
+    // Generate thumbnail for images
     let thumbnailUrl = '';
-    if (resolvedType === 'IMAGE' && storedRecord.dataUrl) {
-      thumbnailUrl = storedRecord.dataUrl;
+    if (resolvedType === 'IMAGE') {
+      thumbnailUrl = finalFileUrl || localDataUrl || '';
     }
 
     const itemRecord: ContentItemRecord = {
@@ -352,10 +396,10 @@ class ContentService {
       classNumber,
       subjectName,
       chapterName,
-      fileName: file.name,
-      fileSize: file.size,
+      fileName: serverFileName,
+      fileSize: serverFileSize,
       mimeType,
-      fileUrl,
+      fileUrl: finalFileUrl,
       thumbnailUrl,
       language: params.language || 'en',
       teacherId: params.teacherId || '10',
@@ -365,7 +409,9 @@ class ContentService {
       createdAt: new Date().toISOString(),
     };
 
-    // 4. Also persist to uploadedContentStore for student/teacher discovery
+    params.onProgress?.(80);
+
+    // 4. Persist to uploadedContentStore for student/teacher discovery & backend sync
     uploadedContentStore.add({
       id: itemRecord.id,
       title: itemRecord.title,
@@ -384,28 +430,6 @@ class ContentService {
       fileName: itemRecord.fileName,
       mimeType: itemRecord.mimeType,
     });
-
-    // 5. Try syncing to backend API if available
-    try {
-      await apiClient.post('/api/v1/content/items', {
-        title: itemRecord.title,
-        description: itemRecord.description,
-        classNumber: itemRecord.classNumber,
-        subjectName: itemRecord.subjectName,
-        chapterName: itemRecord.chapterName,
-        contentType: itemRecord.contentType,
-        fileUrl: itemRecord.fileUrl,
-        fileName: itemRecord.fileName,
-        fileSize: itemRecord.fileSize,
-        mimeType: itemRecord.mimeType,
-        language: itemRecord.language,
-        teacherId: itemRecord.teacherId,
-        teacherName: itemRecord.teacherName,
-        schoolId: itemRecord.schoolId,
-      });
-    } catch {
-      // Backend offline or local storage mode
-    }
 
     params.onProgress?.(100);
     return itemRecord;

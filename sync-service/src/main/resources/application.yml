@@ -1,9 +1,9 @@
 server:
   port: 8093
-  servlet:
-    context-path: /sync
 
 spring:
+  config:
+    import: optional:configserver:http://${CONFIG_SERVER_HOST:localhost}:${CONFIG_SERVER_PORT:8888}
   application:
     name: sync-service
   datasource:

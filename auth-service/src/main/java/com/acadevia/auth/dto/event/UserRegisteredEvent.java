@@ -15,12 +15,14 @@ public class UserRegisteredEvent {
     private Long userId;
     private String email;
     private String role;
+    private String phone;
     private String firstName;
     private String lastName;
     private Integer classGrade;
     private Long schoolId;
     private Long stateId;
     private Long cityId;
+    private String pinCode;
     private String preferredLanguage;
     private String studentSchoolId;
     private LocalDateTime registeredAt;

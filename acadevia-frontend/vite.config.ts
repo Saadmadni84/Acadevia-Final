@@ -26,7 +26,11 @@ function databaseApiPlugin() {
         const parsedUrl = new URL(req.url || '', 'http://localhost:5173');
         const pathname = parsedUrl.pathname;
 
-        // Set standard CORS & headers
+        if (!pathname.startsWith('/api/v1/')) {
+          return next();
+        }
+
+        // Set standard CORS & headers for API routes
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -37,6 +41,19 @@ function databaseApiPlugin() {
           return;
         }
 
+        const dbModulePath = require.resolve('./src/scripts/databaseApi.cjs');
+        const fs = require('fs');
+        const path = require('path');
+        const crypto = require('crypto');
+        const UPLOADS_DIR = path.resolve(__dirname, 'uploads', 'content');
+        if (!fs.existsSync(UPLOADS_DIR)) {
+          fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+        }
+        const mtime = fs.statSync(dbModulePath).mtimeMs;
+        if ((global as any).__dbMtime !== mtime) {
+          delete require.cache[dbModulePath];
+          (global as any).__dbMtime = mtime;
+        }
         const db = require('./src/scripts/databaseApi.cjs');
 
         // 0. Lightweight State Version Check (< 0.1ms, zero DB queries)
@@ -45,6 +62,22 @@ function databaseApiPlugin() {
           res.setHeader('Cache-Control', 'no-cache');
           res.end(JSON.stringify({ status: 200, success: true, data: { version: db.getStateVersion() } }));
           return;
+        }
+
+        // Leaderboard (Weekly, Monthly, All Time)
+        if (pathname === '/api/v1/leaderboard' && req.method === 'GET') {
+          try {
+            const period = parsedUrl.searchParams.get('period') || 'weekly';
+            const data = db.getLeaderboardFromDb(period);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
         }
 
         // 1. Full Shared State
@@ -126,6 +159,34 @@ function databaseApiPlugin() {
           }
         }
 
+        // 4.1 Delete / Archive Quiz
+        if (pathname.startsWith('/api/v1/quizzes/') && req.method === 'DELETE') {
+          try {
+            const rawQuizId = pathname.replace('/api/v1/quizzes/', '').trim();
+            const quizId = decodeURIComponent(rawQuizId);
+            const authHeader = req.headers['authorization'] || '';
+            const requestingUserId = req.headers['x-user-id'] || '';
+            const requestingUserRole = req.headers['x-user-role'] || '';
+
+            const result = db.deleteQuizFromDb({
+              quizId,
+              requestingUserId,
+              requestingUserRole,
+              authHeader,
+            });
+
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data: result }));
+            return;
+          } catch (err: any) {
+            const statusCode = err.statusCode || (err.message?.includes('Access denied') ? 403 : err.message?.includes('not found') ? 404 : 500);
+            res.statusCode = statusCode;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: statusCode, error: err.message }));
+            return;
+          }
+        }
+
         // 5. Quiz Attempts / Submissions
         if (pathname === '/api/v1/attempts' && req.method === 'GET') {
           try {
@@ -148,6 +209,194 @@ function databaseApiPlugin() {
             res.statusCode = 201;
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 201, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 5.5 File Upload (Multipart & Binary Stream Support)
+        if (pathname === '/api/v1/content/upload' && req.method === 'POST') {
+          try {
+            const contentTypeHeader = req.headers['content-type'] || '';
+            const isMultipart = contentTypeHeader.includes('multipart/form-data');
+            const originalName = req.headers['x-filename']
+              ? decodeURIComponent(req.headers['x-filename'] as string)
+              : 'uploaded_file';
+
+            const rawExt = path.extname(originalName).toLowerCase().replace(/[^a-z0-9.]/g, '');
+            const fallbackExt = contentTypeHeader.includes('pdf')
+              ? '.pdf'
+              : contentTypeHeader.includes('mp4')
+              ? '.mp4'
+              : contentTypeHeader.includes('webm')
+              ? '.webm'
+              : contentTypeHeader.includes('png')
+              ? '.png'
+              : contentTypeHeader.includes('jpeg') || contentTypeHeader.includes('jpg')
+              ? '.jpg'
+              : '.bin';
+            const ext = rawExt || fallbackExt;
+
+            const fileId = `cnt_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
+            const safeFileName = `${fileId}${ext}`;
+            const targetPath = path.join(UPLOADS_DIR, safeFileName);
+
+            if (isMultipart) {
+              const boundaryMatch = contentTypeHeader.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
+              const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
+              if (!boundary) {
+                throw new Error('Missing boundary in multipart/form-data');
+              }
+
+              const chunks: Buffer[] = [];
+              req.on('data', (chunk: Buffer) => chunks.push(chunk));
+              await new Promise((resolve, reject) => {
+                req.on('end', resolve);
+                req.on('error', reject);
+              });
+              const buffer = Buffer.concat(chunks);
+
+              const boundaryBuffer = Buffer.from(`--${boundary}`);
+              const headerEndBuffer = Buffer.from('\r\n\r\n');
+
+              const firstBoundary = buffer.indexOf(boundaryBuffer);
+              const headerStart = firstBoundary + boundaryBuffer.length;
+              const headerEnd = buffer.indexOf(headerEndBuffer, headerStart);
+
+              if (headerEnd === -1) {
+                throw new Error('Malformed multipart form data');
+              }
+
+              const fileContentStart = headerEnd + headerEndBuffer.length;
+              const nextBoundary = buffer.indexOf(boundaryBuffer, fileContentStart);
+              const fileContentEnd = nextBoundary !== -1 ? nextBoundary - 2 : buffer.length;
+
+              const fileBuffer = buffer.subarray(fileContentStart, fileContentEnd);
+              fs.writeFileSync(targetPath, fileBuffer);
+
+              const stat = fs.statSync(targetPath);
+              let mime = 'application/octet-stream';
+              if (safeFileName.endsWith('.pdf')) mime = 'application/pdf';
+              else if (safeFileName.endsWith('.mp4')) mime = 'video/mp4';
+              else if (safeFileName.endsWith('.webm')) mime = 'video/webm';
+              else if (safeFileName.endsWith('.png')) mime = 'image/png';
+              else if (safeFileName.endsWith('.jpg') || safeFileName.endsWith('.jpeg')) mime = 'image/jpeg';
+
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({
+                status: 200,
+                success: true,
+                data: {
+                  fileId: safeFileName,
+                  fileUrl: `/api/v1/content/files/${safeFileName}`,
+                  fileName: originalName,
+                  fileSize: stat.size,
+                  mimeType: mime,
+                },
+              }));
+              return;
+            } else {
+              const writeStream = fs.createWriteStream(targetPath);
+              await new Promise((resolve, reject) => {
+                req.pipe(writeStream);
+                writeStream.on('finish', resolve);
+                writeStream.on('error', reject);
+                req.on('error', reject);
+              });
+
+              const stat = fs.statSync(targetPath);
+              const mime = (req.headers['x-mime-type'] as string) || contentTypeHeader || 'application/octet-stream';
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({
+                status: 200,
+                success: true,
+                data: {
+                  fileId: safeFileName,
+                  fileUrl: `/api/v1/content/files/${safeFileName}`,
+                  fileName: originalName,
+                  fileSize: stat.size,
+                  mimeType: mime,
+                },
+              }));
+              return;
+            }
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 5.6 File Serving with HTTP Range & Streaming (PDF, MP4, WebM, Images)
+        if (pathname.startsWith('/api/v1/content/files/') && req.method === 'GET') {
+          try {
+            const rawRequested = pathname.replace('/api/v1/content/files/', '');
+            const requestedName = path.basename(decodeURIComponent(rawRequested));
+
+            // Security check against directory traversal
+            if (!requestedName || requestedName.includes('..') || requestedName.includes('/') || requestedName.includes('\\')) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ status: 400, error: 'Invalid file path' }));
+              return;
+            }
+
+            const filePath = path.join(UPLOADS_DIR, requestedName);
+            if (!fs.existsSync(filePath)) {
+              res.statusCode = 404;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ status: 404, error: 'File not found on server' }));
+              return;
+            }
+
+            const stat = fs.statSync(filePath);
+            const fileSize = stat.size;
+
+            let mimeType = 'application/octet-stream';
+            const lower = requestedName.toLowerCase();
+            if (lower.endsWith('.pdf')) mimeType = 'application/pdf';
+            else if (lower.endsWith('.mp4')) mimeType = 'video/mp4';
+            else if (lower.endsWith('.webm')) mimeType = 'video/webm';
+            else if (lower.endsWith('.png')) mimeType = 'image/png';
+            else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mimeType = 'image/jpeg';
+            else if (lower.endsWith('.webp')) mimeType = 'image/webp';
+
+            // Range request support for HTML5 video / audio streaming
+            const range = req.headers.range;
+            if (range) {
+              const parts = range.replace(/bytes=/, '').split('-');
+              const start = parseInt(parts[0], 10);
+              const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+              if (start >= fileSize) {
+                res.writeHead(416, { 'Content-Range': `bytes */${fileSize}` });
+                res.end();
+                return;
+              }
+
+              const chunkSize = (end - start) + 1;
+              res.writeHead(206, {
+                'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+                'Accept-Ranges': 'bytes',
+                'Content-Length': chunkSize,
+                'Content-Type': mimeType,
+                'Cache-Control': 'public, max-age=86400',
+              });
+              fs.createReadStream(filePath, { start, end }).pipe(res);
+            } else {
+              res.writeHead(200, {
+                'Content-Length': fileSize,
+                'Content-Type': mimeType,
+                'Accept-Ranges': 'bytes',
+                'Cache-Control': 'public, max-age=86400',
+              });
+              fs.createReadStream(filePath).pipe(res);
+            }
             return;
           } catch (err: any) {
             res.statusCode = 500;

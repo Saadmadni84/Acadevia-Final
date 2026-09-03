@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -35,6 +36,9 @@ type SortKey = keyof Pick<StudentViewItem, 'name' | 'totalXP' | 'quizzesComplete
 type SortDir = 'asc' | 'desc';
 
 const StudentProgress: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const targetStudentId = searchParams.get('studentId') || searchParams.get('id');
+
   const user = useAuthStore((s) => s.user);
   const teacherId = user?.id || '10';
 
@@ -92,7 +96,17 @@ const StudentProgress: React.FC = () => {
         activities,
       };
     });
-  }, [teacherId]);
+  }, [teacherId, apiStudents]);
+
+  // Auto-open selected student if requested via URL query params
+  useEffect(() => {
+    if (targetStudentId && students.length > 0) {
+      const match = students.find((s) => String(s.id) === String(targetStudentId));
+      if (match) {
+        setSelectedStudent(match);
+      }
+    }
+  }, [targetStudentId, students]);
 
   const classes = useMemo(() => [...new Set(students.map((s) => s.className))].sort(), [students]);
   const sections = useMemo(() => [...new Set(students.map((s) => s.section))].sort(), [students]);
