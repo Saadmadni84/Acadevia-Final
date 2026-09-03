@@ -7,19 +7,15 @@ import {
   BookOpen,
   ArrowLeft,
   Play,
-  Clock,
   School,
   ChevronRight,
-  FileVideo,
   FileText,
   Image as ImageIcon,
-  Download,
-  ChevronDown,
   Brain,
   ExternalLink,
   Eye,
-  CheckCircle,
   Film,
+  AlertCircle,
 } from 'lucide-react';
 import { uploadedContentStore, type UploadedContentItem } from '@/stores/uploadedContentStore';
 import { dataService } from '@/services/data.service';
@@ -74,6 +70,11 @@ export const CoursesPage: React.FC = () => {
   // Currently active/playing content item
   const [activeItem, setActiveItem] = useState<UploadedContentItem | null>(null);
   const [allItems, setAllItems] = useState<UploadedContentItem[]>([]);
+  const [fileLoadError, setFileLoadError] = useState<boolean>(false);
+
+  useEffect(() => {
+    setFileLoadError(false);
+  }, [activeItem]);
 
   // Load content from store
   useEffect(() => {
@@ -139,13 +140,6 @@ export const CoursesPage: React.FC = () => {
       });
     return counts;
   }, [selectedClass, selectedSubject, allItems]);
-
-  const formatDuration = (seconds?: number): string => {
-    if (!seconds) return '';
-    const m = Math.floor(seconds / 60);
-    const s = Math.round(seconds % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
 
   const formatSize = (bytes: number): string => {
     if (!bytes) return '';
@@ -341,6 +335,11 @@ export const CoursesPage: React.FC = () => {
                     className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-card-dark flex items-center justify-between shadow-xs hover:border-primary/40 transition"
                   >
                     <div>
+                      {quiz.chapter && (
+                        <span className="text-[11px] font-bold text-primary dark:text-[#D4A843] block mb-0.5">
+                          {quiz.chapter}
+                        </span>
+                      )}
                       <p className="text-sm font-bold text-gray-900 dark:text-white">
                         {quiz.title}
                       </p>
@@ -446,43 +445,59 @@ export const CoursesPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Video Player */}
-          {(activeItem.contentType === 'VIDEO' || !activeItem.contentType) && (
-            <div className="relative rounded-xl overflow-hidden bg-black aspect-video shadow-xl">
-              <video
-                key={activeItem.cloudinaryUrl}
-                controls
-                autoPlay
-                className="w-full h-full"
-                poster={activeItem.thumbnailUrl}
-              >
-                <source src={activeItem.cloudinaryUrl} type="video/mp4" />
-                <source src={activeItem.cloudinaryUrl} type="video/webm" />
-                Your browser does not support the video tag.
-              </video>
+          {/* Video / PDF / Image Viewer with Graceful Fallback */}
+          {(!activeItem.cloudinaryUrl || activeItem.cloudinaryUrl.startsWith('blob:') || fileLoadError) ? (
+            <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 p-8 text-center space-y-3">
+              <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
+              <h4 className="text-base font-bold text-gray-900 dark:text-white">File Unavailable on Server</h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                This document cannot be loaded from the server or was uploaded in an older local-only session. Newly uploaded files from your teacher will be available here.
+              </p>
             </div>
-          )}
+          ) : (
+            <>
+              {/* Video Player */}
+              {(activeItem.contentType === 'VIDEO' || !activeItem.contentType) && (
+                <div className="relative rounded-xl overflow-hidden bg-black aspect-video shadow-xl">
+                  <video
+                    key={activeItem.cloudinaryUrl}
+                    controls
+                    autoPlay
+                    className="w-full h-full"
+                    poster={activeItem.thumbnailUrl}
+                    onError={() => setFileLoadError(true)}
+                  >
+                    <source src={activeItem.cloudinaryUrl} type="video/mp4" />
+                    <source src={activeItem.cloudinaryUrl} type="video/webm" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              )}
 
-          {/* PDF Viewer */}
-          {activeItem.contentType === 'PDF' && (
-            <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-              <iframe
-                src={activeItem.cloudinaryUrl}
-                title={activeItem.title}
-                className="w-full h-[650px] rounded-xl border-0"
-              />
-            </div>
-          )}
+              {/* PDF Viewer */}
+              {activeItem.contentType === 'PDF' && (
+                <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                  <iframe
+                    src={activeItem.cloudinaryUrl}
+                    title={activeItem.title}
+                    className="w-full h-[650px] rounded-xl border-0"
+                    onError={() => setFileLoadError(true)}
+                  />
+                </div>
+              )}
 
-          {/* Image Viewer */}
-          {activeItem.contentType === 'IMAGE' && (
-            <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-black/5 flex items-center justify-center p-4">
-              <img
-                src={activeItem.cloudinaryUrl}
-                alt={activeItem.title}
-                className="max-h-[600px] max-w-full object-contain rounded-lg shadow-md"
-              />
-            </div>
+              {/* Image Viewer */}
+              {activeItem.contentType === 'IMAGE' && (
+                <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-black/5 flex items-center justify-center p-4">
+                  <img
+                    src={activeItem.cloudinaryUrl}
+                    alt={activeItem.title}
+                    className="max-h-[600px] max-w-full object-contain rounded-lg shadow-md"
+                    onError={() => setFileLoadError(true)}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -530,10 +530,6 @@ export const SettingsCenter: React.FC = () => {
             </div>
           </div>
         )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ==================================================== */}
         {/* TAB 2: LEARNING PREFERENCES                          */}

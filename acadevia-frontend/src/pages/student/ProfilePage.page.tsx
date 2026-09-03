@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { XPProgressBar } from '@/components/gamification/XPProgressBar';
 import { BadgeShowcase } from '@/components/gamification/BadgeShowcase';
@@ -30,11 +30,16 @@ const acadeviaBadgeCatalog = [
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const user = useAuthStore((state) => state.user);
   const [badgeFilter, setBadgeFilter] = useState<'all' | 'earned' | 'locked'>('all');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [, setSyncCount] = useState(0);
+
+  const queryStudentId = searchParams.get('id') || searchParams.get('studentId');
+  const targetStudent = queryStudentId ? dataService.getUserById(queryStudentId) : null;
+  const isViewingOther = Boolean(queryStudentId && (!user?.id || String(queryStudentId) !== String(user.id)) && targetStudent);
 
   useEffect(() => {
     let mounted = true;
@@ -67,36 +72,52 @@ const ProfilePage: React.FC = () => {
   const { data: userProfile } = useQuery({
     queryKey: ['user-profile', user?.id],
     queryFn: async () => (await userService.getProfile()).data.data,
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !isViewingOther,
   });
 
   // 2. Gamification Data from /api/v1/gamification/profile
   const { data: gamification } = useQuery({
     queryKey: ['gamification-profile', user?.id],
     queryFn: async () => (await gamificationService.getProfile()).data.data,
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !isViewingOther,
   });
 
   // 3. Enrolled Courses from /api/v1/courses/enrolled
   const { data: enrolledCourses } = useQuery({
     queryKey: ['enrolled-courses', user?.id],
     queryFn: async () => (await courseService.getEnrolled()).data.data,
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !isViewingOther,
   });
 
   // 4. Student Analytics from /api/v1/analytics/student
   const { data: studentAnalytics } = useQuery({
     queryKey: ['student-analytics', user?.id],
     queryFn: async () => (await analyticsService.getStudentAnalytics()).data.data,
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !isViewingOther,
   });
 
-  const profile = userProfile ?? user;
-  const studentId = user?.id ? String(user.id) : '20';
+  const profile = isViewingOther && targetStudent
+    ? {
+        id: targetStudent.id,
+        name: targetStudent.fullName,
+        fullName: targetStudent.fullName,
+        email: targetStudent.email,
+        role: targetStudent.role,
+        avatar: targetStudent.avatarUrl,
+        avatarUrl: targetStudent.avatarUrl,
+        classGrade: targetStudent.classGrade,
+        section: targetStudent.section,
+        schoolName: targetStudent.schoolName,
+      }
+    : (userProfile ?? user);
+
+  const studentId = queryStudentId || (user?.id ? String(user.id) : '20');
   const studentName =
+    (profile as any)?.fullName ||
+    (profile as any)?.name ||
     user?.fullName ||
     userProfile?.fullName ||
-    (user?.id ? dataService.getUserById(String(user.id))?.fullName : undefined) ||
+    (studentId ? dataService.getUserById(String(studentId))?.fullName : undefined) ||
     'Student';
 
   // Retrieve actual student metrics from persistent data layer
@@ -172,22 +193,22 @@ const ProfilePage: React.FC = () => {
     user?.schoolName ||
     dataService.getUserById(studentId)?.schoolName;
   const classNameVal =
-    profile?.className ||
+    (profile as any)?.className ||
     (profile?.classGrade ? `Class ${profile.classGrade}` : undefined) ||
     user?.className ||
     (user?.classGrade ? `Class ${user.classGrade}` : undefined) ||
     (dataService.getUserById(studentId)?.classGrade ? `Class ${dataService.getUserById(studentId)?.classGrade}` : undefined);
   const sectionVal = profile?.section || (profile as any)?.sectionName;
   const stateNameVal =
-    profile?.stateName ||
+    (profile as any)?.stateName ||
     user?.stateName ||
     dataService.getUserById(studentId)?.stateName;
   const cityNameVal =
-    profile?.cityName ||
+    (profile as any)?.cityName ||
     user?.cityName ||
     dataService.getUserById(studentId)?.cityName;
   const pinCodeVal =
-    profile?.pinCode ||
+    (profile as any)?.pinCode ||
     (profile as any)?.pincode ||
     user?.pinCode ||
     (user as any)?.pincode ||
@@ -195,18 +216,15 @@ const ProfilePage: React.FC = () => {
     dataService.getUserById(studentId)?.pincode;
 
   const phoneVal =
-    profile?.phone ||
+    (profile as any)?.phone ||
     (profile as any)?.phoneNumber ||
     user?.phone ||
     (user as any)?.phoneNumber ||
     (studentId ? dataService.getUserById(studentId)?.phone : undefined) ||
     (studentId ? dataService.getUserById(studentId)?.phoneNumber : undefined);
 
-  const boardVal = profile?.board || (user as any)?.board;
-  const languageVal =
-    profile?.languagePreference || user?.languagePreference || 'English';
-  const boardVal = profile?.board || (user as any)?.board;
-  const languageVal = profile?.languagePreference || user?.languagePreference || 'English';
+  const boardVal = (profile as any)?.board || (user as any)?.board;
+  const languageVal = (profile as any)?.languagePreference || user?.languagePreference || 'English';
 
   // Purely data-driven statistics without fake fallbacks
   const coursesCompleted = metrics.coursesCompleted;

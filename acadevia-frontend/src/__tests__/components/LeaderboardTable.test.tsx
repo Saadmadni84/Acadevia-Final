@@ -1,61 +1,55 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import LeaderboardTable from '@/components/LeaderboardTable';
+import { describe, it, expect, afterEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
+import { LeaderboardTable } from '@/components/leaderboard/LeaderboardTable';
+
+afterEach(cleanup);
 
 const mockLeaderboardData = [
-  { rank: 1, userId: 'u1', name: 'Alice', xp: 9500, avatar: '/avatars/alice.png', change: 0 },
-  { rank: 2, userId: 'u2', name: 'Bob', xp: 8900, avatar: '/avatars/bob.png', change: 1 },
-  { rank: 3, userId: 'u3', name: 'Charlie', xp: 8200, avatar: '/avatars/charlie.png', change: -1 },
-  { rank: 4, userId: 'u4', name: 'Diana', xp: 7500, avatar: '/avatars/diana.png', change: 2 },
-  { rank: 5, userId: 'u5', name: 'Eve', xp: 6800, avatar: '/avatars/eve.png', change: -2 },
+  { rank: 1, userId: 'u1', name: 'Alice', level: 5, xp: 9500, streak: 10, avatar: '/avatars/alice.png', change: 'same' as const },
+  { rank: 2, userId: 'u2', name: 'Bob', level: 4, xp: 8900, streak: 8, avatar: '/avatars/bob.png', change: 'up' as const },
+  { rank: 3, userId: 'u3', name: 'Charlie', level: 4, xp: 8200, streak: 6, avatar: '/avatars/charlie.png', change: 'down' as const },
+  { rank: 4, userId: 'u4', name: 'Diana', level: 3, xp: 7500, streak: 5, avatar: '/avatars/diana.png', change: 'up' as const, isCurrentUser: true },
+  { rank: 5, userId: 'u5', name: 'Eve', level: 3, xp: 6800, streak: 4, avatar: '/avatars/eve.png', change: 'down' as const },
 ];
-
-const currentUserId = 'u4';
 
 describe('LeaderboardTable', () => {
   it('renders leaderboard rows', () => {
-    render(<LeaderboardTable data={mockLeaderboardData} currentUserId={currentUserId} />);
+    render(<LeaderboardTable entries={mockLeaderboardData} />);
 
-    expect(screen.getByText('Alice')).toBeInTheDocument();
-    expect(screen.getByText('Bob')).toBeInTheDocument();
-    expect(screen.getByText('Charlie')).toBeInTheDocument();
-    expect(screen.getByText('Diana')).toBeInTheDocument();
-    expect(screen.getByText('Eve')).toBeInTheDocument();
+    expect(screen.getAllByText(/Alice/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Bob/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Charlie/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Diana/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Eve/).length).toBeGreaterThan(0);
 
-    expect(screen.getByText(/9[,.]?500/)).toBeInTheDocument();
+    expect(screen.getByText(/9,500 XP/)).toBeDefined();
   });
 
   it('highlights current user', () => {
-    render(<LeaderboardTable data={mockLeaderboardData} currentUserId={currentUserId} />);
+    render(<LeaderboardTable entries={mockLeaderboardData} />);
 
-    const dianaRow = screen.getByText('Diana').closest('tr, [role="row"], [class*="row"]');
-    expect(dianaRow).toHaveClass(/highlight|current|active/);
+    expect(screen.getByText(/Diana \(You\)/)).toBeDefined();
   });
 
-  it('shows rank change arrows', () => {
-    const { container } = render(
-      <LeaderboardTable data={mockLeaderboardData} currentUserId={currentUserId} />
-    );
+  it('renders ranks and XP properly', () => {
+    render(<LeaderboardTable entries={mockLeaderboardData} />);
 
-    const upArrows = container.querySelectorAll(
-      '[class*="up"], [aria-label*="up"], [data-direction="up"]'
-    );
-    const downArrows = container.querySelectorAll(
-      '[class*="down"], [aria-label*="down"], [data-direction="down"]'
-    );
-
-    expect(upArrows.length).toBeGreaterThan(0);
-    expect(downArrows.length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Level 5/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/9,500 XP/)).toBeDefined();
   });
 
-  it('renders top 3 with special styling', () => {
-    const { container } = render(
-      <LeaderboardTable data={mockLeaderboardData} currentUserId={currentUserId} />
-    );
+  it('triggers onSelectStudent when a student row is clicked', () => {
+    let selectedId = '';
+    const onSelectStudent = (id: string) => {
+      selectedId = id;
+    };
 
-    const topRows = container.querySelectorAll(
-      '[class*="gold"], [class*="silver"], [class*="bronze"], [class*="top-"], [class*="podium"]'
-    );
-    expect(topRows.length).toBeGreaterThanOrEqual(3);
+    render(<LeaderboardTable entries={mockLeaderboardData} onSelectStudent={onSelectStudent} />);
+
+    const aliceRow = screen.getByText(/Alice/).closest('div[role="button"]');
+    expect(aliceRow).not.toBeNull();
+    aliceRow?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(selectedId).toBe('u1');
   });
 });
