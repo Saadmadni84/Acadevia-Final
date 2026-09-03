@@ -9,16 +9,17 @@ WORKDIR /build
 
 # Copy parent POM and service POM for dependency caching
 COPY pom.xml ./pom.xml
+RUN sed -i '/<modules>/,/<\/modules>/d' pom.xml
 COPY api-gateway/pom.xml ./api-gateway/pom.xml
 
 # Download dependencies (cached unless POM changes)
-RUN mvn dependency:go-offline -pl api-gateway -am -B -q
+# dependencies resolved during build
 
 # Copy source code
 COPY api-gateway/src ./api-gateway/src
 
 # Build JAR (skip tests — they run in CI)
-RUN mvn package -pl api-gateway -am -DskipTests -B -q
+RUN mvn -f api-gateway/pom.xml package -DskipTests -B -q
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre

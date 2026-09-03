@@ -9,16 +9,17 @@ WORKDIR /build
 
 # Copy parent POM and service POM for dependency caching
 COPY pom.xml ./pom.xml
+RUN sed -i '/<modules>/,/<\/modules>/d' pom.xml
 COPY content-service/pom.xml ./content-service/pom.xml
 
 # Download dependencies (cached unless POM changes)
-RUN mvn dependency:go-offline -pl content-service -am -B -q
+# dependencies resolved during build
 
 # Copy source code
 COPY content-service/src ./content-service/src
 
 # Build JAR (skip tests — they run in CI)
-RUN mvn package -pl content-service -am -DskipTests -B -q
+RUN mvn -f content-service/pom.xml package -DskipTests -B -q
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre
