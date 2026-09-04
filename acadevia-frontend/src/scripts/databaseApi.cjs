@@ -27,12 +27,128 @@ function execSql(query) {
 function execSqlMutation(query) {
   try {
     const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
-    execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
+    execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8' });
     return true;
   } catch (err) {
-    console.error('execSqlMutation error:', err.message);
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    console.error('execSqlMutation error:', err.message, stderr);
     return false;
   }
+}
+
+// Ensure database tables exist across MySQL container restarts
+function ensureSchema() {
+  const initSql = `
+    CREATE TABLE IF NOT EXISTS acadevia_content_db.content_items (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      class_id INT DEFAULT 10,
+      subject_id INT DEFAULT 100,
+      chapter_id INT DEFAULT 1,
+      class_number INT NOT NULL DEFAULT 10,
+      subject_name VARCHAR(100) NOT NULL,
+      chapter_name VARCHAR(150) NOT NULL,
+      content_type VARCHAR(50) NOT NULL DEFAULT 'PDF',
+      file_url VARCHAR(1000) NOT NULL,
+      file_name VARCHAR(255),
+      mime_type VARCHAR(100),
+      thumbnail_url VARCHAR(1000),
+      file_size BIGINT DEFAULT 0,
+      duration_seconds INT DEFAULT 0,
+      language VARCHAR(10) DEFAULT 'en',
+      teacher_id BIGINT DEFAULT 10,
+      teacher_name VARCHAR(150) DEFAULT 'Teacher',
+      status VARCHAR(50) DEFAULT 'PUBLISHED',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS acadevia_content_db.student_learning_progress (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      student_id BIGINT NOT NULL,
+      content_id VARCHAR(100) NOT NULL,
+      course_id VARCHAR(100),
+      subject VARCHAR(100) NOT NULL,
+      chapter VARCHAR(150) NOT NULL,
+      class_grade INT NOT NULL DEFAULT 10,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      content_type VARCHAR(50) DEFAULT 'VIDEO',
+      file_url VARCHAR(1000),
+      thumbnail_url VARCHAR(1000),
+      last_position_seconds INT NOT NULL DEFAULT 0,
+      duration_seconds INT NOT NULL DEFAULT 0,
+      progress_percent DOUBLE NOT NULL DEFAULT 0.0,
+      completed TINYINT(1) NOT NULL DEFAULT 0,
+      last_watched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_student_content (student_id, content_id),
+      INDEX idx_slp_student_recent (student_id, last_watched_at DESC)
+    );
+
+    CREATE TABLE IF NOT EXISTS acadevia_quiz_db.quizzes (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      subject VARCHAR(100) NOT NULL,
+      class_grade INT NOT NULL DEFAULT 10,
+      chapter_info VARCHAR(150),
+      time_limit_minutes INT DEFAULT 5,
+      difficulty_level VARCHAR(50) DEFAULT 'MEDIUM',
+      xp_reward INT DEFAULT 50,
+      is_active TINYINT(1) DEFAULT 1,
+      created_by BIGINT DEFAULT 10,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS acadevia_quiz_db.questions (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      quiz_id BIGINT NOT NULL,
+      question_text TEXT NOT NULL,
+      option_a VARCHAR(255) NOT NULL,
+      option_b VARCHAR(255) NOT NULL,
+      option_c VARCHAR(255) NOT NULL,
+      option_d VARCHAR(255) NOT NULL,
+      correct_answer VARCHAR(10) NOT NULL,
+      explanation TEXT,
+      marks INT DEFAULT 10,
+      topic VARCHAR(100) DEFAULT 'General',
+      is_active TINYINT(1) DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS acadevia_quiz_db.quiz_attempts (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      quiz_id BIGINT NOT NULL,
+      user_id BIGINT NOT NULL,
+      status VARCHAR(50) DEFAULT 'SUBMITTED',
+      attempt_number INT DEFAULT 1,
+      score INT NOT NULL DEFAULT 0,
+      total_marks INT NOT NULL DEFAULT 50,
+      percentage INT NOT NULL DEFAULT 0,
+      is_passed TINYINT(1) DEFAULT 0,
+      total_questions INT DEFAULT 5,
+      correct_answers INT DEFAULT 0,
+      wrong_answers INT DEFAULT 0,
+      time_taken_seconds INT DEFAULT 180,
+      xp_earned INT DEFAULT 50,
+      answers_json TEXT,
+      completed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  try {
+    execSqlMutation(initSql);
+  } catch (err) {
+    // ignore if docker is offline
+  }
+}
+
+try {
+  ensureSchema();
+} catch (e) {
+  // offline fallback
 }
 
 // ---------------------------------------------------------------------------
@@ -1136,6 +1252,232 @@ function getLeaderboardFromDb(period = 'alltime') {
   return ranked;
 }
 
+// ---------------------------------------------------------------------------
+// 11. Student Learning Progress & Continue Learning System
+// ---------------------------------------------------------------------------
+function getUserIdByEmail(email) {
+  if (!email || typeof email !== 'string') return null;
+  const clean = email.toLowerCase().trim().replace(/'/g, "\\'");
+  try {
+    const rows = execSql(`SELECT id FROM acadevia_auth_db.users WHERE email = '${clean}' LIMIT 1;`);
+    if (rows && rows.length > 0 && rows[0].id) {
+      return String(rows[0].id);
+    }
+  } catch {}
+  return null;
+}
+
+function formatRemainingTime(durationSec, lastPosSec) {
+  const dur = Number(durationSec) || 0;
+  const pos = Number(lastPosSec) || 0;
+  if (!dur) return 'In progress';
+  const remaining = Math.max(0, dur - pos);
+  if (remaining === 0) return 'Completed ✓';
+  const mins = Math.ceil(remaining / 60);
+  return `${mins} min left`;
+}
+
+function saveLearningProgress(params) {
+  let rawStudentId = params.studentId;
+  if (isNaN(Number(rawStudentId)) && typeof rawStudentId === 'string' && rawStudentId.includes('@')) {
+    rawStudentId = getUserIdByEmail(rawStudentId) || rawStudentId;
+  }
+  const studentId = Number(rawStudentId) || 20;
+  const contentId = String(params.contentId || '').trim();
+  if (!contentId) {
+    throw new Error('contentId is required for saving learning progress');
+  }
+
+  const courseId = params.courseId ? `'${String(params.courseId).replace(/'/g, "\\'")}'` : 'NULL';
+  const subject = (params.subject || 'General').replace(/'/g, "\\'");
+  const chapter = (params.chapter || 'General').replace(/'/g, "\\'");
+  const classGrade = Number(params.classGrade) || 10;
+  const title = (params.title || 'Lesson Video').replace(/'/g, "\\'");
+  const description = (params.description || '').replace(/'/g, "\\'");
+  const contentType = (params.contentType || 'VIDEO').toUpperCase().replace(/'/g, "\\'");
+  const fileUrl = (params.fileUrl || '').replace(/'/g, "\\'");
+  const thumbnailUrl = (params.thumbnailUrl || '').replace(/'/g, "\\'");
+  const lastPos = Math.max(0, Math.round(Number(params.lastPositionSeconds) || 0));
+  const duration = Math.max(0, Math.round(Number(params.durationSeconds) || 0));
+
+  let progressPct = Number(params.progressPercent);
+  if (isNaN(progressPct) || progressPct === undefined || progressPct === null) {
+    progressPct = duration > 0 ? Math.min(100, Math.round((lastPos / duration) * 100)) : 0;
+  } else {
+    progressPct = Math.min(100, Math.max(0, Math.round(progressPct)));
+  }
+
+  const completed = (params.completed === true || progressPct >= 90) ? 1 : 0;
+  let lastWatchedAt;
+  try {
+    const d = params.lastWatchedAt ? new Date(params.lastWatchedAt) : new Date();
+    lastWatchedAt = isNaN(d.getTime())
+      ? new Date().toISOString().slice(0, 19).replace('T', ' ')
+      : d.toISOString().slice(0, 19).replace('T', ' ');
+  } catch {
+    lastWatchedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  }
+
+  const sql = `
+    INSERT INTO acadevia_content_db.student_learning_progress
+    (student_id, content_id, course_id, subject, chapter, class_grade, title, description, content_type, file_url, thumbnail_url, last_position_seconds, duration_seconds, progress_percent, completed, last_watched_at)
+    VALUES
+    (${studentId}, '${contentId.replace(/'/g, "\\'")}', ${courseId}, '${subject}', '${chapter}', ${classGrade}, '${title}', '${description}', '${contentType}', '${fileUrl}', '${thumbnailUrl}', ${lastPos}, ${duration}, ${progressPct}, ${completed}, '${lastWatchedAt}')
+    ON DUPLICATE KEY UPDATE
+      last_position_seconds = VALUES(last_position_seconds),
+      duration_seconds = VALUES(duration_seconds),
+      progress_percent = VALUES(progress_percent),
+      completed = VALUES(completed),
+      last_watched_at = VALUES(last_watched_at),
+      title = VALUES(title),
+      subject = VALUES(subject),
+      chapter = VALUES(chapter),
+      class_grade = VALUES(class_grade),
+      file_url = VALUES(file_url),
+      thumbnail_url = VALUES(thumbnail_url);
+  `;
+
+  const mutationOk = execSqlMutation(sql);
+  if (!mutationOk) {
+    console.error(`[saveLearningProgress] Failed to persist progress to MySQL for student ${studentId}, content ${contentId}`);
+  }
+  invalidateServerCache();
+
+  return {
+    id: `prog-${studentId}-${contentId}`,
+    studentId: String(studentId),
+    contentId,
+    courseId: params.courseId || '',
+    subject: params.subject || 'General',
+    chapter: params.chapter || 'General',
+    classGrade,
+    title: params.title || 'Lesson Video',
+    description: params.description || '',
+    contentType,
+    fileUrl: params.fileUrl || '',
+    thumbnailUrl: params.thumbnailUrl || '',
+    lastPositionSeconds: lastPos,
+    durationSeconds: duration,
+    progressPercent: progressPct,
+    completed: Boolean(completed),
+    lastWatchedAt,
+    timeLeft: formatRemainingTime(duration, lastPos),
+  };
+}
+
+function getRecentLearningProgress(studentId, limit = 5) {
+  let rawId = studentId;
+  if (isNaN(Number(rawId)) && typeof rawId === 'string' && rawId.includes('@')) {
+    rawId = getUserIdByEmail(rawId) || rawId;
+  }
+  const numId = Number(rawId);
+  if (!numId) return [];
+
+  const query = `
+    SELECT 
+      id,
+      student_id,
+      content_id,
+      course_id,
+      subject,
+      chapter,
+      class_grade,
+      title,
+      description,
+      content_type,
+      file_url,
+      thumbnail_url,
+      last_position_seconds,
+      duration_seconds,
+      progress_percent,
+      completed,
+      last_watched_at
+    FROM acadevia_content_db.student_learning_progress
+    WHERE student_id = ${numId}
+    ORDER BY last_watched_at DESC
+    LIMIT ${Number(limit) || 5};
+  `;
+
+  const rows = execSql(query);
+  return rows.map((r) => ({
+    id: `prog-${r.id}`,
+    studentId: String(r.student_id),
+    contentId: String(r.content_id),
+    courseId: r.course_id === 'NULL' ? '' : (r.course_id || ''),
+    subject: r.subject,
+    chapter: r.chapter,
+    classGrade: Number(r.class_grade || 10),
+    title: r.title,
+    description: r.description || '',
+    contentType: r.content_type || 'VIDEO',
+    fileUrl: r.file_url || '',
+    thumbnailUrl: r.thumbnail_url || '',
+    lastPositionSeconds: Number(r.last_position_seconds || 0),
+    durationSeconds: Number(r.duration_seconds || 0),
+    progressPercent: Number(r.progress_percent || 0),
+    completed: Boolean(Number(r.completed || 0)),
+    lastWatchedAt: r.last_watched_at,
+    timeLeft: formatRemainingTime(r.duration_seconds, r.last_position_seconds),
+  }));
+}
+
+function getLearningProgressByContent(studentId, contentId) {
+  let rawId = studentId;
+  if (isNaN(Number(rawId)) && typeof rawId === 'string' && rawId.includes('@')) {
+    rawId = getUserIdByEmail(rawId) || rawId;
+  }
+  const numId = Number(rawId);
+  if (!numId || !contentId) return null;
+
+  const query = `
+    SELECT 
+      id,
+      student_id,
+      content_id,
+      course_id,
+      subject,
+      chapter,
+      class_grade,
+      title,
+      description,
+      content_type,
+      file_url,
+      thumbnail_url,
+      last_position_seconds,
+      duration_seconds,
+      progress_percent,
+      completed,
+      last_watched_at
+    FROM acadevia_content_db.student_learning_progress
+    WHERE student_id = ${numId} AND content_id = '${String(contentId).replace(/'/g, "\\'")}'
+    LIMIT 1;
+  `;
+
+  const rows = execSql(query);
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    id: `prog-${r.id}`,
+    studentId: String(r.student_id),
+    contentId: String(r.content_id),
+    courseId: r.course_id === 'NULL' ? '' : (r.course_id || ''),
+    subject: r.subject,
+    chapter: r.chapter,
+    classGrade: Number(r.class_grade || 10),
+    title: r.title,
+    description: r.description || '',
+    contentType: r.content_type || 'VIDEO',
+    fileUrl: r.file_url || '',
+    thumbnailUrl: r.thumbnail_url || '',
+    lastPositionSeconds: Number(r.last_position_seconds || 0),
+    durationSeconds: Number(r.duration_seconds || 0),
+    progressPercent: Number(r.progress_percent || 0),
+    completed: Boolean(Number(r.completed || 0)),
+    lastWatchedAt: r.last_watched_at,
+    timeLeft: formatRemainingTime(r.duration_seconds, r.last_position_seconds),
+  };
+}
+
 module.exports = {
   getStateVersion,
   invalidateServerCache,
@@ -1156,4 +1498,8 @@ module.exports = {
   deleteContentItemFromDb,
   getFullDatabaseState,
   getLeaderboardFromDb,
+  saveLearningProgress,
+  getRecentLearningProgress,
+  getLearningProgressByContent,
+  getUserIdByEmail,
 };

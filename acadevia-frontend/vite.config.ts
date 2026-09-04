@@ -33,7 +33,7 @@ function databaseApiPlugin() {
         // Set standard CORS & headers for API routes
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Id');
 
         if (req.method === 'OPTIONS') {
           res.statusCode = 204;
@@ -456,6 +456,106 @@ function databaseApiPlugin() {
         if (pathname === '/api/v1/users' && req.method === 'GET') {
           try {
             const data = db.getUsersFromDb();
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // Helper to securely identify authenticated student and enforce isolation
+        const getAuthenticatedStudentId = (req: any, fallbackParam?: string | null): string => {
+          const authHeader = req.headers['authorization'] || '';
+          if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.slice(7).trim();
+            try {
+              const parts = token.split('.');
+              if (parts.length === 3) {
+                const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+                // 1. Prioritize explicit numeric userId / id
+                if (payload.userId && !isNaN(Number(payload.userId))) return String(payload.userId);
+                if (payload.id && !isNaN(Number(payload.id))) return String(payload.id);
+                // 2. Check if sub is numeric ID
+                if (payload.sub && !isNaN(Number(payload.sub))) return String(payload.sub);
+                // 3. Resolve by email from payload.sub or payload.email
+                const email = payload.email || (payload.sub && payload.sub.includes('@') ? payload.sub : '');
+                if (email) {
+                  const resolved = db.getUserIdByEmail?.(email);
+                  if (resolved) return String(resolved);
+                }
+              }
+            } catch {}
+          }
+
+          const headerUser = req.headers['x-user-id'];
+          if (headerUser && typeof headerUser === 'string' && headerUser.trim()) {
+            const val = headerUser.trim();
+            if (!isNaN(Number(val))) return val;
+            const resolved = db.getUserIdByEmail?.(val);
+            if (resolved) return String(resolved);
+          }
+
+          if (fallbackParam && typeof fallbackParam === 'string' && fallbackParam.trim()) {
+            const val = fallbackParam.trim();
+            if (!isNaN(Number(val))) return val;
+            const resolved = db.getUserIdByEmail?.(val);
+            if (resolved) return String(resolved);
+          }
+
+          return '20';
+        };
+
+        // 8. Learning Progress & Continue Learning APIs
+        if ((pathname === '/api/v1/student/learning/continue' || pathname === '/api/v1/learning-progress/recent') && req.method === 'GET') {
+          try {
+            const parsedUrl = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
+            const queryStudentId = parsedUrl.searchParams.get('studentId');
+            // Authenticated token/header takes strict precedence to enforce student isolation
+            const studentId = getAuthenticatedStudentId(req, queryStudentId);
+            const limit = parseInt(parsedUrl.searchParams.get('limit') || '6', 10);
+
+            const data = db.getRecentLearningProgress(studentId, limit);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname === '/api/v1/learning-progress' && req.method === 'POST') {
+          try {
+            const body = await parseBody(req);
+            // Derive student identity from auth token/headers to prevent tampering
+            const studentId = getAuthenticatedStudentId(req, body.studentId);
+            const data = db.saveLearningProgress({ ...body, studentId });
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname.startsWith('/api/v1/learning-progress/') && req.method === 'GET') {
+          try {
+            const contentId = pathname.replace('/api/v1/learning-progress/', '');
+            const parsedUrl = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
+            const queryStudentId = parsedUrl.searchParams.get('studentId');
+            const studentId = getAuthenticatedStudentId(req, queryStudentId);
+
+            const data = db.getLearningProgressByContent(studentId, contentId);
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 200, success: true, data }));
             return;

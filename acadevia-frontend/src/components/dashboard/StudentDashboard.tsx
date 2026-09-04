@@ -25,16 +25,167 @@ import {
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useGamificationStore } from '@/stores/useGamificationStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useContinueLearning } from '@/hooks/useContinueLearning';
+import { dataService } from '@/services/data.service';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/config/routes.config';
 import { getXPForNextLevel, LEVEL_NAMES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+
+interface SubjectTheme {
+  icon: string;
+  themeBg: string;
+  tagColor: string;
+  barColor: string;
+  accentColor: string;
+  svgArtwork: React.ReactNode;
+}
+
+function getSubjectTheme(subjectName: string): SubjectTheme {
+  const norm = (subjectName || '').toLowerCase().trim();
+
+  if (norm.includes('math')) {
+    return {
+      icon: '📐',
+      themeBg: 'from-[#2A1138] via-[#3A1B47] to-[#5B2C6F]',
+      tagColor: 'bg-white/20 text-purple-200 border-white/20',
+      barColor: 'bg-primary',
+      accentColor: 'text-primary dark:text-purple-300',
+      svgArtwork: (
+        <svg viewBox="0 0 200 120" className="w-full h-full opacity-60 text-purple-200 fill-current">
+          <path d="M 10 100 Q 100 -20 190 100" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="4 2" />
+          <line x1="20" y1="90" x2="180" y2="90" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+          <line x1="100" y1="10" x2="100" y2="110" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+          <circle cx="100" cy="40" r="5" fill="#DDBFE8" />
+          <text x="110" y="42" fill="#E8DBF0" fontSize="10" fontWeight="bold">V(h, k)</text>
+          <text x="30" y="30" fill="#F0E8F4" fontSize="11" fontFamily="monospace">ax² + bx + c = 0</text>
+        </svg>
+      ),
+    };
+  }
+
+  if (norm.includes('sci')) {
+    return {
+      icon: '🔬',
+      themeBg: 'from-[#093530] via-[#0D4D46] to-[#159A8C]',
+      tagColor: 'bg-white/20 text-teal-200 border-white/20',
+      barColor: 'bg-secondary',
+      accentColor: 'text-teal-600 dark:text-teal-400',
+      svgArtwork: (
+        <svg viewBox="0 0 200 120" className="w-full h-full opacity-60 text-teal-200 fill-current">
+          <ellipse cx="100" cy="60" rx="80" ry="30" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.5" />
+          <circle cx="100" cy="60" r="14" fill="#2DD4BF" opacity="0.8" />
+          <circle cx="60" cy="45" r="4" fill="#99F6E4" />
+          <circle cx="140" cy="75" r="4" fill="#99F6E4" />
+          <path d="M 20 60 L 180 60 M 100 20 L 100 100" stroke="#5EEAD4" strokeWidth="1.5" opacity="0.5" />
+          <text x="30" y="25" fill="#CCFBF1" fontSize="10" fontWeight="bold">1/f = 1/v + 1/u</text>
+        </svg>
+      ),
+    };
+  }
+
+  if (norm.includes('eng')) {
+    return {
+      icon: '📖',
+      themeBg: 'from-[#2B1B17] via-[#4A2E1B] to-[#7B4822]',
+      tagColor: 'bg-white/20 text-amber-200 border-white/20',
+      barColor: 'bg-amber-500',
+      accentColor: 'text-amber-600 dark:text-amber-400',
+      svgArtwork: (
+        <svg viewBox="0 0 200 120" className="w-full h-full opacity-60 text-amber-200 fill-current">
+          <path d="M 30 30 Q 100 20 170 30 L 170 95 Q 100 85 30 95 Z" fill="none" stroke="currentColor" strokeWidth="2" />
+          <line x1="100" y1="25" x2="100" y2="90" stroke="currentColor" strokeWidth="2" />
+          <text x="45" y="55" fill="#FDE68A" fontSize="10" fontFamily="serif">To be, or not</text>
+          <text x="110" y="55" fill="#FDE68A" fontSize="10" fontFamily="serif">to be...</text>
+        </svg>
+      ),
+    };
+  }
+
+  if (norm.includes('hin')) {
+    return {
+      icon: '📜',
+      themeBg: 'from-[#3A1414] via-[#5C2020] to-[#8C3232]',
+      tagColor: 'bg-white/20 text-orange-200 border-white/20',
+      barColor: 'bg-orange-500',
+      accentColor: 'text-orange-600 dark:text-orange-400',
+      svgArtwork: (
+        <svg viewBox="0 0 200 120" className="w-full h-full opacity-60 text-orange-200 fill-current">
+          <text x="40" y="70" fill="#FED7AA" fontSize="32" fontWeight="bold" fontFamily="serif">अ आ इ ई</text>
+          <line x1="30" y1="85" x2="170" y2="85" stroke="currentColor" strokeWidth="2" opacity="0.6" />
+        </svg>
+      ),
+    };
+  }
+
+  if (norm.includes('soc')) {
+    return {
+      icon: '🌍',
+      themeBg: 'from-[#1A2E1A] via-[#2A4D2A] to-[#3B6E3B]',
+      tagColor: 'bg-white/20 text-emerald-200 border-white/20',
+      barColor: 'bg-emerald-500',
+      accentColor: 'text-emerald-600 dark:text-emerald-400',
+      svgArtwork: (
+        <svg viewBox="0 0 200 120" className="w-full h-full opacity-60 text-emerald-200 fill-current">
+          <circle cx="100" cy="60" r="45" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M 60 60 Q 100 30 140 60 Q 100 90 60 60 Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2" />
+          <line x1="100" y1="15" x2="100" y2="105" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+          <line x1="55" y1="60" x2="145" y2="60" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+        </svg>
+      ),
+    };
+  }
+
+  if (norm.includes('comp') || norm.includes('cs') || norm.includes('code')) {
+    return {
+      icon: '💻',
+      themeBg: 'from-[#111C38] via-[#1B2D5B] to-[#2B468C]',
+      tagColor: 'bg-white/20 text-sky-200 border-white/20',
+      barColor: 'bg-sky-500',
+      accentColor: 'text-sky-600 dark:text-sky-400',
+      svgArtwork: (
+        <svg viewBox="0 0 200 120" className="w-full h-full opacity-60 text-sky-200 fill-current">
+          <rect x="30" y="25" width="140" height="70" rx="8" fill="none" stroke="currentColor" strokeWidth="2" />
+          <text x="45" y="55" fill="#BAE6FD" fontSize="11" fontFamily="monospace">&lt;html&gt;</text>
+          <text x="60" y="72" fill="#BAE6FD" fontSize="11" fontFamily="monospace">console.log()</text>
+        </svg>
+      ),
+    };
+  }
+
+  // Universal dynamic fallback for ANY other subject
+  return {
+    icon: '📚',
+    themeBg: 'from-[#251A38] via-[#3B2859] to-[#593C87]',
+    tagColor: 'bg-white/20 text-indigo-200 border-white/20',
+    barColor: 'bg-indigo-500',
+    accentColor: 'text-indigo-600 dark:text-indigo-400',
+    svgArtwork: (
+      <svg viewBox="0 0 200 120" className="w-full h-full opacity-60 text-indigo-200 fill-current">
+        <path d="M 40 40 L 100 25 L 160 40 L 160 90 L 100 105 L 40 90 Z" fill="none" stroke="currentColor" strokeWidth="2" />
+        <line x1="100" y1="25" x2="100" y2="105" stroke="currentColor" strokeWidth="2" />
+        <circle cx="100" cy="65" r="10" fill="#C7D2FE" opacity="0.6" />
+      </svg>
+    ),
+  };
+}
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { xp, level, streak } = useGamificationStore();
   const dailyGoalSetting = useSettingsStore((s) => s.settings.dailyGoalMinutes) || 45;
+
+  // Real backend-driven Continue Learning system
+  const { data: continueLessons = [], isLoading: isLoadingContinue } = useContinueLearning(4);
+
+  console.log('DASHBOARD CONTINUE DATA', {
+    continueLessons,
+    count: continueLessons.length,
+    isLoadingContinue,
+    userId: user?.id,
+    userEmail: user?.email,
+  });
 
   const xpInfo = getXPForNextLevel(xp);
   const studentName = user?.fullName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Student');
@@ -60,60 +211,6 @@ export const StudentDashboard: React.FC = () => {
   const todayMinutes = 20;
   const dailyGoalPct = Math.min(100, Math.round((todayMinutes / dailyGoalSetting) * 100));
   const minutesRemaining = Math.max(0, dailyGoalSetting - todayMinutes);
-
-  // A. Continue Learning (Visual Benchmark with Subject Artwork)
-  const continueLessons = [
-    {
-      id: 'less_math_10_quad',
-      subject: 'MATHEMATICS',
-      meta: `${studentClass} • Chapter 5`,
-      title: 'Quadratic Equations',
-      subtitle: 'Nature of Roots, Discriminant & Parabolic Graphs',
-      progressPct: 65,
-      timeLeft: '12 min left',
-      lessonId: 'less_math_10_quad',
-      accentColor: 'text-primary dark:text-purple-300',
-      barColor: 'bg-primary',
-      themeBg: 'from-[#2A1138] via-[#3A1B47] to-[#5B2C6F]',
-      tagColor: 'bg-white/20 text-purple-200 border-white/20',
-      icon: '📐',
-      svgArtwork: (
-        <svg viewBox="0 0 200 120" className="w-full h-full opacity-60 text-purple-200 fill-current">
-          <path d="M 10 100 Q 100 -20 190 100" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="4 2" />
-          <line x1="20" y1="90" x2="180" y2="90" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-          <line x1="100" y1="10" x2="100" y2="110" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-          <circle cx="100" cy="40" r="5" fill="#DDBFE8" />
-          <text x="110" y="42" fill="#E8DBF0" fontSize="10" fontWeight="bold">V(h, k)</text>
-          <text x="30" y="30" fill="#F0E8F4" fontSize="11" fontFamily="monospace">ax² + bx + c = 0</text>
-        </svg>
-      ),
-    },
-    {
-      id: 'less_sci_10_light',
-      subject: 'SCIENCE',
-      meta: `${studentClass} • Chapter 3`,
-      title: 'Light & Reflection',
-      subtitle: 'Spherical Mirrors, Ray Diagrams & Sign Convention',
-      progressPct: 35,
-      timeLeft: '18 min left',
-      lessonId: 'less_sci_10_light',
-      accentColor: 'text-teal-600 dark:text-teal-400',
-      barColor: 'bg-secondary',
-      themeBg: 'from-[#093530] via-[#0D4D46] to-[#159A8C]',
-      tagColor: 'bg-white/20 text-teal-200 border-white/20',
-      icon: '🔬',
-      svgArtwork: (
-        <svg viewBox="0 0 200 120" className="w-full h-full opacity-60 text-teal-200 fill-current">
-          <ellipse cx="100" cy="60" rx="80" ry="30" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.5" />
-          <circle cx="100" cy="60" r="14" fill="#2DD4BF" opacity="0.8" />
-          <circle cx="60" cy="45" r="4" fill="#99F6E4" />
-          <circle cx="140" cy="75" r="4" fill="#99F6E4" />
-          <path d="M 20 60 L 180 60 M 100 20 L 100 100" stroke="#5EEAD4" strokeWidth="1.5" opacity="0.5" />
-          <text x="30" y="25" fill="#CCFBF1" fontSize="10" fontWeight="bold">1/f = 1/v + 1/u</text>
-        </svg>
-      ),
-    },
-  ];
 
   // B. Your Subjects (Distinct 4-Subject Cards with Educational Headers)
   const subjectsProgress = [
@@ -403,69 +500,122 @@ export const StudentDashboard: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {continueLessons.map((lesson) => (
-            <div
-              key={lesson.id}
-              onClick={() => navigate(`/lesson/${lesson.lessonId}`)}
-              className={cn(
-                'group relative overflow-hidden rounded-3xl border border-[#E8E2D8] dark:border-[#382447] bg-white dark:bg-card-dark transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between'
-              )}
-            >
-              {/* Top 35% Visual Artwork Banner */}
-              <div className={cn('relative h-32 w-full p-5 overflow-hidden flex items-center justify-between bg-gradient-to-r text-white', lesson.themeBg)}>
-                <div className="relative z-10 space-y-1">
-                  <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border', lesson.tagColor)}>
-                    {lesson.icon} {lesson.subject}
-                  </span>
-                  <p className="text-xs text-purple-200/90 font-semibold">{lesson.meta}</p>
-                </div>
-
-                <div className="absolute right-0 top-0 bottom-0 w-1/2 flex items-center justify-end pointer-events-none pr-4">
-                  {lesson.svgArtwork}
-                </div>
-
-                <span className="relative z-10 text-[11px] font-bold bg-black/40 backdrop-blur-xs px-2.5 py-1 rounded-full text-white flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {lesson.timeLeft}
-                </span>
-              </div>
-
-              {/* Card Body & Action Controls */}
-              <div className="p-6 space-y-4">
-                <div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white group-hover:text-primary dark:group-hover:text-purple-300 transition-colors">
-                    {lesson.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 font-medium line-clamp-1 mt-0.5">
-                    {lesson.subtitle}
-                  </p>
-                </div>
-
-                {/* Progress Bar & CTA */}
-                <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-                  <div className="flex justify-between text-xs font-bold text-gray-600 dark:text-gray-300">
-                    <span>Lesson Progress</span>
-                    <span className="text-primary dark:text-purple-300 font-extrabold">{lesson.progressPct}% complete</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                    <div
-                      className={cn('h-full rounded-full transition-all duration-500', lesson.barColor)}
-                      style={{ width: `${lesson.progressPct}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs font-extrabold text-primary dark:text-purple-300 flex items-center gap-1 group-hover:translate-x-1.5 transition-transform">
-                    <Play className="h-4 w-4 fill-current" />
-                    Resume Video Lecture →
-                  </span>
+        {/* Loading State */}
+        {isLoadingContinue && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {[1, 2].map((k) => (
+              <div
+                key={k}
+                className="animate-pulse rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-card-dark overflow-hidden flex flex-col justify-between h-72"
+              >
+                <div className="h-32 bg-gray-200 dark:bg-gray-800 w-full" />
+                <div className="p-6 space-y-4 flex-1">
+                  <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
+                  <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
+                  <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full w-full" />
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoadingContinue && continueLessons.length === 0 && (
+          <div className="rounded-3xl border border-dashed border-gray-200 dark:border-gray-800 bg-white/60 dark:bg-card-dark/60 p-8 sm:p-12 text-center flex flex-col items-center justify-center space-y-4">
+            <div className="h-16 w-16 rounded-2xl bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center text-primary dark:text-purple-300">
+              <BookOpen className="h-8 w-8" />
             </div>
-          ))}
-        </div>
+            <div className="space-y-1 max-w-md">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">Start your learning journey</h3>
+              <p className="text-xs text-gray-500">
+                Your recently watched lessons and chapter videos will automatically appear here so you can resume anytime.
+              </p>
+            </div>
+            <Button
+              variant="gradient"
+              size="sm"
+              onClick={() => navigate(ROUTES.COURSES)}
+              rightIcon={<ArrowRight className="h-4 w-4" />}
+              className="mt-2 font-bold cursor-pointer"
+            >
+              Browse Courses
+            </Button>
+          </div>
+        )}
+
+        {/* Real Dynamic Data State */}
+        {!isLoadingContinue && continueLessons.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {continueLessons.map((item) => {
+              const theme = getSubjectTheme(item.subject);
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => navigate(`/lesson/${item.contentId}`)}
+                  className={cn(
+                    'group relative overflow-hidden rounded-3xl border border-[#E8E2D8] dark:border-[#382447] bg-white dark:bg-card-dark transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between'
+                  )}
+                >
+                  {/* Top 35% Visual Artwork Banner */}
+                  <div className={cn('relative h-32 w-full p-5 overflow-hidden flex items-center justify-between bg-gradient-to-r text-white', theme.themeBg)}>
+                    <div className="relative z-10 space-y-1">
+                      <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border', theme.tagColor)}>
+                        {theme.icon} {item.subject.toUpperCase()}
+                      </span>
+                      <p className="text-xs text-purple-200/90 font-semibold">
+                        Class {item.classGrade} • {item.chapter}
+                      </p>
+                    </div>
+
+                    <div className="absolute right-0 top-0 bottom-0 w-1/2 flex items-center justify-end pointer-events-none pr-4">
+                      {theme.svgArtwork}
+                    </div>
+
+                    <span className="relative z-10 text-[11px] font-bold bg-black/40 backdrop-blur-xs px-2.5 py-1 rounded-full text-white flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {item.timeLeft || (item.completed ? 'Completed ✓' : 'In progress')}
+                    </span>
+                  </div>
+
+                  {/* Card Body & Action Controls */}
+                  <div className="p-6 space-y-4">
+                    <div>
+                      <h3 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white group-hover:text-primary dark:group-hover:text-purple-300 transition-colors line-clamp-1">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-gray-500 font-medium line-clamp-1 mt-0.5">
+                        {item.description || `${item.subject} • ${item.chapter}`}
+                      </p>
+                    </div>
+
+                    {/* Progress Bar & CTA */}
+                    <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                      <div className="flex justify-between text-xs font-bold text-gray-600 dark:text-gray-300">
+                        <span>Lesson Progress</span>
+                        <span className="text-primary dark:text-purple-300 font-extrabold">
+                          {item.progressPercent}% complete
+                        </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all duration-500', theme.barColor)}
+                          style={{ width: `${item.progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-xs font-extrabold text-primary dark:text-purple-300 flex items-center gap-1 group-hover:translate-x-1.5 transition-transform">
+                        <Play className="h-4 w-4 fill-current" />
+                        Resume Video Lecture →
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* ==================================================== */}

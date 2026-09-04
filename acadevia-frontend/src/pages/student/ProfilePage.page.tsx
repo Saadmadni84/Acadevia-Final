@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -114,10 +113,9 @@ const ProfilePage: React.FC = () => {
 
   const studentId = queryStudentId || (user?.id ? String(user.id) : '20');
   const studentName =
-    (isViewingOther && targetStudent?.fullName) ||
-    user?.fullName ||
     (profile as any)?.fullName ||
     (profile as any)?.name ||
+    user?.fullName ||
     userProfile?.fullName ||
     (studentId ? dataService.getUserById(String(studentId))?.fullName : undefined) ||
     'Student';
@@ -136,10 +134,9 @@ const ProfilePage: React.FC = () => {
   }));
 
   const level = gamification?.level ?? metrics.level ?? 1;
-  const totalXP = gamification?.totalXP ?? gamification?.xp ?? metrics.totalXP ?? 0;
-  const streak = gamification?.streakDays ?? gamification?.streak ?? metrics.streak ?? 0;
-  const badgesEarnedCount = metrics.badgesUnlocked ?? 0;
-  const requiredXP = Math.max(100, Math.ceil((totalXP + 1) / 100) * 100);
+  const xp = gamification?.xp ?? metrics.totalXP ?? 0;
+  const requiredXP = Math.max(100, Math.ceil((xp + 1) / 100) * 100);
+  const streak = gamification?.streak ?? metrics.streak ?? 0;
 
   // Real criteria-driven badge evaluation
   const liveBadges = gamification?.badges ?? [];
@@ -187,26 +184,21 @@ const ProfilePage: React.FC = () => {
     badgeFilter === 'earned'
       ? earnedBadgesList
       : badgeFilter === 'locked'
-      ? lockedBadgesList
-      : combinedBadges;
+        ? lockedBadgesList
+        : combinedBadges;
 
   // Real educational fields from logged in student
   const schoolDisplay =
-    (profile as any)?.schoolName ||
+    profile?.schoolName ||
     user?.schoolName ||
-    dataService.getUserById(studentId)?.schoolName ||
-    'Not enrolled';
-
+    dataService.getUserById(studentId)?.schoolName;
   const classNameVal =
     (profile as any)?.className ||
-    ((profile as any)?.classGrade ? `Class ${(profile as any).classGrade}` : undefined) ||
+    (profile?.classGrade ? `Class ${profile.classGrade}` : undefined) ||
     user?.className ||
     (user?.classGrade ? `Class ${user.classGrade}` : undefined) ||
-    (dataService.getUserById(studentId)?.classGrade
-      ? `Class ${dataService.getUserById(studentId)?.classGrade}`
-      : undefined);
-
-  const sectionVal = (profile as any)?.section || user?.section || (profile as any)?.sectionName;
+    (dataService.getUserById(studentId)?.classGrade ? `Class ${dataService.getUserById(studentId)?.classGrade}` : undefined);
+  const sectionVal = profile?.section || (profile as any)?.sectionName;
   const stateNameVal =
     (profile as any)?.stateName ||
     user?.stateName ||
@@ -264,7 +256,7 @@ const ProfilePage: React.FC = () => {
         board={boardVal}
         language={languageVal}
         level={level}
-        totalXP={totalXP}
+        totalXP={xp}
         badgeCount={earnedBadgesList.length}
         streak={streak}
         role={profile?.role || 'Student'}
@@ -276,7 +268,7 @@ const ProfilePage: React.FC = () => {
       {/* 2. Level / XP Progress Card */}
       <div className="rounded-3xl border border-gray-200/80 dark:border-gray-800 bg-white dark:bg-card-dark p-5 sm:p-6 shadow-sm">
         <XPProgressBar
-          currentXP={totalXP}
+          currentXP={xp}
           requiredXP={requiredXP}
           level={level}
           levelName={`Level ${level}`}

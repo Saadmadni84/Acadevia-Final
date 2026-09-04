@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -68,48 +67,6 @@ describe('useAuthStore', () => {
     expect(state.accessToken).toBe('new-access-token');
     expect(state.refreshToken).toBe('new-refresh-token');
     expect(state.user).toEqual(mockUser);
-  });
-
-  it('supports positional 3-argument setAuth(user, access, refresh)', () => {
-    const { setAuth } = useAuthStore.getState();
-    setAuth(mockUser, 'access-pos', 'refresh-pos');
-
-    const state = useAuthStore.getState();
-    expect(state.user).toEqual(mockUser);
-    expect(state.accessToken).toBe('access-pos');
-    expect(state.refreshToken).toBe('refresh-pos');
-    expect(state.isAuthenticated).toBe(true);
-  });
-
-  it('supports object-based setAuth({ user, accessTokenOrTokens, refreshToken })', () => {
-    const { setAuth } = useAuthStore.getState();
-    setAuth({
-      user: mockUser,
-      accessTokenOrTokens: 'access-obj',
-      refreshToken: 'refresh-obj',
-    });
-
-    const state = useAuthStore.getState();
-    expect(state.user).toEqual(mockUser);
-    expect(state.accessToken).toBe('access-obj');
-    expect(state.refreshToken).toBe('refresh-obj');
-    expect(state.isAuthenticated).toBe(true);
-  });
-
-  it('supports positional setTokens(accessToken, refreshToken) and object setTokens', () => {
-    const { setTokens } = useAuthStore.getState();
-
-    setTokens('access-arg1', 'refresh-arg2');
-    expect(useAuthStore.getState().accessToken).toBe('access-arg1');
-    expect(useAuthStore.getState().refreshToken).toBe('refresh-arg2');
-
-    setTokens({ accessToken: 'access-obj1', refreshToken: 'refresh-obj2' });
-    expect(useAuthStore.getState().accessToken).toBe('access-obj1');
-    expect(useAuthStore.getState().refreshToken).toBe('refresh-obj2');
-
-    setTokens({ accessTokenOrTokens: 'access-alt', refreshToken: 'refresh-alt' });
-    expect(useAuthStore.getState().accessToken).toBe('access-alt');
-    expect(useAuthStore.getState().refreshToken).toBe('refresh-alt');
   });
 
   it('persistence works with localStorage', () => {

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, Maximize, SkipForward, SkipBack } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,11 +14,21 @@ interface VideoPlayerProps {
   src: string;
   title: string;
   popupQuestions?: PopupQuestion[];
+  initialTime?: number;
   onProgress?: (progress: number) => void;
+  onProgressUpdate?: (currentTime: number, duration: number, progressPct: number) => void;
   onComplete?: () => void;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, title, popupQuestions = [], onProgress, onComplete }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  src,
+  title,
+  popupQuestions = [],
+  initialTime = 0,
+  onProgress,
+  onProgressUpdate,
+  onComplete,
+}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -30,21 +40,134 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, title, popupQuestions = 
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const controlsTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  const currentPosRef = useRef<number>(0);
+  const currentDurRef = useRef<number>(0);
+  const lastSavedTimeRef = useRef<number>(0);
+  const lastSavedTimestampRef = useRef<number>(0);
+  const initialRegisteredRef = useRef<boolean>(false);
+
+  const emitProgress = useCallback((t: number, d: number, force: boolean = false) => {
+    if (!onProgressUpdate) return;
+    const effectiveDur = d > 0 ? d : (currentDurRef.current || duration || 5);
+    currentPosRef.current = t;
+    if (effectiveDur > 0) currentDurRef.current = effectiveDur;
+
+    const now = Date.now();
+    const timeDiff = Math.abs(t - lastSavedTimeRef.current);
+    const realTimeDiff = now - lastSavedTimestampRef.current;
+
+    // 1. Initial engagement: save immediately once playback reaches >= 0.5s
+    if (!initialRegisteredRef.current && t >= 0.5) {
+      initialRegisteredRef.current = true;
+      lastSavedTimeRef.current = t;
+      lastSavedTimestampRef.current = now;
+      const pct = Math.min(100, Math.round((t / effectiveDur) * 100));
+      onProgressUpdate(t, effectiveDur, pct);
+      return;
+    }
+
+    // 2. Periodic updates every 3s of playback, or forced on pause/seek/ended
+    if (force || (realTimeDiff >= 3000 && timeDiff >= 1.5)) {
+      lastSavedTimeRef.current = t;
+      lastSavedTimestampRef.current = now;
+      const pct = Math.min(100, Math.round((t / effectiveDur) * 100));
+      onProgressUpdate(t, effectiveDur, pct);
+    }
+  }, [onProgressUpdate, duration]);
+
   const togglePlay = () => {
     if (!videoRef.current || activeQuestion) return;
-    playing ? videoRef.current.pause() : videoRef.current.play();
+    if (playing) {
+      videoRef.current.pause();
+      emitProgress(videoRef.current.currentTime, videoRef.current.duration || duration, true);
+    } else {
+      videoRef.current.play();
+    }
     setPlaying(!playing);
   };
+
+  const handleLoadedMetadata = () => {
+    if (!videoRef.current) return;
+    const d = videoRef.current.duration || 0;
+    setDuration(d);
+    currentDurRef.current = d;
+
+    // Resume from saved playback position
+    if (initialTime > 0 && initialTime < d) {
+      videoRef.current.currentTime = initialTime;
+      setCurrentTime(initialTime);
+      currentPosRef.current = initialTime;
+      lastSavedTimeRef.current = initialTime;
+    }
+  };
+
+  useEffect(() => {
+    if (initialTime > 0 && videoRef.current) {
+      const d = videoRef.current.duration || 0;
+      if (d === 0 || initialTime < d) {
+        if (Math.abs(videoRef.current.currentTime - initialTime) > 0.5) {
+          videoRef.current.currentTime = initialTime;
+          setCurrentTime(initialTime);
+          currentPosRef.current = initialTime;
+          lastSavedTimeRef.current = initialTime;
+        }
+      }
+    }
+  }, [initialTime]);
 
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
     const t = videoRef.current.currentTime;
+    const d = videoRef.current.duration || duration || currentDurRef.current || 5;
+    currentPosRef.current = t;
+    if (d > 0 && !isNaN(d)) currentDurRef.current = d;
     setCurrentTime(t);
-    onProgress?.(duration ? (t / duration) * 100 : 0);
+    const pct = d ? (t / d) * 100 : 0;
+    onProgress?.(pct);
+    emitProgress(t, d, false);
 
     const q = popupQuestions.find(pq => Math.abs(pq.timestamp - t) < 0.5 && !answeredTimes.has(pq.timestamp));
-    if (q) { setActiveQuestion(q); videoRef.current.pause(); setPlaying(false); }
+    if (q) {
+      setActiveQuestion(q);
+      videoRef.current.pause();
+      setPlaying(false);
+      emitProgress(t, d, true);
+    }
   };
+
+  const handleEnded = () => {
+    setPlaying(false);
+    if (videoRef.current) {
+      emitProgress(videoRef.current.duration || duration, videoRef.current.duration || duration, true);
+    }
+    onComplete?.();
+  };
+
+  // Emit progress on unmount, beforeunload, pagehide, or visibilitychange
+  useEffect(() => {
+    const handleLeave = () => {
+      const p = currentPosRef.current;
+      const d = currentDurRef.current || duration;
+      if (d > 0 && p > 0) {
+        const pct = Math.min(100, Math.round((p / d) * 100));
+        onProgressUpdate?.(p, d, pct);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleLeave);
+    window.addEventListener('pagehide', handleLeave);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') handleLeave();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleLeave);
+      window.removeEventListener('pagehide', handleLeave);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      handleLeave();
+    };
+  }, [onProgressUpdate, duration]);
 
   const handleAnswer = (idx: number) => {
     if (!activeQuestion) return;
@@ -61,7 +184,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, title, popupQuestions = 
   const seek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!videoRef.current) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    videoRef.current.currentTime = ((e.clientX - rect.left) / rect.width) * duration;
+    const newTime = ((e.clientX - rect.left) / rect.width) * duration;
+    videoRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+    emitProgress(newTime, duration, true);
   };
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -74,7 +200,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, title, popupQuestions = 
 
   return (
     <div className="relative bg-black rounded-xl overflow-hidden group" onMouseMove={handleMouseMove} onMouseLeave={() => playing && setShowControls(false)}>
-      <video ref={videoRef} src={src} className="w-full aspect-video" onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)} onTimeUpdate={handleTimeUpdate} onEnded={() => { setPlaying(false); onComplete?.(); }} onClick={togglePlay} />
+      <video
+        ref={videoRef}
+        src={src}
+        className="w-full aspect-video"
+        onLoadedMetadata={handleLoadedMetadata}
+        onTimeUpdate={handleTimeUpdate}
+        onPlay={() => { if (videoRef.current) emitProgress(videoRef.current.currentTime, videoRef.current.duration || duration, false); }}
+        onSeeked={() => { if (videoRef.current) emitProgress(videoRef.current.currentTime, videoRef.current.duration || duration, true); }}
+        onEnded={handleEnded}
+        onClick={togglePlay}
+      />
 
       <AnimatePresence>
         {activeQuestion && (

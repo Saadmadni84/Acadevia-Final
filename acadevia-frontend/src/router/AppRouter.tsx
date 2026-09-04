@@ -342,6 +342,7 @@ const AppRouter: React.FC = () => (
         <Route path={ROUTES.COURSES} element={<LazyRoute component={CoursesPage} />} />
         <Route path={ROUTES.COURSE_DETAIL} element={<LazyRoute component={CourseDetailPage} />} />
         <Route path={ROUTES.LESSON} element={<LazyRoute component={LessonPage} />} />
+        <Route path="/lesson/:lessonId" element={<LazyRoute component={LessonPage} />} />
         <Route path={ROUTES.QUIZZES} element={<LazyRoute component={QuizPage} />} />
         <Route path={ROUTES.QUIZ_DIRECT} element={<LazyRoute component={QuizPage} />} />
         <Route path={ROUTES.QUIZ} element={<LazyRoute component={QuizPage} />} />

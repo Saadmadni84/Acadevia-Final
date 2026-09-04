@@ -4,22 +4,23 @@ import type { AuthUser } from '@/types/auth.types';
 import { queryClient } from '@/providers/QueryProvider';
 
 export interface AuthTokens {
-  accessToken?: string | null;
-  refreshToken?: string | null;
+  accessToken: string;
+  refreshToken?: string;
 }
 
 export interface AuthParams {
   user: AuthUser;
-  accessToken?: string | null;
-  refreshToken?: string | null;
   tokens?: AuthTokens;
   accessTokenOrTokens?: string | AuthTokens;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 export interface SetTokensParams {
-  accessToken?: string | null;
-  refreshToken?: string | null;
+  tokens?: AuthTokens;
   accessTokenOrTokens?: string | AuthTokens;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 interface AuthState {
@@ -28,39 +29,18 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  /**
-   * Universal setAuth supporting:
-   * - setAuth(user, accessToken, refreshToken)
-   * - setAuth(user, tokens)
-   * - setAuth({ user, accessToken, refreshToken })
-   * - setAuth({ user, accessTokenOrTokens, refreshToken })
-   */
   setAuth: {
     (params: AuthParams): void;
-    (
-      user: AuthUser,
-      accessTokenOrTokens: string | AuthTokens,
-      refreshToken?: string
-    ): void;
+    (user: AuthUser, tokens?: AuthTokens): void;
+    (user: AuthUser, accessToken?: string, refreshToken?: string): void;
+    (firstParam: AuthUser | AuthParams, secondParam?: string | AuthTokens, thirdParam?: string): void;
   };
-
   setUser: (user: AuthUser) => void;
-
-  /**
-   * Universal setTokens supporting:
-   * - setTokens(accessToken, refreshToken)
-   * - setTokens(tokens)
-   * - setTokens({ accessToken, refreshToken })
-   * - setTokens({ accessTokenOrTokens, refreshToken })
-   */
   setTokens: {
-    (tokens: AuthTokens | SetTokensParams): void;
-    (
-      accessTokenOrTokens: string | AuthTokens,
-      refreshToken?: string
-    ): void;
+    (params: SetTokensParams | AuthTokens): void;
+    (accessToken: string, refreshToken?: string): void;
+    (firstParam: string | AuthTokens | SetTokensParams, secondParam?: string): void;
   };
-
   setLoading: (loading: boolean) => void;
   logout: () => void;
 }
@@ -155,6 +135,7 @@ export const useAuthStore = create<AuthState>()(
 
         set({ accessToken, refreshToken });
       },
+
       setLoading: (isLoading) => set({ isLoading }),
 
       logout: () => {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -20,6 +20,7 @@ import {
 import { uploadedContentStore, type UploadedContentItem } from '@/stores/uploadedContentStore';
 import { dataService } from '@/services/data.service';
 import { contentService, type AcademicSubject, type AcademicChapter } from '@/services/content.service';
+import { learningProgressService } from '@/services/learningProgress.service';
 import { useAuthStore } from '@/stores/useAuthStore';
 
 type View = 'subject' | 'chapters' | 'content';
@@ -71,6 +72,129 @@ export const CoursesPage: React.FC = () => {
   const [activeItem, setActiveItem] = useState<UploadedContentItem | null>(null);
   const [allItems, setAllItems] = useState<UploadedContentItem[]>([]);
   const [fileLoadError, setFileLoadError] = useState<boolean>(false);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const activeItemRef = useRef<UploadedContentItem | null>(null);
+
+  // Persistent playback tracker that survives DOM destruction and React unmounts
+  const trackerRef = useRef<{
+    item: UploadedContentItem | null;
+    currentTime: number;
+    duration: number;
+    lastSavedPos: number;
+    lastSavedTimestamp: number;
+    initialSaved: boolean;
+  }>({
+    item: null,
+    currentTime: 0,
+    duration: 0,
+    lastSavedPos: -1,
+    lastSavedTimestamp: 0,
+    initialSaved: false,
+  });
+
+  const flushProgress = useCallback((forcePos?: number, isCompleted?: boolean) => {
+    const tracker = trackerRef.current;
+    const item = tracker.item || activeItemRef.current;
+    if (!item) return;
+
+    const t = typeof forcePos === 'number' ? forcePos : tracker.currentTime;
+    const d = tracker.duration > 0 ? tracker.duration : (item.duration || 5);
+    if (t <= 0 && d <= 0) return;
+
+    const progressPct = d > 0 ? Math.min(100, Math.round((t / d) * 100)) : 0;
+    const completed = isCompleted === true || (d > 0 && t >= d - 0.5) || progressPct >= 90;
+
+    tracker.lastSavedPos = t;
+    tracker.lastSavedTimestamp = Date.now();
+
+    learningProgressService.saveProgress({
+      contentId: item.id,
+      courseId: '',
+      subject: item.subject,
+      chapter: item.chapter,
+      classGrade: item.classGrade || 10,
+      title: item.title,
+      description: item.description || '',
+      contentType: 'VIDEO',
+      fileUrl: item.cloudinaryUrl || (item as any).fileUrl || '',
+      thumbnailUrl: item.thumbnailUrl || '',
+      lastPositionSeconds: Math.round(t),
+      durationSeconds: Math.round(d),
+      progressPercent: progressPct,
+      completed,
+    });
+  }, []);
+
+  useEffect(() => {
+    // If an item was playing previously, flush its last position before switching
+    if (trackerRef.current.item && trackerRef.current.currentTime > 0) {
+      flushProgress();
+    }
+
+    activeItemRef.current = activeItem;
+    trackerRef.current = {
+      item: activeItem,
+      currentTime: 0,
+      duration: activeItem?.duration || 0,
+      lastSavedPos: -1,
+      lastSavedTimestamp: 0,
+      initialSaved: false,
+    };
+  }, [activeItem, flushProgress]);
+
+  const handleVideoProgress = (e: React.SyntheticEvent<HTMLVideoElement>, force: boolean = false) => {
+    const video = e.currentTarget;
+    const tracker = trackerRef.current;
+    if (!tracker.item || !video) return;
+
+    const t = video.currentTime;
+    const d = video.duration || tracker.duration || 5;
+    tracker.currentTime = t;
+    if (d > 0 && !isNaN(d)) {
+      tracker.duration = d;
+    }
+
+    const now = Date.now();
+    const timeDiff = Math.abs(t - tracker.lastSavedPos);
+    const realTimeDiff = now - tracker.lastSavedTimestamp;
+
+    // 1. Initial engagement: save immediately once playback reaches >= 0.5s
+    if (!tracker.initialSaved && t >= 0.5) {
+      tracker.initialSaved = true;
+      flushProgress(t, false);
+      return;
+    }
+
+    // 2. Periodic updates every 3s of playback, or forced on pause/seek/ended
+    if (force || (realTimeDiff >= 3000 && timeDiff >= 1.5)) {
+      flushProgress(t, force && t >= d - 0.5);
+    }
+  };
+
+  // Flush on unmount, pagehide, visibility change, or page navigation
+  useEffect(() => {
+    const handleLeave = () => {
+      flushProgress();
+    };
+
+    window.addEventListener('beforeunload', handleLeave);
+    window.addEventListener('pagehide', handleLeave);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        handleLeave();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleLeave);
+      window.removeEventListener('pagehide', handleLeave);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      // Flush whenever CoursesPage unmounts (navigating to Dashboard, etc.)
+      handleLeave();
+    };
+  }, [flushProgress]);
 
   useEffect(() => {
     setFileLoadError(false);
@@ -377,6 +501,7 @@ export const CoursesPage: React.FC = () => {
         <button
           type="button"
           onClick={() => {
+            flushProgress();
             setView('chapters');
             setActiveItem(null);
           }}
@@ -433,6 +558,15 @@ export const CoursesPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              {(activeItem.contentType === 'VIDEO' || !activeItem.contentType) && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/lesson/${activeItem.id}`)}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary text-white hover:bg-primary-dark px-3 py-1.5 text-xs font-semibold transition cursor-pointer"
+                >
+                  <Play className="h-3.5 w-3.5 fill-current" /> Dedicated Player
+                </button>
+              )}
               <a
                 href={activeItem.cloudinaryUrl}
                 target="_blank"
@@ -460,11 +594,28 @@ export const CoursesPage: React.FC = () => {
               {(activeItem.contentType === 'VIDEO' || !activeItem.contentType) && (
                 <div className="relative rounded-xl overflow-hidden bg-black aspect-video shadow-xl">
                   <video
+                    ref={videoRef}
                     key={activeItem.cloudinaryUrl}
                     controls
                     autoPlay
                     className="w-full h-full"
                     poster={activeItem.thumbnailUrl}
+                    onLoadedMetadata={(e) => {
+                      learningProgressService.getContentProgress(activeItem.id, user?.id ? String(user.id) : undefined)
+                        .then((saved) => {
+                          if (saved && saved.lastPositionSeconds > 0 && saved.lastPositionSeconds < e.currentTarget.duration) {
+                            e.currentTarget.currentTime = saved.lastPositionSeconds;
+                            trackerRef.current.lastSavedPos = saved.lastPositionSeconds;
+                            trackerRef.current.currentTime = saved.lastPositionSeconds;
+                          }
+                        })
+                        .catch(() => {});
+                    }}
+                    onPlay={(e) => handleVideoProgress(e, false)}
+                    onSeeked={(e) => handleVideoProgress(e, true)}
+                    onTimeUpdate={(e) => handleVideoProgress(e, false)}
+                    onPause={(e) => handleVideoProgress(e, true)}
+                    onEnded={(e) => handleVideoProgress(e, true)}
                     onError={() => setFileLoadError(true)}
                   >
                     <source src={activeItem.cloudinaryUrl} type="video/mp4" />
@@ -526,7 +677,10 @@ export const CoursesPage: React.FC = () => {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setActiveItem(item)}
+                  onClick={() => {
+                    flushProgress();
+                    setActiveItem(item);
+                  }}
                   className={`w-full flex items-center gap-4 rounded-xl border-2 p-3.5 text-left transition-all hover:shadow-sm ${
                     isSelected
                       ? 'border-primary bg-primary/5'
