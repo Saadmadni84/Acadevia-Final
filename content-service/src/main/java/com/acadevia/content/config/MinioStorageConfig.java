@@ -21,20 +21,23 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MinioStorageConfig {
 
-    @Value("${spring.cloud.aws.credentials.access-key:minioadmin}")
+    @Value("${storage.access-key:${spring.cloud.aws.credentials.access-key:minioadmin}}")
     private String accessKey;
 
-    @Value("${spring.cloud.aws.credentials.secret-key:minioadmin}")
+    @Value("${storage.secret-key:${spring.cloud.aws.credentials.secret-key:minioadmin}}")
     private String secretKey;
 
-    @Value("${spring.cloud.aws.region.static:us-east-1}")
+    @Value("${storage.region:${spring.cloud.aws.region.static:us-east-1}}")
     private String region;
 
-    @Value("${spring.cloud.aws.endpoint:http://minio:9000}")
+    @Value("${storage.endpoint:${spring.cloud.aws.endpoint:http://minio:9000}}")
     private String endpoint;
 
-    @Value("${acadevia.minio.public-url:${acadevia.minio.endpoint:http://localhost:9000}}")
+    @Value("${storage.public-url:${acadevia.minio.public-url:${acadevia.minio.endpoint:http://localhost:9000}}}")
     private String publicEndpoint;
+
+    @Value("${storage.path-style-enabled:${acadevia.minio.path-style-enabled:true}}")
+    private boolean pathStyleEnabled;
 
     @Bean
     public AmazonS3 amazonS3() {
@@ -43,7 +46,7 @@ public class MinioStorageConfig {
                         new AwsClientBuilder.EndpointConfiguration(endpoint, region))
                 .withCredentials(
                         new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
-                .withPathStyleAccessEnabled(true)
+                .withPathStyleAccessEnabled(pathStyleEnabled)
                 .build();
     }
 
@@ -55,7 +58,7 @@ public class MinioStorageConfig {
                         new AwsClientBuilder.EndpointConfiguration(targetEndpoint, region))
                 .withCredentials(
                         new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
-                .withPathStyleAccessEnabled(true)
+                .withPathStyleAccessEnabled(pathStyleEnabled)
                 .build();
     }
 }
