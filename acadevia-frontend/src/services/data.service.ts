@@ -165,6 +165,38 @@ export interface ClassAnalyticsData {
     score: number;
     submissions: number;
   }[];
+  classAverage?: number;
+  totalSubmissions?: number;
+  passingRate?: number;
+  detailedQuizzes?: {
+    id: string;
+    title: string;
+    subject: string;
+    chapterInfo?: string;
+    avgScore: number;
+    attempts: number;
+    completionPct: number;
+    status: 'STRONG' | 'SATISFACTORY' | 'NEEDS_ATTENTION';
+  }[];
+  studentRoster?: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+    avgScore: number;
+    quizzesCompleted: number;
+    totalXP: number;
+    status: 'EXCELLING' | 'ON_TRACK' | 'NEEDS_ATTENTION';
+    needsAttentionReason?: string;
+  }[];
+  actionableInsights?: {
+    id: string;
+    type: 'CRITICAL' | 'WARNING' | 'OPPORTUNITY' | 'POSITIVE';
+    title: string;
+    description: string;
+    metric?: string;
+    actionLabel?: string;
+    actionType?: 'VIEW_STUDENTS' | 'VIEW_QUIZZES' | 'VIEW_SUBJECT';
+  }[];
 }
 
 interface DataState {
@@ -1743,6 +1775,154 @@ export const dataService = {
       };
     });
 
+    // 11. Enriched Analytics Metrics
+    const totalSubmissions = relevantResults.length;
+    const classAverage = totalSubmissions > 0
+      ? Math.round(relevantResults.reduce((sum, r) => sum + r.percentage, 0) / totalSubmissions)
+      : 0;
+
+    const studentScoreList = Object.values(studentPerformanceMap).map((s) => Math.round(s.totalScore / s.count));
+    const passingCount = studentScoreList.filter((sc) => sc >= 50).length;
+    const passingRate = studentScoreList.length > 0
+      ? Math.round((passingCount / studentScoreList.length) * 100)
+      : (totalStudents > 0 ? 100 : 0);
+
+    // Detailed quizzes with completion and status
+    const detailedQuizzes = classQuizzes.map((q) => {
+      const qResults = relevantResults.filter((r) => r.quizId === q.id);
+      const attempts = qResults.length;
+      const avgScore = attempts > 0
+        ? Math.round(qResults.reduce((sum, r) => sum + r.percentage, 0) / attempts)
+        : 0;
+      const uniqueStudents = new Set(qResults.map((r) => String(r.studentId))).size;
+      const completionPct = totalStudents > 0 ? Math.round((uniqueStudents / totalStudents) * 100) : 0;
+      const status: 'STRONG' | 'SATISFACTORY' | 'NEEDS_ATTENTION' =
+        attempts === 0 ? 'SATISFACTORY' : avgScore >= 75 ? 'STRONG' : avgScore >= 50 ? 'SATISFACTORY' : 'NEEDS_ATTENTION';
+      return {
+        id: q.id,
+        title: q.title,
+        subject: q.subject,
+        chapterInfo: q.chapterInfo || (q as any).chapter || (q as any).topic,
+        avgScore,
+        attempts,
+        completionPct,
+        status,
+      };
+    });
+
+    // Complete Student Roster for Class
+    const studentRoster = classStudents.map((s) => {
+      const sId = String(s.id);
+      const perf = studentPerformanceMap[sId];
+      const count = perf?.count || 0;
+      const avgScore = count > 0 ? Math.round(perf.totalScore / count) : 0;
+      const totalXP = s.totalXP || perf?.totalXP || 0;
+
+      let status: 'EXCELLING' | 'ON_TRACK' | 'NEEDS_ATTENTION' = 'ON_TRACK';
+      let needsAttentionReason: string | undefined = undefined;
+
+      if (count > 0 && avgScore < 50) {
+        status = 'NEEDS_ATTENTION';
+        needsAttentionReason = `Scoring ${avgScore}% (below 50% passing threshold)`;
+      } else if (classQuizzes.length >= 3 && count === 0) {
+        status = 'NEEDS_ATTENTION';
+        needsAttentionReason = `No assessments submitted (${classQuizzes.length} pending)`;
+      } else if (classQuizzes.length >= 3 && count < Math.floor(classQuizzes.length / 2)) {
+        status = 'NEEDS_ATTENTION';
+        needsAttentionReason = `Low quiz completion (${count}/${classQuizzes.length} completed)`;
+      } else if (avgScore >= 80) {
+        status = 'EXCELLING';
+      }
+
+      return {
+        id: sId,
+        name: s.fullName,
+        avatarUrl: s.avatarUrl,
+        avgScore,
+        quizzesCompleted: count,
+        totalXP,
+        status,
+        needsAttentionReason,
+      };
+    }).sort((a, b) => b.avgScore - a.avgScore || b.totalXP - a.totalXP);
+
+    // Actionable Insights (rule-based, purely derived from real data)
+    const actionableInsights: {
+      id: string;
+      type: 'CRITICAL' | 'WARNING' | 'OPPORTUNITY' | 'POSITIVE';
+      title: string;
+      description: string;
+      metric?: string;
+      actionLabel?: string;
+      actionType?: 'VIEW_STUDENTS' | 'VIEW_QUIZZES' | 'VIEW_SUBJECT';
+    }[] = [];
+
+    if (atRiskStudents.length > 0) {
+      actionableInsights.push({
+        id: 'ins-at-risk',
+        type: 'CRITICAL',
+        title: 'Academic Support Required',
+        description: `${atRiskStudents.length} student${atRiskStudents.length > 1 ? 's are' : ' is'} currently averaging below the 50% passing threshold and may need remediation.`,
+        metric: `${atRiskStudents.length} Students`,
+        actionLabel: 'View Students',
+        actionType: 'VIEW_STUDENTS',
+      });
+    }
+
+    const attemptedQuizzes = detailedQuizzes.filter((q) => q.attempts > 0);
+    if (attemptedQuizzes.length > 0) {
+      const lowestQuiz = [...attemptedQuizzes].sort((a, b) => a.avgScore - b.avgScore)[0];
+      if (lowestQuiz && lowestQuiz.avgScore < 65) {
+        actionableInsights.push({
+          id: 'ins-lowest-quiz',
+          type: 'WARNING',
+          title: 'Assessment Review Recommended',
+          description: `"${lowestQuiz.title}" has the lowest average score (${lowestQuiz.avgScore}%) across ${lowestQuiz.attempts} attempts.`,
+          metric: `${lowestQuiz.avgScore}% Avg`,
+          actionLabel: 'Review Quiz',
+          actionType: 'VIEW_QUIZZES',
+        });
+      }
+    }
+
+    const attemptedSubjects = subjectComparison.filter((s) => s.submissions > 0);
+    if (attemptedSubjects.length > 1) {
+      const weakestSubject = [...attemptedSubjects].sort((a, b) => a.score - b.score)[0];
+      if (weakestSubject && weakestSubject.score < 70) {
+        actionableInsights.push({
+          id: 'ins-weak-subject',
+          type: 'WARNING',
+          title: 'Curriculum Area Focus',
+          description: `${weakestSubject.subject} has the lowest subject score (${weakestSubject.score}%) in this class.`,
+          metric: `${weakestSubject.score}%`,
+          actionLabel: 'View Subject',
+          actionType: 'VIEW_SUBJECT',
+        });
+      }
+    }
+
+    if (totalSubmissions > 0 && classAverage >= 75) {
+      actionableInsights.push({
+        id: 'ins-strong-avg',
+        type: 'POSITIVE',
+        title: 'Strong Class Mastery',
+        description: `Class average is ${classAverage}% with steady concept mastery across completed assessments.`,
+        metric: `${classAverage}%`,
+      });
+    }
+
+    if (notStartedCount > 0 && classQuizzes.length > 0) {
+      actionableInsights.push({
+        id: 'ins-pending-quizzes',
+        type: 'OPPORTUNITY',
+        title: 'Pending Submissions',
+        description: `${notStartedCount} student${notStartedCount > 1 ? 's have' : ' has'} not yet completed assigned quizzes.`,
+        metric: `${notStartedCount} Pending`,
+        actionLabel: 'View Students',
+        actionType: 'VIEW_STUDENTS',
+      });
+    }
+
     return {
       classGrade: selectedClass,
       availableClasses,
@@ -1755,6 +1935,12 @@ export const dataService = {
       topPerformers,
       atRiskStudents,
       subjectComparison,
+      classAverage,
+      totalSubmissions,
+      passingRate,
+      detailedQuizzes,
+      studentRoster,
+      actionableInsights,
     };
   },
 

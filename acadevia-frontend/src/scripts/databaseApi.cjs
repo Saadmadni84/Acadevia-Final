@@ -385,6 +385,11 @@ function getTeacherAnalyticsFromDb(classGrade = 10, subject = 'All') {
     };
   });
 
+  const totalSubmissions = filteredAttempts.length;
+  const classAverage = totalSubmissions > 0
+    ? Math.round(filteredAttempts.reduce((sum, att) => sum + att.percentage, 0) / totalSubmissions)
+    : 0;
+
   const result = {
     classGrade: Number(classGrade),
     availableClasses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -397,6 +402,8 @@ function getTeacherAnalyticsFromDb(classGrade = 10, subject = 'All') {
     topPerformers,
     atRiskStudents,
     subjectComparison,
+    classAverage,
+    totalSubmissions,
   };
 
   serverCache.teacherAnalytics.set(cacheKey, { data: result, timestamp: Date.now() });
