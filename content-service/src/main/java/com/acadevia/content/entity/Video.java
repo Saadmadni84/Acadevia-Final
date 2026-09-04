@@ -37,14 +37,23 @@ public class Video {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "lesson_id", nullable = false)
+    @Column(name = "lesson_id")
     private Long lessonId;
 
     @Column(name = "course_id", nullable = false)
     private Long courseId;
 
-    @Column(name = "module_id", nullable = false)
+    @Column(name = "module_id")
     private Long moduleId;
+
+    @Column(name = "class_grade")
+    private Integer classGrade;
+
+    @Column(name = "subject", length = 100)
+    private String subject;
+
+    @Column(name = "chapter", length = 255)
+    private String chapter;
 
     @Column(nullable = false)
     private String title;
@@ -168,6 +177,10 @@ public class Video {
     @Column(name = "total_bookmarks")
     @Builder.Default
     private Integer totalBookmarks = 0;
+
+    @Column(name = "total_comments")
+    @Builder.Default
+    private Integer totalComments = 0;
 
     @Column(name = "total_notes")
     @Builder.Default

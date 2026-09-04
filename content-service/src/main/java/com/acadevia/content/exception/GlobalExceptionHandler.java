@@ -70,14 +70,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(VideoProcessingException.class)
     public ResponseEntity<ErrorResponse> handleVideoProcessing(VideoProcessingException ex, HttpServletRequest request) {
         log.error("Video processing error: {}", ex.getMessage(), ex);
+        HttpStatus status = ex.getMessage() != null && ex.getMessage().toLowerCase().contains("not authorized")
+                ? HttpStatus.FORBIDDEN
+                : HttpStatus.BAD_REQUEST;
         ErrorResponse error = ErrorResponse.builder()
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .error("Internal Server Error")
+                .status(status.value())
+                .error(status.getReasonPhrase())
                 .message(ex.getMessage())
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .build();
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(error, status);
     }
 
     @ExceptionHandler(DownloadLimitExceededException.class)

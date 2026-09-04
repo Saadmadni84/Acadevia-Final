@@ -38,6 +38,7 @@ class JwtAuthenticationFilterTest {
     void setUp() {
         this.signingKey = Keys.hmacShaKeyFor(SECRET_KEY_STRING.getBytes(StandardCharsets.UTF_8));
         this.jwtUtil = new JwtUtil();
+        this.jwtUtil.setSecretKey(SECRET_KEY_STRING);
         this.jwtUtil.init();
         this.filter = new JwtAuthenticationFilter(jwtUtil);
         this.gatewayFilter = filter.apply(new JwtAuthenticationFilter.Config());

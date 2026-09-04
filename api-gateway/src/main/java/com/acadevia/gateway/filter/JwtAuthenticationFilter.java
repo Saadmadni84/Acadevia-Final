@@ -52,6 +52,8 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
             "/api/v1/analytics/weekly-progress",
             "/api/v1/analytics/subject-distribution",
             "/api/v1/courses/popular",
+            "/api/v1/content/videos/by-chapter",
+            "/api/v1/content/videos/by-module",
             "/api/v1/i18n/languages",
             "/api/v1/geography/states"
     );
@@ -78,16 +80,21 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
                 return chain.filter(sanitizedExchange);
             }
 
-            if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+            String token = null;
+            if (exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+                String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    token = authHeader.substring(7);
+                } else {
+                    return onError(exchange, "Invalid Authorization Header", HttpStatus.UNAUTHORIZED);
+                }
+            } else if (exchange.getRequest().getQueryParams().containsKey("token")) {
+                token = exchange.getRequest().getQueryParams().getFirst("token");
+            }
+
+            if (token == null || token.isBlank()) {
                 return onError(exchange, "Missing Authorization Header", HttpStatus.UNAUTHORIZED);
             }
-
-            String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return onError(exchange, "Invalid Authorization Header", HttpStatus.UNAUTHORIZED);
-            }
-
-            String token = authHeader.substring(7);
 
             if (!jwtUtil.validateToken(token)) {
                 return onError(exchange, "Invalid JWT Token", HttpStatus.UNAUTHORIZED);
@@ -133,7 +140,7 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
                 : path;
         return PUBLIC_ENDPOINTS.stream().anyMatch(endpoint ->
                 normalizedPath.equals(endpoint) || normalizedPath.startsWith(endpoint + "/")
-        );
+        ) || normalizedPath.matches(".*/videos/\\d+/stream");
     }
 
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {

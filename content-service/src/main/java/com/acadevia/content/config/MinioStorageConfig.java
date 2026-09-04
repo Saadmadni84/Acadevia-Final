@@ -33,11 +33,26 @@ public class MinioStorageConfig {
     @Value("${spring.cloud.aws.endpoint:http://minio:9000}")
     private String endpoint;
 
+    @Value("${acadevia.minio.public-url:${acadevia.minio.endpoint:http://localhost:9000}}")
+    private String publicEndpoint;
+
     @Bean
     public AmazonS3 amazonS3() {
         return AmazonS3ClientBuilder.standard()
                 .withEndpointConfiguration(
                         new AwsClientBuilder.EndpointConfiguration(endpoint, region))
+                .withCredentials(
+                        new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
+                .withPathStyleAccessEnabled(true)
+                .build();
+    }
+
+    @Bean(name = "publicPresignS3Client")
+    public AmazonS3 publicPresignS3Client() {
+        String targetEndpoint = (publicEndpoint != null && !publicEndpoint.isBlank()) ? publicEndpoint : endpoint;
+        return AmazonS3ClientBuilder.standard()
+                .withEndpointConfiguration(
+                        new AwsClientBuilder.EndpointConfiguration(targetEndpoint, region))
                 .withCredentials(
                         new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
                 .withPathStyleAccessEnabled(true)
