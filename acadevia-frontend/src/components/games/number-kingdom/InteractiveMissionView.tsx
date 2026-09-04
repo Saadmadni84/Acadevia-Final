@@ -12,6 +12,10 @@ import {
 import { Button } from '@/components/ui/Button';
 import type { InteractiveMission, PetType } from './types';
 import { PET_COMPANIONS, KINGDOM_WORLDS } from './missionGenerator';
+import { NumberBridgeGame } from './games/NumberBridgeGame';
+import { DragonDeliveryGame } from './games/DragonDeliveryGame';
+import { WizardPotionLabGame } from './games/WizardPotionLabGame';
+import { KingdomBuilderGame } from './games/KingdomBuilderGame';
 import { cn } from '@/lib/utils';
 
 interface InteractiveMissionViewProps {
@@ -277,6 +281,47 @@ export const InteractiveMissionView: React.FC<InteractiveMissionViewProps> = ({
       setFeedbackMessage(`Good try! ${mission.prompt} Think about ${mission.instruction.toLowerCase()}`);
     }
   };
+
+  // Return Grade 2–5 dedicated interactive mini-games
+  if (mission.classGrade === 2) {
+    return (
+      <NumberBridgeGame
+        currentPet={currentPet}
+        onComplete={onComplete}
+        onBackToMap={onBackToMap}
+      />
+    );
+  }
+
+  if (mission.classGrade === 3) {
+    return (
+      <DragonDeliveryGame
+        currentPet={currentPet}
+        onComplete={onComplete}
+        onBackToMap={onBackToMap}
+      />
+    );
+  }
+
+  if (mission.classGrade === 4) {
+    return (
+      <WizardPotionLabGame
+        currentPet={currentPet}
+        onComplete={onComplete}
+        onBackToMap={onBackToMap}
+      />
+    );
+  }
+
+  if (mission.classGrade === 5) {
+    return (
+      <KingdomBuilderGame
+        currentPet={currentPet}
+        onComplete={onComplete}
+        onBackToMap={onBackToMap}
+      />
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 select-none p-1 sm:p-2">

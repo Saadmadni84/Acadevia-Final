@@ -16,6 +16,17 @@ import {
   Eye,
   Film,
   AlertCircle,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  ThumbsUp,
+  ThumbsDown,
+  CornerDownRight,
+  Check,
+  Loader2,
+  MessageCircle,
+  Send,
+  CheckCircle2,
 } from 'lucide-react';
 import { uploadedContentStore, type UploadedContentItem } from '@/stores/uploadedContentStore';
 import { dataService } from '@/services/data.service';
@@ -72,6 +83,7 @@ export const CoursesPage: React.FC = () => {
   const [activeItem, setActiveItem] = useState<UploadedContentItem | null>(null);
   const [allItems, setAllItems] = useState<UploadedContentItem[]>([]);
   const [fileLoadError, setFileLoadError] = useState<boolean>(false);
+
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const activeItemRef = useRef<UploadedContentItem | null>(null);
@@ -196,9 +208,101 @@ export const CoursesPage: React.FC = () => {
     };
   }, [flushProgress]);
 
+// Student comments / questions state
+  const [comments, setComments] = useState<any[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState<boolean>(false);
+  const [newComment, setNewComment] = useState<string>('');
+  const [isPostingComment, setIsPostingComment] = useState<boolean>(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
+
+  // YouTube Description & Comments UI state
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState<boolean>(false);
+  const [replyingCommentId, setReplyingCommentId] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState<string>('');
+  const [isPostingReply, setIsPostingReply] = useState<boolean>(false);
+  const [expandedReplies, setExpandedReplies] = useState<Record<number, boolean>>({});
+  const [likedComments, setLikedComments] = useState<Record<number, boolean>>({});
+
+  const formatRelativeTime = (dateStr?: string) => {
+    if (!dateStr) return 'recently';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffSec < 60) return 'just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}h ago`;
+    const diffDays = Math.floor(diffHour / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
+
+  const toggleLikeComment = (id: number) => {
+    setLikedComments((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handlePostReply = async (commentId: number) => {
+    if (!replyText.trim()) return;
+    setIsPostingReply(true);
+    try {
+      const updated = await contentService.replyToComment(commentId, replyText.trim());
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId
+            ? {
+                ...c,
+                ...updated,
+                reply: replyText.trim(),
+                repliedByName: (user as any)?.name || (user as any)?.firstName || 'Teacher',
+                isResolved: true,
+              }
+            : c
+        )
+      );
+      setReplyText('');
+      setReplyingCommentId(null);
+      setExpandedReplies((prev) => ({ ...prev, [commentId]: true }));
+    } catch (err) {
+      console.error('Failed to post reply:', err);
+    } finally {
+      setIsPostingReply(false);
+    }
+  };
   useEffect(() => {
     setFileLoadError(false);
   }, [activeItem]);
+
+  // Load comments when active item changes
+  useEffect(() => {
+    if (activeItem?.id) {
+      setIsLoadingComments(true);
+      setCommentError(null);
+      contentService
+        .getVideoComments(activeItem.id)
+        .then((data) => setComments(data || []))
+        .catch((err) => console.warn('Failed to load video comments:', err))
+        .finally(() => setIsLoadingComments(false));
+    } else {
+      setComments([]);
+    }
+  }, [activeItem?.id]);
+
+  const handlePostComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim() || !activeItem?.id) return;
+    setIsPostingComment(true);
+    setCommentError(null);
+    try {
+      const created = await contentService.postVideoComment(activeItem.id, newComment.trim());
+      setComments((prev) => [...prev, created]);
+      setNewComment('');
+    } catch (err: any) {
+      setCommentError(err?.response?.data?.message || 'Failed to submit your question. Please try again.');
+    } finally {
+      setIsPostingComment(false);
+    }
+  };
 
   // Load content from store
   useEffect(() => {
@@ -230,6 +334,10 @@ export const CoursesPage: React.FC = () => {
     });
   }, [selectedClass]);
 
+  // Backend videos state
+  const [backendVideos, setBackendVideos] = useState<any[]>([]);
+  const [loadingBackendVideos, setLoadingBackendVideos] = useState(false);
+
   // Load chapters when class and subject change
   useEffect(() => {
     if (!selectedClass || !selectedSubject) return;
@@ -238,16 +346,41 @@ export const CoursesPage: React.FC = () => {
     });
   }, [selectedClass, selectedSubject]);
 
-  // Filter content items strictly by class, subject, and chapter
+  // Fetch real uploaded videos from backend when class, subject, or chapter changes
+  useEffect(() => {
+    if (!selectedClass || !selectedSubject || !selectedChapter) {
+      setBackendVideos([]);
+      return;
+    }
+    setLoadingBackendVideos(true);
+    contentService
+      .getChapterVideos(selectedClass, selectedSubject, selectedChapter)
+      .then((videos) => {
+        setBackendVideos(videos);
+      })
+      .catch((err) => {
+        console.warn('Failed to fetch videos from backend:', err);
+        setBackendVideos([]);
+      })
+      .finally(() => setLoadingBackendVideos(false));
+  }, [selectedClass, selectedSubject, selectedChapter]);
+
+  // Filter content items strictly by class, subject, and chapter (backend primary, local fallback)
   const chapterItems = useMemo(() => {
     if (!selectedClass || !selectedChapter || !selectedSubject) return [];
-    return allItems.filter(
+    const localMatches = allItems.filter(
       (v) =>
         v.classGrade === selectedClass &&
         v.subject.toLowerCase() === selectedSubject.toLowerCase() &&
         v.chapter.toLowerCase() === selectedChapter.toLowerCase(),
     );
-  }, [selectedClass, selectedChapter, selectedSubject, allItems]);
+    const map = new Map<string, any>();
+    backendVideos.forEach((v) => map.set(v.id, v));
+    localMatches.forEach((v) => {
+      if (!map.has(v.id)) map.set(v.id, v);
+    });
+    return Array.from(map.values());
+  }, [selectedClass, selectedChapter, selectedSubject, allItems, backendVideos]);
 
   // Chapter content counts
   const chapterContentCount = useMemo(() => {
@@ -262,14 +395,39 @@ export const CoursesPage: React.FC = () => {
       .forEach((v) => {
         counts[v.chapter] = (counts[v.chapter] || 0) + 1;
       });
+    backendVideos.forEach((v) => {
+      counts[v.chapter] = (counts[v.chapter] || 0) + 1;
+    });
     return counts;
-  }, [selectedClass, selectedSubject, allItems]);
+  }, [selectedClass, selectedSubject, allItems, backendVideos]);
 
   const formatSize = (bytes: number): string => {
     if (!bytes) return '';
     if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
     if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
     return `${(bytes / 1e3).toFixed(1)} KB`;
+  };
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState<boolean>(false);
+
+  const handleDownload = async (
+    item: UploadedContentItem,
+    option?: { quality: string; label: string; downloadUrl: string },
+  ) => {
+    const targetUrl =
+      option?.downloadUrl ||
+      item.downloadUrl ||
+      `/api/v1/content/videos/${item.id}/download`;
+    try {
+      setDownloadingId(item.id);
+      await contentService.downloadVideoFile(targetUrl, item.fileName || `${item.title}.mp4`);
+    } catch (err) {
+      console.error('[CoursesPage] Download error:', err);
+    } finally {
+      setDownloadingId(null);
+      setDownloadMenuOpen(false);
+    }
   };
 
   /* ================================================================== */
@@ -557,7 +715,8 @@ export const CoursesPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative">
+              {/* Dedicated lesson player from gaurav-singh */}
               {(activeItem.contentType === 'VIDEO' || !activeItem.contentType) && (
                 <button
                   type="button"
@@ -567,20 +726,115 @@ export const CoursesPage: React.FC = () => {
                   <Play className="h-3.5 w-3.5 fill-current" /> Dedicated Player
                 </button>
               )}
+
+              {/* Dynamic download menu from main */}
+              {(() => {
+                const options =
+                  activeItem.downloadOptions && activeItem.downloadOptions.length > 0
+                    ? activeItem.downloadOptions
+                    : [{
+                        quality: 'original',
+                        label: 'Original Quality',
+                        fileSizeMb: activeItem.fileSize
+                          ? Math.round((activeItem.fileSize / (1024 * 1024)) * 100) / 100
+                          : undefined,
+                        downloadUrl:
+                          activeItem.downloadUrl ||
+                          `/api/v1/content/videos/${activeItem.id}/download`,
+                      }];
+
+                const isDownloading = downloadingId === activeItem.id;
+
+                if (options.length > 1) {
+                  return (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
+                        disabled={isDownloading}
+                        className="flex items-center gap-1.5 rounded-lg bg-primary text-white hover:bg-primary-dark px-3 py-1.5 text-xs font-semibold shadow-xs transition"
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5" />
+                        )}
+                        <span>{isDownloading ? 'Downloading...' : 'Download'}</span>
+                        <ChevronDown className="h-3.5 w-3.5 ml-0.5" />
+                      </button>
+
+                      {downloadMenuOpen && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setDownloadMenuOpen(false)}
+                          />
+                          <div className="absolute right-0 mt-1.5 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-50 py-1 overflow-hidden animate-in fade-in">
+                            <div className="px-3 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
+                              Available Qualities
+                            </div>
+                            {options.map((opt) => (
+                              <button
+                                key={opt.quality}
+                                type="button"
+                                onClick={() => handleDownload(activeItem, opt)}
+                                className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary transition text-left cursor-pointer"
+                              >
+                                <span className="font-medium">{opt.label}</span>
+                                {opt.fileSizeMb && (
+                                  <span className="text-[11px] text-gray-400 font-mono">
+                                    {opt.fileSizeMb.toFixed(1)} MB
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                }
+
+                const singleOpt = options[0];
+
+                return (
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(activeItem, singleOpt)}
+                    disabled={isDownloading}
+                    className="flex items-center gap-1.5 rounded-lg bg-primary text-white hover:bg-primary-dark px-3 py-1.5 text-xs font-semibold shadow-xs transition"
+                    title={`Download ${singleOpt.label}`}
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    <span>
+                      {isDownloading
+                        ? 'Downloading...'
+                        : singleOpt.fileSizeMb
+                        ? `Download (${singleOpt.fileSizeMb.toFixed(1)} MB)`
+                        : 'Download'}
+                    </span>
+                  </button>
+                );
+              })()}
+
               <a
-                href={activeItem.cloudinaryUrl}
+                href={activeItem.downloadUrl || activeItem.cloudinaryUrl}
                 target="_blank"
                 rel="noreferrer"
                 download={activeItem.fileName || activeItem.title}
-                className="flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white px-3 py-1.5 text-xs font-semibold transition"
+                className="flex items-center gap-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 px-3 py-1.5 text-xs font-semibold transition"
               >
-                <ExternalLink className="h-3.5 w-3.5" /> Open / Download
+                <ExternalLink className="h-3.5 w-3.5" /> Open
               </a>
             </div>
           </div>
 
           {/* Video / PDF / Image Viewer with Graceful Fallback */}
-          {(!activeItem.cloudinaryUrl || activeItem.cloudinaryUrl.startsWith('blob:') || fileLoadError) ? (
+          {((!activeItem.cloudinaryUrl && !activeItem.id) || (activeItem.cloudinaryUrl?.startsWith('blob:') && !activeItem.id) || fileLoadError) ? (
             <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 p-8 text-center space-y-3">
               <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
               <h4 className="text-base font-bold text-gray-900 dark:text-white">File Unavailable on Server</h4>
@@ -595,7 +849,42 @@ export const CoursesPage: React.FC = () => {
                 <div className="relative rounded-xl overflow-hidden bg-black aspect-video shadow-xl">
                   <video
                     ref={videoRef}
-                    key={activeItem.cloudinaryUrl}
+                    key={activeItem.cloudinaryUrl || activeItem.id}
+                    controls
+                    autoPlay
+                    className="w-full h-full"
+                    poster={activeItem.thumbnailUrl}
+                    onLoadedMetadata={(e) => {
+                      learningProgressService
+                        .getContentProgress(
+                          activeItem.id,
+                          user?.id ? String(user.id) : undefined
+                        )
+                        .then((saved) => {
+                          if (
+                            saved &&
+                            saved.lastPositionSeconds > 0 &&
+                            saved.lastPositionSeconds < e.currentTarget.duration
+                          ) {
+                            e.currentTarget.currentTime = saved.lastPositionSeconds;
+                            trackerRef.current.lastSavedPos = saved.lastPositionSeconds;
+                            trackerRef.current.currentTime = saved.lastPositionSeconds;
+                          }
+                        })
+                        .catch(() => {});
+                    }}
+                    onPlay={(e) => handleVideoProgress(e, false)}
+                    onSeeked={(e) => handleVideoProgress(e, true)}
+                    onTimeUpdate={(e) => handleVideoProgress(e, false)}
+                    onPause={(e) => handleVideoProgress(e, true)}
+                    onEnded={(e) => handleVideoProgress(e, true)}
+                    onError={(e) => {
+                      console.warn('Video failed to play source:', e);
+                      if (!activeItem.id) {
+                        setFileLoadError(true);
+                      }
+                    }}
+
                     controls
                     autoPlay
                     className="w-full h-full"
@@ -617,9 +906,20 @@ export const CoursesPage: React.FC = () => {
                     onPause={(e) => handleVideoProgress(e, true)}
                     onEnded={(e) => handleVideoProgress(e, true)}
                     onError={() => setFileLoadError(true)}
+                    onError={(e) => {
+                      console.warn('Video failed to play source:', e);
+                      // Only set error if no valid id fallback is present
+                      if (!activeItem.id) {
+                        setFileLoadError(true);
+                      }
+                    }}
                   >
-                    <source src={activeItem.cloudinaryUrl} type="video/mp4" />
-                    <source src={activeItem.cloudinaryUrl} type="video/webm" />
+                    {activeItem.cloudinaryUrl && (
+                      <source src={activeItem.cloudinaryUrl} type="video/mp4" />
+                    )}
+                    {activeItem.id && (
+                      <source src={`/api/v1/content/videos/${activeItem.id}/stream`} type="video/mp4" />
+                    )}
                     Your browser does not support the video tag.
                   </video>
                 </div>
@@ -650,6 +950,335 @@ export const CoursesPage: React.FC = () => {
               )}
             </>
           )}
+
+          {/* YouTube-Style Description Box */}
+          <div
+            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+            className="group rounded-2xl bg-gray-100/90 dark:bg-gray-800/60 p-4 transition-all hover:bg-gray-200/70 dark:hover:bg-gray-800/90 cursor-pointer select-none space-y-2 border border-gray-200/60 dark:border-gray-700/60 shadow-2xs"
+          >
+            <div className="flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-300">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <span className="font-bold text-gray-900 dark:text-white">
+                  {(activeItem as any).totalViews ? `${(activeItem as any).totalViews.toLocaleString()} views` : '1,240 views'}
+                </span>
+                <span>•</span>
+                <span>
+                  {(activeItem as any).createdAt
+                    ? new Date((activeItem as any).createdAt).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })
+                    : 'Recently updated'}
+                </span>
+                <span>•</span>
+                <span className="text-primary font-medium">
+                  #{activeItem.subject.replace(/\s+/g, '')} #{activeItem.chapter.replace(/\s+/g, '')}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsDescriptionExpanded(!isDescriptionExpanded);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-600 transition cursor-pointer"
+              >
+                <span>{isDescriptionExpanded ? 'Show less' : '...more'}</span>
+                {isDescriptionExpanded ? (
+                  <ChevronUp className="h-3.5 w-3.5 text-primary" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5 text-primary" />
+                )}
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+              {isDescriptionExpanded ? (
+                <div className="space-y-3 pt-1">
+                  <p className="whitespace-pre-wrap font-normal text-gray-700 dark:text-gray-300">
+                    {activeItem.description || "No specific notes provided for this lesson."}
+                  </p>
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <School className="h-3.5 w-3.5 text-primary" /> Class {activeItem.classGrade || selectedClass}
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <BookOpen className="h-3.5 w-3.5 text-primary" /> {activeItem.subject}
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <GraduationCap className="h-3.5 w-3.5 text-primary" /> {activeItem.chapter}
+                    </span>
+                  </div>
+                  <div className="flex justify-end pt-1">
+                    <span className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+                      Show less <ChevronUp className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2">
+                  <p className="line-clamp-2 text-gray-600 dark:text-gray-400 font-normal">
+                    {activeItem.description || "Click to expand full lesson overview and notes..."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* YouTube-Style Comments & Doubts Section */}
+          <div className="pt-6 border-t border-gray-200 dark:border-gray-800 space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {comments.length} {comments.length === 1 ? 'Comment & Doubt' : 'Comments & Doubts'}
+                </h3>
+              </div>
+            </div>
+
+            {/* YouTube-style comment form */}
+            <form onSubmit={handlePostComment} className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">
+                {((user as any)?.firstName || user?.name || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 space-y-2">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Add a comment or ask a doubt to the teacher..."
+                  rows={2}
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition resize-none shadow-xs"
+                />
+                {commentError && (
+                  <p className="text-xs text-rose-500">{commentError}</p>
+                )}
+                <div className="flex items-center justify-end gap-2">
+                  {newComment.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setNewComment('')}
+                      className="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={isPostingComment || !newComment.trim()}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-primary-dark transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isPostingComment ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Send className="h-3.5 w-3.5" />
+                    )}
+                    <span>{isPostingComment ? 'Posting...' : 'Comment'}</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            {/* YouTube-style comments list */}
+            {isLoadingComments ? (
+              <div className="flex items-center justify-center py-8 text-gray-400">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                <span className="text-xs">Loading discussion...</span>
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-800 p-8 text-center text-gray-400 space-y-1">
+                <MessageCircle className="h-8 w-8 mx-auto opacity-30 text-primary" />
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No comments yet</p>
+                <p className="text-xs text-gray-400">Be the first to ask a question or share your thought!</p>
+              </div>
+            ) : (
+              <div className="space-y-4 pt-1">
+                {comments.map((c) => {
+                  const isTeacher = c.userRole?.toUpperCase()?.includes('TEACHER') || c.userRole?.toUpperCase()?.includes('ADMIN');
+                  const isLiked = !!likedComments[c.id];
+                  const hasReply = !!c.reply;
+                  const isReplying = replyingCommentId === c.id;
+                  const areRepliesVisible = expandedReplies[c.id] !== false; // default open if exists
+
+                  return (
+                    <div key={c.id} className="flex items-start gap-3 group">
+                      {/* Avatar */}
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                        isTeacher
+                          ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                          : 'bg-primary/10 text-primary'
+                      }`}>
+                        {c.userName?.charAt(0)?.toUpperCase() || 'U'}
+                      </div>
+
+                      {/* Content & Actions */}
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold text-gray-900 dark:text-white">
+                            {c.userName || 'Anonymous Student'}
+                          </span>
+                          {isTeacher ? (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-200">
+                              <Check className="h-2.5 w-2.5" /> Teacher
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-semibold">
+                              Student
+                            </span>
+                          )}
+                          <span className="text-[11px] text-gray-400">
+                            {formatRelativeTime(c.createdAt)}
+                          </span>
+                          {c.isResolved && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-full">
+                              <CheckCircle2 className="h-2.5 w-2.5" /> Answered
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
+                          {c.comment}
+                        </p>
+
+                        {/* YouTube comment action buttons */}
+                        <div className="flex items-center gap-3 pt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                          <button
+                            type="button"
+                            onClick={() => toggleLikeComment(c.id)}
+                            className={`inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition cursor-pointer ${
+                              isLiked ? 'text-primary font-bold' : ''
+                            }`}
+                          >
+                            <ThumbsUp className={`h-3.5 w-3.5 ${isLiked ? 'fill-primary text-primary' : ''}`} />
+                            <span>{isLiked ? 1 : ''}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="hover:text-gray-900 dark:hover:text-white transition cursor-pointer"
+                          >
+                            <ThumbsDown className="h-3.5 w-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isReplying) {
+                                setReplyingCommentId(null);
+                              } else {
+                                setReplyingCommentId(c.id);
+                                setReplyText('');
+                              }
+                            }}
+                            className="font-semibold hover:text-primary transition cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <CornerDownRight className="h-3 w-3" /> Reply
+                          </button>
+                        </div>
+
+                        {/* Inline Reply Form */}
+                        {isReplying && (
+                          <div className="mt-2 pl-2 border-l-2 border-primary/30 space-y-2">
+                            <div className="flex items-start gap-2">
+                              <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                                {((user as any)?.firstName || user?.name || 'U').charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex-1 space-y-1.5">
+                                <input
+                                  type="text"
+                                  value={replyText}
+                                  onChange={(e) => setReplyText(e.target.value)}
+                                  placeholder={`Reply to @${c.userName || 'student'}...`}
+                                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:border-primary focus:outline-none"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      handlePostReply(c.id);
+                                    }
+                                  }}
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setReplyingCommentId(null)}
+                                    className="px-2.5 py-1 text-xs font-semibold text-gray-500 hover:text-gray-700 cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isPostingReply || !replyText.trim()}
+                                    onClick={() => handlePostReply(c.id)}
+                                    className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white shadow-xs hover:bg-primary-dark transition disabled:opacity-50 cursor-pointer"
+                                  >
+                                    {isPostingReply ? <Loader2 className="h-3 w-3 animate-spin" /> : <span>Reply</span>}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* YouTube-style Nested Teacher Reply */}
+                        {hasReply && (
+                          <div className="mt-2 space-y-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedReplies((prev) => ({
+                                  ...prev,
+                                  [c.id]: !areRepliesVisible,
+                                }))
+                              }
+                              className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:bg-primary/5 px-2 py-1 rounded-full transition cursor-pointer"
+                            >
+                              {areRepliesVisible ? (
+                                <>
+                                  <ChevronUp className="h-3.5 w-3.5" /> Hide 1 reply
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-3.5 w-3.5" /> 1 reply from Teacher
+                                </>
+                              )}
+                            </button>
+
+                            {areRepliesVisible && (
+                              <div className="pl-3 border-l-2 border-primary/20 mt-1.5 space-y-2">
+                                <div className="flex items-start gap-2.5 bg-primary/5 dark:bg-primary/10 rounded-xl p-3 border border-primary/15">
+                                  <div className="h-7 w-7 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                                    {(c.repliedByName || 'T').charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 space-y-0.5">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-xs font-bold text-gray-900 dark:text-white">
+                                        {c.repliedByName || 'Teacher'}
+                                      </span>
+                                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-primary text-white">
+                                        <Check className="h-2 w-2" /> Teacher Answer
+                                      </span>
+                                      <span className="text-[10px] text-gray-400">
+                                        {formatRelativeTime(c.repliedAt || c.updatedAt)}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
+                                      {c.reply}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -713,15 +1342,39 @@ export const CoursesPage: React.FC = () => {
                         {item.title}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                    {item.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1 leading-normal">
+                        {item.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
                       <span>By {item.uploadedBy}</span>
                       {item.fileSize > 0 && <span>{formatSize(item.fileSize)}</span>}
                       <span>{new Date(item.uploadedAt).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                    <Eye className="h-4 w-4" />
-                    <span>Open</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(item);
+                      }}
+                      disabled={downloadingId === item.id}
+                      className="flex items-center gap-1 rounded-lg bg-gray-100 hover:bg-primary/10 text-gray-700 hover:text-primary dark:bg-gray-800 dark:text-gray-300 dark:hover:text-primary px-2.5 py-1 text-xs font-semibold transition"
+                      title="Download Video"
+                    >
+                      {downloadingId === item.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                      <span>Download</span>
+                    </button>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-primary">
+                      <Eye className="h-4 w-4" />
+                      <span>Open</span>
+                    </div>
                   </div>
                 </button>
               );

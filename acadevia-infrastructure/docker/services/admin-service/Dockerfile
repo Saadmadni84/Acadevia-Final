@@ -7,21 +7,19 @@
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 
-# Copy parent POM and service POM for dependency caching
 COPY pom.xml ./pom.xml
+RUN sed -i '/<modules>/,/<\/modules>/d' pom.xml
 COPY admin-service/pom.xml ./admin-service/pom.xml
-
-# Download dependencies (cached unless POM changes)
-RUN mvn dependency:go-offline -pl admin-service -am -B -q
-
-# Copy source code
 COPY admin-service/src ./admin-service/src
+COPY admin-service/target/*.jar ./admin-service/target/
 
-# Build JAR (skip tests — they run in CI)
-RUN mvn package -pl admin-service -am -DskipTests -B -q
+RUN if [ ! -f admin-service/target/*.jar ]; then       mvn -f admin-service/pom.xml package -DskipTests -B -q;     fi
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre
+
+# curl is required for the actuator-based health check below
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 # Security: create non-root user
 RUN groupadd -g 1001 appgroup && \
@@ -39,11 +37,11 @@ ENV JAVA_OPTS="-Xms256m -Xmx512m \
   -XX:MaxRAMPercentage=75.0 \
   -Djava.security.egd=file:/dev/./urandom"
 
-EXPOSE 8092
+EXPOSE 8097
 
 # Health check using Spring Boot actuator
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:8092/actuator/health || exit 1
+  CMD curl -fsS http://localhost:8097/actuator/health || exit 1
 
 # Never run as root
 USER appuser

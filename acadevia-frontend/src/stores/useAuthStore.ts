@@ -4,23 +4,22 @@ import type { AuthUser } from '@/types/auth.types';
 import { queryClient } from '@/providers/QueryProvider';
 
 export interface AuthTokens {
-  accessToken: string;
-  refreshToken?: string;
+  accessToken?: string | null;
+  refreshToken?: string | null;
 }
 
 export interface AuthParams {
   user: AuthUser;
+  accessToken?: string | null;
+  refreshToken?: string | null;
   tokens?: AuthTokens;
   accessTokenOrTokens?: string | AuthTokens;
-  accessToken?: string;
-  refreshToken?: string;
 }
 
 export interface SetTokensParams {
-  tokens?: AuthTokens;
+  accessToken?: string | null;
+  refreshToken?: string | null;
   accessTokenOrTokens?: string | AuthTokens;
-  accessToken?: string;
-  refreshToken?: string;
 }
 
 interface AuthState {
@@ -29,18 +28,40 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+
+  /**
+   * Universal setAuth supporting:
+   * - setAuth(user, accessToken, refreshToken)
+   * - setAuth(user, tokens)
+   * - setAuth({ user, accessToken, refreshToken })
+   * - setAuth({ user, accessTokenOrTokens, refreshToken })
+   */
   setAuth: {
     (params: AuthParams): void;
-    (user: AuthUser, tokens?: AuthTokens): void;
-    (user: AuthUser, accessToken?: string, refreshToken?: string): void;
-    (firstParam: AuthUser | AuthParams, secondParam?: string | AuthTokens, thirdParam?: string): void;
+    (
+      user: AuthUser,
+      accessTokenOrTokens?: string | AuthTokens,
+      refreshToken?: string
+    ): void;
   };
+
   setUser: (user: AuthUser) => void;
+
+  /**
+   * Universal setTokens supporting:
+   * - setTokens(accessToken, refreshToken)
+   * - setTokens(tokens)
+   * - setTokens({ accessToken, refreshToken })
+   * - setTokens({ accessTokenOrTokens, refreshToken })
+   */
   setTokens: {
-    (params: SetTokensParams | AuthTokens): void;
-    (accessToken: string, refreshToken?: string): void;
-    (firstParam: string | AuthTokens | SetTokensParams, secondParam?: string): void;
+    (tokens: AuthTokens | SetTokensParams): void;
+    (
+      accessTokenOrTokens: string | AuthTokens,
+      refreshToken?: string
+    ): void;
   };
+
   setLoading: (loading: boolean) => void;
   logout: () => void;
 }
@@ -67,6 +88,7 @@ export const useAuthStore = create<AuthState>()(
           // Object-based call: setAuth({ user, ... })
           const p = firstParam as AuthParams;
           user = p.user;
+
           if (p.tokens) {
             accessToken = p.tokens.accessToken ?? null;
             refreshToken = p.tokens.refreshToken ?? null;
@@ -83,6 +105,7 @@ export const useAuthStore = create<AuthState>()(
         } else {
           // Positional call: setAuth(user, ...)
           user = (firstParam as AuthUser) ?? null;
+
           if (secondParam && typeof secondParam === 'object') {
             accessToken = secondParam.accessToken ?? null;
             refreshToken = secondParam.refreshToken ?? null;
@@ -113,6 +136,7 @@ export const useAuthStore = create<AuthState>()(
         if (firstParam && typeof firstParam === 'object') {
           if ('accessTokenOrTokens' in firstParam) {
             const p = firstParam as SetTokensParams;
+
             if (p.accessTokenOrTokens && typeof p.accessTokenOrTokens === 'object') {
               accessToken = p.accessTokenOrTokens.accessToken ?? null;
               refreshToken = p.accessTokenOrTokens.refreshToken ?? null;
@@ -144,6 +168,7 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           // ignore if called outside react lifecycle
         }
+
         set({
           user: null,
           accessToken: null,
@@ -166,8 +191,10 @@ export const useAuthStore = create<AuthState>()(
         if (!state?.user && typeof localStorage !== 'undefined') {
           try {
             const legacy = localStorage.getItem('acadevia-auth');
+
             if (legacy) {
               const parsed = JSON.parse(legacy);
+
               if (parsed?.state?.user) {
                 useAuthStore.setState({
                   user: parsed.state.user,
@@ -179,7 +206,10 @@ export const useAuthStore = create<AuthState>()(
               }
             }
           } catch (err) {
-            console.warn('[useAuthStore] Failed to rehydrate legacy auth storage:', err);
+            console.warn(
+              '[useAuthStore] Failed to rehydrate legacy auth storage:',
+              err
+            );
           }
         }
       },
