@@ -8,5 +8,8 @@ data:
   DB_NAME: "acadevia_content"
   DB_USER: "acadevia_content_user"
   CONTENT_UPLOAD_MAX_SIZE: "104857600"
-  CONTENT_MINIO_BUCKET: "acadevia-content"
+  # Bucket names must match those created by minio-init (init-buckets.sh)
+  CONTENT_MINIO_BUCKET_VIDEOS: "acadevia-videos"
+  CONTENT_MINIO_BUCKET_IMAGES: "acadevia-images"
+  CONTENT_MINIO_BUCKET_DOCUMENTS: "acadevia-documents"
   CONTENT_CDN_ENABLED: "true"

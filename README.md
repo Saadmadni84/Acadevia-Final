@@ -174,7 +174,7 @@ Quick terminal view:
 > **Notes**
 > - `locale-service` is packaged/deployed under the image & route name **`i18n-service`** in Docker/Kubernetes manifests.
 > - An **`analytics-service`** is routed by the gateway (`/api/v1/analytics/**`) and has Docker/K8s manifests, but its source module is not part of this monorepo yet.
-> - Services with a `servlet.context-path` (leaderboard, notification, locale, sync, admin) expose actuator & swagger under that prefix when called directly; via the gateway always use the routes above.
+> - All services serve their API at the root context (`/api/v1/...`) and expose `/actuator/health` plus Swagger UI directly on their port. Inside Docker those ports are network-internal unless you add the `docker-compose.exposed-ports.yml` override.
 
 ---
 
@@ -247,14 +247,18 @@ Recommended machine: 16 GB RAM (8 GB minimum), 4+ CPUs for Docker, ~20 GB free d
 git clone https://github.com/Saadmadni84/Acadevia-Final.git
 cd Acadevia-Final/acadevia-infrastructure
 
-make dev          # brings up infra (MySQL, Redis, Kafka, MinIO) then all services + frontend
-make dev-logs     # follow logs
+make dev          # ONE command: infra + Eureka + config server + all backend
+                  # microservices + API gateway + frontend, all as containers
+make dev-logs     # follow logs (make dev-logs SERVICE=auth-service for one)
 make dev-stop     # stop everything
 make dev-reset    # stop and wipe volumes (fresh databases)
+make health       # probe every service health endpoint
+make smoke        # functional smoke test of the whole running stack
 ```
 
-Equivalent without make: `./scripts/local-setup.sh`, or manually
-`cd docker && docker compose -f docker-compose.infra.yml up -d && docker compose up -d`.
+**No `mvn spring-boot:run` is required anywhere in this workflow — Docker owns every backend process.** Equivalent without make: `cd docker && docker compose up -d --build`.
+
+Startup order is enforced with real health checks, not sleeps: MySQL/Redis/Kafka/MinIO → `service-registry` → `config-server` → business services (after `kafka-init`/`minio-init` finish) → `api-gateway` → `frontend`. The stack therefore converges on its own even when infrastructure starts slowly.
 
 Once healthy:
 
@@ -267,7 +271,14 @@ Once healthy:
 | http://localhost:9001 | MinIO console (`minioadmin` / `minioadmin`) |
 | `localhost:3307` | MySQL (user `root`, password from `docker/.env`) |
 
-### Option 2 — Infrastructure in Docker, services on your JVM (normal dev loop)
+Backend service ports (8081–8097) intentionally stay **inside the Docker network** — all client traffic goes through the gateway on `:8080`. When you need direct host access for debugging (Swagger UI, actuator), start with the optional override:
+
+```bash
+cd acadevia-infrastructure/docker
+docker compose -f docker-compose.yml -f docker-compose.exposed-ports.yml up -d
+```
+
+Use this only when you need IDE debugging / hot reload of a single service; the Docker stack above is the primary workflow.
 
 ```bash
 # 1. Infra only
@@ -398,6 +409,12 @@ make test            # backend suite
 make test-frontend   # frontend suite
 make test-e2e        # Playwright
 make test-coverage   # coverage reports
+
+# Full-stack functional smoke test (requires a running `make dev` stack):
+# infra health, Kafka topics, Eureka registrations, config-server payload,
+# per-service actuator health, gateway routing + JWT filter, WebSocket path,
+# frontend serving and nginx → gateway proxying
+make smoke
 ```
 
 ---

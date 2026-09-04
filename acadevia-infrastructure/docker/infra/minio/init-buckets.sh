@@ -40,13 +40,18 @@ for BUCKET in "${BUCKETS[@]}"; do
     fi
 done
 
-# Set public download policy on images (optional — adjust per requirements)
-echo ""
-echo "Setting download policy on acadevia-images ..."
-mc anonymous set download "$ALIAS/acadevia-images"
+# Access policy: keep ALL buckets private.
+# Content must be accessed through:
+#   - Backend-generated presigned URLs (preferred)
+#   - Backend proxy/streaming endpoints
+#   - Nginx CDN with explicit AWS v4 signed requests
+#
+# NOTE: If you want nginx to serve images, configure the nginx CDN location to
+# sign requests using mc or an S3 proxy that adds auth headers.
+# DO NOT use `mc anonymous set download` on educational content buckets.
 
 echo ""
 echo "============================================"
-echo "All MinIO buckets are ready."
+echo "All MinIO buckets are ready (all PRIVATE)."
 echo "============================================"
 mc ls "$ALIAS"

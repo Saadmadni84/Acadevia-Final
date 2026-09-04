@@ -8,6 +8,7 @@
 import { fileStorageService } from './fileStorage.service';
 import { uploadedContentStore } from '@/stores/uploadedContentStore';
 import { apiClient } from '@/services/api.client';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 function getApiUrl(path: string): string {
   if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
@@ -53,6 +54,7 @@ export interface ContentItemRecord {
   fileSize: number;
   mimeType: string;
   fileUrl: string;
+  downloadUrl?: string;
   thumbnailUrl?: string;
   language: string;
   teacherId?: string;
@@ -61,6 +63,7 @@ export interface ContentItemRecord {
   status: 'PUBLISHED' | 'DRAFT';
   createdAt: string;
   durationSeconds?: number;
+  totalComments?: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -306,6 +309,9 @@ class ContentService {
     classNumber: number;
     subjectName: string;
     chapterName: string;
+    courseId?: number;
+    moduleId?: number;
+    lessonId?: number;
     language?: string;
     teacherId?: string;
     teacherName?: string;
@@ -338,39 +344,77 @@ class ContentService {
 
     // 2. Upload actual binary file to server storage endpoint
     let serverFileUrl = '';
+    let serverDownloadUrl = '';
     let serverFileName = file.name;
     let serverFileSize = file.size;
+    let realVideoId: string | null = null;
 
-    try {
-      const uploadRes = await fetch(getApiUrl('/api/v1/content/upload'), {
-        method: 'POST',
-        headers: {
-          'x-filename': encodeURIComponent(file.name),
-          'x-mime-type': mimeType,
-          'x-content-type': resolvedType,
-          'Content-Type': mimeType,
+    if (resolvedType === 'VIDEO') {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('courseId', String(params.courseId || classNumber));
+      if (params.moduleId) {
+        formData.append('moduleId', String(params.moduleId));
+      }
+      formData.append('lessonId', String(params.lessonId || 1));
+      formData.append('classGrade', String(classNumber));
+      formData.append('subject', subjectName);
+      formData.append('chapter', chapterName);
+      formData.append('title', title.trim());
+      if (description?.trim()) {
+        formData.append('description', description.trim());
+      }
+
+      const uploadRes = await apiClient.post('/api/v1/content/videos/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300000, // 5 min timeout for large uploads
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            params.onProgress?.(15 + Math.round(pct * 0.4)); // 15% to 55%
+          }
         },
-        body: file,
       });
 
-      if (uploadRes.ok) {
-        const uploadData = await uploadRes.json();
-        if (uploadData?.data?.fileUrl) {
-          serverFileUrl = uploadData.data.fileUrl;
-          serverFileName = uploadData.data.fileName || file.name;
-          serverFileSize = uploadData.data.fileSize || file.size;
-        }
-      } else {
-        console.warn('[contentService] Backend upload endpoint returned non-200:', uploadRes.status);
+      if (uploadRes.data?.data) {
+        const vData = uploadRes.data.data;
+        realVideoId = String(vData.videoId);
+        serverFileUrl = vData.playUrl || `/api/v1/content/videos/${vData.videoId}/stream`;
+        serverDownloadUrl = vData.downloadUrl || `/api/v1/content/videos/${vData.videoId}/download`;
+        serverFileName = vData.originalFilename || file.name;
+        serverFileSize = vData.fileSizeBytes || file.size;
       }
-    } catch (err) {
-      console.warn('[contentService] Backend file upload failed, fallback to local storage:', err);
+    } else {
+      // Non-video uploads: use the generic upload endpoint
+      try {
+        const uploadRes = await fetch(getApiUrl('/api/v1/content/upload'), {
+          method: 'POST',
+          headers: {
+            'x-filename': encodeURIComponent(file.name),
+            'x-mime-type': mimeType,
+            'x-content-type': resolvedType,
+            'Content-Type': mimeType,
+          },
+          body: file,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData?.data?.fileUrl) {
+            serverFileUrl = uploadData.data.fileUrl;
+            serverFileName = uploadData.data.fileName || file.name;
+            serverFileSize = uploadData.data.fileSize || file.size;
+          }
+        }
+      } catch (err) {
+        console.warn('[contentService] Non-video upload failed:', err);
+      }
     }
 
     params.onProgress?.(55);
 
     // 3. Local IndexedDB storage (retained as local cache / offline fallback)
-    const contentId = `cnt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const contentId = realVideoId ? `vid-${realVideoId}` : `cnt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     let localDataUrl: string | undefined;
     try {
       const storedRecord = await fileStorageService.storeFile(contentId, file, file.name);
@@ -400,6 +444,7 @@ class ContentService {
       fileSize: serverFileSize,
       mimeType,
       fileUrl: finalFileUrl,
+      downloadUrl: serverDownloadUrl,
       thumbnailUrl,
       language: params.language || 'en',
       teacherId: params.teacherId || '10',
@@ -417,6 +462,7 @@ class ContentService {
       title: itemRecord.title,
       description: itemRecord.description || '',
       cloudinaryUrl: itemRecord.fileUrl,
+      downloadUrl: itemRecord.downloadUrl,
       cloudinaryPublicId: '',
       thumbnailUrl: itemRecord.thumbnailUrl || '',
       subject: itemRecord.subjectName,
@@ -433,6 +479,93 @@ class ContentService {
 
     params.onProgress?.(100);
     return itemRecord;
+  }
+
+  /**
+   * Fetch real uploaded videos for a specific chapter from backend content-service
+   */
+  async getChapterVideos(classGrade: number, subject: string, chapter: string): Promise<any[]> {
+    try {
+      const res = await apiClient.get<any>('/api/v1/content/videos/by-chapter', {
+        params: { classGrade, subject, chapter }
+      });
+      const items = res.data?.data || res.data || [];
+      if (Array.isArray(items)) {
+        return items.map((v: any) => ({
+          id: String(v.id),
+          title: v.title,
+          description: v.description || v.title,
+          cloudinaryUrl: v.playUrl || `/api/v1/content/videos/${v.id}/stream`,
+          downloadUrl: v.downloadUrl || `/api/v1/content/videos/${v.id}/download`,
+          downloadOptions: v.downloadOptions || [],
+          thumbnailUrl: v.thumbnailUrl || '',
+          subject: v.subject || subject,
+          classGrade: v.classGrade || classGrade,
+          chapter: v.chapter || chapter,
+          language: v.languageCode || 'en',
+          duration: v.durationSeconds,
+          uploadedBy: 'Teacher',
+          uploadedAt: v.createdAt || new Date().toISOString(),
+          fileSize: v.fileSizeBytes || (v.fileSizeMb ? Math.round(v.fileSizeMb * 1024 * 1024) : 0),
+          contentType: 'VIDEO' as const,
+          fileName: v.originalFilename || `${v.title}.mp4`,
+          mimeType: v.contentType || 'video/mp4',
+        }));
+      }
+    } catch (err) {
+      console.warn('[contentService] getChapterVideos failed:', err);
+    }
+    return [];
+  }
+
+  /**
+   * Securely download a video file from the backend using the student's JWT token.
+   */
+  async downloadVideoFile(downloadUrl: string, fileName?: string): Promise<void> {
+    const { accessToken } = useAuthStore.getState();
+    let targetUrl = downloadUrl;
+
+    try {
+      const res = await fetch(targetUrl, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
+
+      if (!res.ok) {
+        throw new Error(`Download failed with status ${res.status}`);
+      }
+
+      let finalName = fileName || 'video.mp4';
+      const disposition = res.headers.get('Content-Disposition');
+      if (disposition && disposition.includes('filename=')) {
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) {
+          finalName = match[1];
+        }
+      }
+
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = finalName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+    } catch (err) {
+      console.warn('[contentService] Direct blob download failed, falling back to authenticated navigation:', err);
+      if (accessToken) {
+        const separator = targetUrl.includes('?') ? '&' : '?';
+        targetUrl = `${targetUrl}${separator}token=${encodeURIComponent(accessToken)}`;
+      }
+      const a = document.createElement('a');
+      a.href = targetUrl;
+      a.download = fileName || 'video.mp4';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   }
 
   /**
@@ -493,6 +626,160 @@ class ContentService {
     } catch {
       // offline
     }
+  }
+
+  /**
+   * Get a short-lived presigned URL for authorized video playback.
+   * Returns the presigned URL and a streaming fallback URL.
+   */
+  async getVideoPlayUrl(videoId: number | string): Promise<{
+    presignedUrl: string;
+    streamUrl: string;
+    expiresInSeconds: number;
+  }> {
+    try {
+      const res = await apiClient.get(`/api/v1/content/videos/${videoId}/play-url`);
+      const data = res.data?.data;
+      return {
+        presignedUrl: data?.presignedUrl || '',
+        streamUrl: data?.streamUrl || `/api/v1/content/videos/${videoId}/stream`,
+        expiresInSeconds: data?.expiresInSeconds || 900,
+      };
+    } catch (err) {
+      console.warn('[contentService] Failed to get play URL, falling back to stream:', err);
+      return {
+        presignedUrl: '',
+        streamUrl: `/api/v1/content/videos/${videoId}/stream`,
+        expiresInSeconds: 0,
+      };
+    }
+  }
+
+  /**
+   * Get the backend streaming URL for a video (HTTP Range support).
+   */
+  getVideoStreamUrl(videoId: number | string): string {
+    const base = import.meta.env.VITE_API_BASE_URL || '';
+    return `${base}/api/v1/content/videos/${videoId}/stream`;
+  }
+
+  /**
+   * Fetch all videos published by the teacher directly from backend MySQL database.
+   */
+  async getTeacherPublishedContent(): Promise<ContentItemRecord[]> {
+    try {
+      const res = await apiClient.get<any>('/api/v1/content/videos/my-content');
+      const items = res.data?.data || res.data || [];
+      if (Array.isArray(items)) {
+        return items.map((v: any) => ({
+          id: String(v.id),
+          title: v.title,
+          description: v.description || '',
+          contentType: 'VIDEO' as const,
+          classNumber: v.classGrade || 10,
+          subjectName: v.subject || 'General',
+          chapterName: v.chapter || 'Overview',
+          fileName: v.originalFilename || `${v.title}.mp4`,
+          fileSize: v.fileSizeBytes || (v.fileSizeMb ? Math.round(v.fileSizeMb * 1024 * 1024) : 0),
+          mimeType: v.contentType || 'video/mp4',
+          fileUrl: v.playUrl || `/api/v1/content/videos/${v.id}/stream`,
+          downloadUrl: v.downloadUrl || `/api/v1/content/videos/${v.id}/download`,
+          thumbnailUrl: v.thumbnailUrl || '',
+          language: v.languageCode || 'en',
+          teacherId: String(v.createdBy || ''),
+          teacherName: 'Teacher',
+          schoolId: 1,
+          status: 'PUBLISHED' as const,
+          createdAt: v.createdAt || new Date().toISOString(),
+          totalComments: v.totalComments || 0,
+        }));
+      }
+    } catch (err) {
+      console.warn('[contentService] getTeacherPublishedContent failed:', err);
+    }
+    return [];
+  }
+
+  /**
+   * Update video metadata (title, description, syllabus) in MySQL.
+   */
+  async updateVideoContent(
+    id: string,
+    data: { title?: string; description?: string; classGrade?: number; subject?: string; chapter?: string }
+  ): Promise<any> {
+    const numId = id.startsWith('vid-') ? id.replace('vid-', '') : id;
+    const res = await apiClient.put(`/api/v1/content/videos/${numId}`, data);
+    return res.data?.data || res.data;
+  }
+
+  /**
+   * Delete video from MySQL and permanently purge from MinIO storage.
+   */
+  async deleteVideoContent(id: string): Promise<void> {
+    const numId = id.startsWith('vid-') ? id.replace('vid-', '') : id;
+    await apiClient.delete(`/api/v1/content/videos/${numId}`);
+    // Also clean up local store if cached
+    this.deleteContentItem(id);
+  }
+
+  /**
+   * Post student comment/question on a video.
+   */
+  async postVideoComment(videoId: string | number, comment: string): Promise<any> {
+    const numId = String(videoId).startsWith('vid-') ? String(videoId).replace('vid-', '') : videoId;
+    const res = await apiClient.post(`/api/v1/content/videos/${numId}/comments`, { comment });
+    return res.data?.data || res.data;
+  }
+
+  /**
+   * Fetch all comments for a video.
+   */
+  async getVideoComments(videoId: string | number): Promise<any[]> {
+    const numId = String(videoId).startsWith('vid-') ? String(videoId).replace('vid-', '') : videoId;
+    try {
+      const res = await apiClient.get(`/api/v1/content/videos/${numId}/comments`);
+      return res.data?.data || res.data || [];
+    } catch (err) {
+      console.warn('[contentService] getVideoComments failed:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Teacher inbox: fetch comments for teacher's videos.
+   */
+  async getTeacherCommentsInbox(): Promise<any[]> {
+    try {
+      const res = await apiClient.get('/api/v1/content/videos/comments/teacher');
+      return res.data?.data || res.data || [];
+    } catch (err) {
+      console.warn('[contentService] getTeacherCommentsInbox failed:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Mark comment as read.
+   */
+  async markCommentRead(commentId: number): Promise<any> {
+    const res = await apiClient.put(`/api/v1/content/videos/comments/${commentId}/read`);
+    return res.data?.data || res.data;
+  }
+
+  /**
+   * Mark comment as resolved.
+   */
+  async markCommentResolved(commentId: number): Promise<any> {
+    const res = await apiClient.put(`/api/v1/content/videos/comments/${commentId}/resolve`);
+    return res.data?.data || res.data;
+  }
+
+  /**
+   * Reply to a student comment/question.
+   */
+  async replyToComment(commentId: number, reply: string): Promise<any> {
+    const res = await apiClient.post(`/api/v1/content/videos/comments/${commentId}/reply`, { reply });
+    return res.data?.data || res.data;
   }
 }
 

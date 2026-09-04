@@ -19,12 +19,17 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    private String secretKey = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
+    @Value("${jwt.secret:${JWT_SECRET:local-dev-jwt-secret-key-change-in-production-acadevia-2026}}")
+    private String secretKey = "local-dev-jwt-secret-key-change-in-production-acadevia-2026";
 
     @Value("${application.security.jwt.expiration:86400000}")
     private long jwtExpiration;
 
     private SecretKey key;
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+    }
 
     @PostConstruct
     public void init() {

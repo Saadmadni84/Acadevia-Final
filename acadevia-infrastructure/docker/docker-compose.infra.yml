@@ -16,8 +16,8 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./config/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
-      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+      - ./infra/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./infra/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
@@ -41,7 +41,7 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-      - ./config/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./infra/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -145,10 +145,10 @@ services:
       kafka:
         condition: service_healthy
     volumes:
-      - ./scripts/create-topics.sh:/create-topics.sh:ro
+      - ./infra/kafka/create-topics.sh:/create-topics.sh:ro
     entrypoint: ["/bin/bash", "/create-topics.sh"]
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_BOOTSTRAP: kafka:29092
     restart: "no"
     networks:
       - acadevia-network
@@ -187,7 +187,7 @@ services:
       minio:
         condition: service_healthy
     volumes:
-      - ./scripts/init-buckets.sh:/init-buckets.sh:ro
+      - ./infra/minio/init-buckets.sh:/init-buckets.sh:ro
     entrypoint: ["/bin/sh", "/init-buckets.sh"]
     environment:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
