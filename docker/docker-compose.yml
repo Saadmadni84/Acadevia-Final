@@ -37,6 +37,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: acadevia-zookeeper
+    restart: always
     ports:
       - "2181:2181"
     environment:
@@ -46,6 +47,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: acadevia-kafka
+    restart: always
     ports:
       - "9092:9092"
     depends_on:
@@ -153,25 +155,11 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
 
   user-service:
-<<<<<<< HEAD
-<<<<<<< HEAD
     build:
       context: ../user-service
     container_name: acadevia-user-service
     ports:
       - "8082:8082"
-=======
-=======
->>>>>>> 62a9ab1d6e592919a02e3fdc91ae43534bb944d0
-    build: 
-      context: ../user-service
-    container_name: acadevia-user-service
-    ports:
-      - "8083:8083"
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> 62a9ab1d6e592919a02e3fdc91ae43534bb944d0
     depends_on:
       service-registry:
         condition: service_healthy
@@ -188,8 +176,6 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
-<<<<<<< HEAD
-<<<<<<< HEAD
       - JAVA_OPTS=-Xms128m -Xmx256m
 
   course-service:
@@ -246,6 +232,17 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - JAVA_OPTS=-Xms128m -Xmx256m
+      - STORAGE_ENDPOINT=${STORAGE_ENDPOINT:-https://c82b5cf783a510eb20c956cc368a0f7f.r2.cloudflarestorage.com}
+      - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - STORAGE_REGION=${STORAGE_REGION:-auto}
+      - STORAGE_PATH_STYLE_ENABLED=${STORAGE_PATH_STYLE_ENABLED:-true}
+      - STORAGE_BUCKET_VIDEOS=${STORAGE_BUCKET_VIDEOS:-acadevia-videos}
+      - STORAGE_PUBLIC_URL=${STORAGE_PUBLIC_URL:-https://c82b5cf783a510eb20c956cc368a0f7f.r2.cloudflarestorage.com}
+      - SPRING_CLOUD_AWS_ENDPOINT=${STORAGE_ENDPOINT:-https://c82b5cf783a510eb20c956cc368a0f7f.r2.cloudflarestorage.com}
+      - SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY=${STORAGE_ACCESS_KEY}
+      - SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - SPRING_CLOUD_AWS_REGION_STATIC=${STORAGE_REGION:-auto}
 
   quiz-service:
     build:
