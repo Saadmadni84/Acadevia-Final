@@ -3,7 +3,7 @@ const { execSync } = require('child_process');
 function getAttemptsFromDatabase() {
   try {
     const query = 'SELECT a.id, a.quiz_id, a.user_id, a.score, a.total_marks, a.percentage, a.is_passed, a.total_questions, a.correct_answers, a.wrong_answers, a.time_taken_seconds, a.xp_earned, a.completed_at, q.title as quiz_title, q.subject, u.first_name, u.last_name FROM acadevia_quiz_db.quiz_attempts a JOIN acadevia_quiz_db.quizzes q ON a.quiz_id = q.id JOIN acadevia_auth_db.users u ON a.user_id = u.id WHERE a.user_id BETWEEN 20 AND 29 ORDER BY a.id;';
-    const output = execSync(`docker exec acadevia-mysql mysql -uroot -proot -e "${query}" -B`, { stdio: ['pipe', 'pipe', 'ignore'] }).toString();
+    const output = execSync(`docker exec acadevia-mysql mysql -uroot -proot_password -e "${query}" -B`, { stdio: ['pipe', 'pipe', 'ignore'] }).toString();
 
     const lines = output.trim().split('\n');
     if (lines.length < 2) return [];

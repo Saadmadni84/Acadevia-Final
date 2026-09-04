@@ -7,21 +7,19 @@
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 
-# Copy parent POM and service POM for dependency caching
 COPY pom.xml ./pom.xml
+RUN sed -i '/<modules>/,/<\/modules>/d' pom.xml
 COPY game-service/pom.xml ./game-service/pom.xml
-
-# Download dependencies (cached unless POM changes)
-RUN mvn dependency:go-offline -pl game-service -am -B -q
-
-# Copy source code
 COPY game-service/src ./game-service/src
+COPY game-service/target/*.jar ./game-service/target/
 
-# Build JAR (skip tests — they run in CI)
-RUN mvn package -pl game-service -am -DskipTests -B -q
+RUN if [ ! -f game-service/target/*.jar ]; then       mvn -f game-service/pom.xml package -DskipTests -B -q;     fi
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre
+
+# curl is required for the actuator-based health check below
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 # Security: create non-root user
 RUN groupadd -g 1001 appgroup && \
@@ -43,7 +41,7 @@ EXPOSE 8086
 
 # Health check using Spring Boot actuator
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:8086/actuator/health || exit 1
+  CMD curl -fsS http://localhost:8086/actuator/health || exit 1
 
 # Never run as root
 USER appuser

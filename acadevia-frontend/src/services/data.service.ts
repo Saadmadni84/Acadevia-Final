@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Acadevia Persistent Data Layer
  *
@@ -928,7 +929,9 @@ if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       memoryState = null;
       lastKnownVersion = 0;
     };
-  } catch { }
+  } catch {
+    /* ignore in non-browser environments */
+  }
 }
 
 const subscribers = new Set<() => void>();
@@ -1756,10 +1759,14 @@ export const dataService = {
   },
 
   /** Get recent activities for a specific user */
-  getRecentActivities(userId: string, _role?: 'STUDENT' | 'TEACHER'): ActivityRecord[] {
+  getRecentActivities(userId: string, role?: 'STUDENT' | 'TEACHER'): ActivityRecord[] {
     const state = loadState();
     return state.activities
-      .filter((a) => String(a.userId) === String(userId))
+      .filter((a) => {
+        if (String(a.userId) !== String(userId)) return false;
+        if (role && a.userRole && a.userRole !== role) return false;
+        return true;
+      })
       .slice(0, 8);
   },
 

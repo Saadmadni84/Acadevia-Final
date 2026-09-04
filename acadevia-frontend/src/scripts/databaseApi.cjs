@@ -2,8 +2,14 @@ const { execSync } = require('child_process');
 
 function execSql(query) {
   try {
-    const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot -B';
-    const output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
+    let output;
+    try {
+      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot -B';
+      output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
+    } catch {
+      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password -B';
+      output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
+    }
     const lines = output.trim().split('\n');
     if (lines.length < 2) return [];
 
@@ -26,8 +32,13 @@ function execSql(query) {
 
 function execSqlMutation(query) {
   try {
-    const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
-    execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8' });
+    try {
+      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
+      execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8' });
+    } catch {
+      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password';
+      execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
+    }
     return true;
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString() : '';

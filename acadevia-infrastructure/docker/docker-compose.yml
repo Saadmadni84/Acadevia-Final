@@ -1,8 +1,66 @@
 # ============================================================
 # Acadevia Platform — Full Local Development Stack
 # ============================================================
-# Usage: docker compose up -d
+# ONE command starts everything: infrastructure, control plane,
+# all backend microservices and the frontend.
+#
+#   cd acadevia-infrastructure && make dev
+#     (or: cd acadevia-infrastructure/docker && docker compose up -d --build)
+#
+# No `mvn spring-boot:run` is required for any service.
+#
+# Layout:
+#   Infrastructure : mysql, redis, zookeeper, kafka, kafka-ui, kafka-init, minio, minio-init
+#   Control plane  : service-registry (Eureka), config-server
+#   Applications   : auth, user, course, content, quiz, game, gamification,
+#                    leaderboard, notification, i18n, sync, admin
+#   Edge           : api-gateway, frontend (React build served by nginx)
+#
+# Networking rules honoured here:
+#   * container-to-container traffic uses Docker DNS names (mysql, redis,
+#     kafka:29092, minio:9000, service-registry, config-server) — never localhost
+#   * host-published ports are only those developers/tools genuinely need;
+#     backend services stay internal (see docker-compose.exposed-ports.yml
+#     to publish them for debugging)
+#   * startup order is enforced with health checks + depends_on conditions,
+#     not with sleeps
 # ============================================================
+
+x-spring-env: &spring-env
+  # Resolved inside containers through Docker DNS service names.
+  # These feed the ${...} placeholders in each service's application.yml and
+  # in the config-server native configuration files.
+  DB_HOST: ${MYSQL_HOST}
+  DB_PORT: ${MYSQL_PORT}
+  DB_USERNAME: root
+  DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+  KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+  REDIS_HOST: ${REDIS_HOST}
+  REDIS_PORT: ${REDIS_PORT}
+  EUREKA_URL: http://service-registry:8761/eureka/
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+  CONFIG_SERVER_HOST: config-server
+  CONFIG_SERVER_PORT: "8888"
+  SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+  JAVA_OPTS: "-Xms64m -Xmx192m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
+
+x-minio-env: &minio-env
+  SPRING_CLOUD_AWS_ENDPOINT: http://minio:9000
+  SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+  SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY: ${MINIO_SECRET_KEY}
+  SPRING_CLOUD_AWS_REGION_STATIC: us-east-1
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-app-healthcheck: &app-hc
+  interval: 15s
+  timeout: 5s
+  retries: 15
+  start_period: 120s
 
 services:
 
@@ -19,23 +77,18 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./config/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
-      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+      - ./infra/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./infra/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
-    mem_limit: 2g
+    mem_limit: 512m
     restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    networks: [acadevia-network]
+    logging: *logging
 
   redis:
     image: redis:7-alpine
@@ -44,7 +97,7 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-      - ./config/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./infra/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -54,13 +107,8 @@ services:
       start_period: 10s
     mem_limit: 512m
     restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    networks: [acadevia-network]
+    logging: *logging
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -75,20 +123,15 @@ services:
       - zk-log:/var/lib/zookeeper/log
     mem_limit: 512m
     restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    networks: [acadevia-network]
+    logging: *logging
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: acadevia-kafka
     ports:
-      - "9092:9092"
-      - "29092:29092"
+      - "9092:9092"        # host clients (Kafka UI on host, local tooling)
+      - "29092:29092"     # internal Docker listener, also reachable from host if needed
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -98,7 +141,9 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JVM_PERFORMANCE_OPTS: "-Xms128m -Xmx256m"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"
     volumes:
       - kafka-data:/var/lib/kafka/data
     depends_on:
@@ -112,13 +157,8 @@ services:
       start_period: 30s
     mem_limit: 1g
     restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    networks: [acadevia-network]
+    logging: *logging
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -133,14 +173,10 @@ services:
       kafka:
         condition: service_healthy
     restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    networks: [acadevia-network]
+    logging: *logging
 
+  # Creates every Acadevia event topic once the broker is healthy.
   kafka-init:
     image: confluentinc/cp-kafka:7.5.0
     container_name: acadevia-kafka-init
@@ -148,20 +184,20 @@ services:
       kafka:
         condition: service_healthy
     volumes:
-      - ./scripts/create-topics.sh:/create-topics.sh:ro
+      - ./infra/kafka/create-topics.sh:/create-topics.sh:ro
     entrypoint: ["/bin/bash", "/create-topics.sh"]
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_BOOTSTRAP: kafka:29092
     restart: "no"
-    networks:
-      - acadevia-network
+    networks: [acadevia-network]
+    logging: *logging
 
   minio:
     image: minio/minio:latest
     container_name: acadevia-minio
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000"   # S3 API (also the in-network endpoint: http://minio:9000)
+      - "9001:9001"   # console
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
@@ -175,13 +211,8 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    networks: [acadevia-network]
+    logging: *logging
 
   minio-init:
     image: minio/mc:latest
@@ -190,622 +221,390 @@ services:
       minio:
         condition: service_healthy
     volumes:
-      - ./scripts/init-buckets.sh:/init-buckets.sh:ro
+      - ./infra/minio/init-buckets.sh:/init-buckets.sh:ro
     entrypoint: ["/bin/sh", "/init-buckets.sh"]
     environment:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_BUCKET_CONTENT: ${MINIO_BUCKET_CONTENT}
-      MINIO_BUCKET_AVATARS: ${MINIO_BUCKET_AVATARS}
-      MINIO_BUCKET_EXPORTS: ${MINIO_BUCKET_EXPORTS}
+      MINIO_HOST: http://minio:9000
     restart: "no"
-    networks:
-      - acadevia-network
+    networks: [acadevia-network]
+    logging: *logging
 
   # ==============================
-  #  APPLICATION SERVICES
+  #  CONTROL PLANE
+  # ==============================
+
+  service-registry:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/service-registry/Dockerfile
+    image: ${REGISTRY}/service-registry:${IMAGE_TAG}
+    container_name: acadevia-service-registry
+    ports:
+      - "8761:8761"   # Eureka dashboard is a genuinely useful dev tool
+    environment:
+      JAVA_OPTS: "-Xms64m -Xmx192m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8761/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  config-server:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/config-server/Dockerfile
+    image: ${REGISTRY}/config-server:${IMAGE_TAG}
+    container_name: acadevia-config-server
+    ports:
+      - "8888:8888"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+      JAVA_OPTS: "-Xms64m -Xmx192m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8888/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  # ==============================
+  #  BUSINESS MICROSERVICES
+  # ==============================
+
+  auth-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/auth-service/Dockerfile
+    image: ${REGISTRY}/auth-service:${IMAGE_TAG}
+    container_name: acadevia-auth-service
+    environment:
+      <<: *spring-env
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  user-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/user-service/Dockerfile
+    image: ${REGISTRY}/user-service:${IMAGE_TAG}
+    container_name: acadevia-user-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  course-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/course-service/Dockerfile
+    image: ${REGISTRY}/course-service:${IMAGE_TAG}
+    container_name: acadevia-course-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8083/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  content-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/content-service/Dockerfile
+    image: ${REGISTRY}/content-service:${IMAGE_TAG}
+    container_name: acadevia-content-service
+    environment:
+      <<: [*spring-env, *minio-env]
+      MINIO_BUCKET_VIDEOS: acadevia-videos
+      MINIO_BUCKET_IMAGES: acadevia-images
+      MINIO_BUCKET_DOCUMENTS: acadevia-documents
+      MINIO_PUBLIC_URL: http://localhost:9000
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 500MB
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 520MB
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      minio:    {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8084/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  quiz-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/quiz-service/Dockerfile
+    image: ${REGISTRY}/quiz-service:${IMAGE_TAG}
+    container_name: acadevia-quiz-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8085/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  game-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/game-service/Dockerfile
+    image: ${REGISTRY}/game-service:${IMAGE_TAG}
+    container_name: acadevia-game-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8086/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  gamification-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/gamification-service/Dockerfile
+    image: ${REGISTRY}/gamification-service:${IMAGE_TAG}
+    container_name: acadevia-gamification-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8087/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  leaderboard-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/leaderboard-service/Dockerfile
+    image: ${REGISTRY}/leaderboard-service:${IMAGE_TAG}
+    container_name: acadevia-leaderboard-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8088/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  notification-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/notification-service/Dockerfile
+    image: ${REGISTRY}/notification-service:${IMAGE_TAG}
+    container_name: acadevia-notification-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8090/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  i18n-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/i18n-service/Dockerfile
+    image: ${REGISTRY}/i18n-service:${IMAGE_TAG}
+    container_name: acadevia-i18n-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8092/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  sync-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/sync-service/Dockerfile
+    image: ${REGISTRY}/sync-service:${IMAGE_TAG}
+    container_name: acadevia-sync-service
+    environment:
+      <<: [*spring-env, *minio-env]
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      minio:    {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8093/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  admin-service:
+    build:
+      context: ../../
+      dockerfile: acadevia-infrastructure/docker/services/admin-service/Dockerfile
+    image: ${REGISTRY}/admin-service:${IMAGE_TAG}
+    container_name: acadevia-admin-service
+    environment:
+      <<: *spring-env
+    depends_on:
+      mysql:    {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      kafka:    {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+      service-registry: {condition: service_healthy}
+      config-server:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8097/actuator/health || exit 1"]
+      <<: *app-hc
+    restart: unless-stopped
+    networks: [acadevia-network]
+    logging: *logging
+
+  # ==============================
+  #  EDGE: GATEWAY + FRONTEND
   # ==============================
 
   api-gateway:
     build:
       context: ../../
       dockerfile: acadevia-infrastructure/docker/services/api-gateway/Dockerfile
+    image: ${REGISTRY}/api-gateway:${IMAGE_TAG}
     container_name: acadevia-api-gateway
     ports:
-      - "8080:8080"
+      - "8080:8080"   # single backend entry point for browser + frontend container
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
+      <<: *spring-env
       JWT_SECRET: ${JWT_SECRET}
-      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY}
-      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY}
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT}
     depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      auth-service:
-        condition: service_healthy
-      user-service:
-        condition: service_healthy
-      course-service:
-        condition: service_healthy
-      content-service:
-        condition: service_healthy
-      quiz-service:
-        condition: service_healthy
-      game-service:
-        condition: service_healthy
-      sync-service:
-        condition: service_healthy
-      gamification-service:
-        condition: service_healthy
-      leaderboard-service:
-        condition: service_healthy
-      notification-service:
-        condition: service_healthy
-      admin-service:
-        condition: service_healthy
-      i18n-service:
-        condition: service_healthy
+      redis:            {condition: service_healthy}
+      service-registry: {condition: service_started}
+      config-server:    {condition: service_started}
+      auth-service:     {condition: service_started}
+      user-service:     {condition: service_started}
+      course-service:   {condition: service_started}
+      content-service:  {condition: service_started}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      <<: *app-hc
     restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  auth-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/auth-service/Dockerfile
-    container_name: acadevia-auth-service
-    ports:
-      - "8081:8081"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${AUTH_DB_NAME}
-      DB_USER: ${AUTH_DB_USER}
-      DB_PASS: ${AUTH_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY}
-      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  user-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/user-service/Dockerfile
-    container_name: acadevia-user-service
-    ports:
-      - "8082:8082"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${USER_DB_NAME}
-      DB_USER: ${USER_DB_USER}
-      DB_PASS: ${USER_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  course-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/course-service/Dockerfile
-    container_name: acadevia-course-service
-    ports:
-      - "8083:8083"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${COURSE_DB_NAME}
-      DB_USER: ${COURSE_DB_USER}
-      DB_PASS: ${COURSE_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  content-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/content-service/Dockerfile
-    container_name: acadevia-content-service
-    ports:
-      - "8084:8084"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${CONTENT_DB_NAME}
-      DB_USER: ${CONTENT_DB_USER}
-      DB_PASS: ${CONTENT_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      MINIO_BUCKET_CONTENT: ${MINIO_BUCKET_CONTENT}
-      CDN_BASE_URL: ${CDN_BASE_URL}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 1g
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  quiz-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/quiz-service/Dockerfile
-    container_name: acadevia-quiz-service
-    ports:
-      - "8085:8085"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${QUIZ_DB_NAME}
-      DB_USER: ${QUIZ_DB_USER}
-      DB_PASS: ${QUIZ_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8085/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  game-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/game-service/Dockerfile
-    container_name: acadevia-game-service
-    ports:
-      - "8086:8086"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${GAME_DB_NAME}
-      DB_USER: ${GAME_DB_USER}
-      DB_PASS: ${GAME_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8086/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  sync-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/sync-service/Dockerfile
-    container_name: acadevia-sync-service
-    ports:
-      - "8087:8087"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${SYNC_DB_NAME}
-      DB_USER: ${SYNC_DB_USER}
-      DB_PASS: ${SYNC_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8087/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  gamification-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/gamification-service/Dockerfile
-    container_name: acadevia-gamification-service
-    ports:
-      - "8088:8088"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${GAMIFICATION_DB_NAME}
-      DB_USER: ${GAMIFICATION_DB_USER}
-      DB_PASS: ${GAMIFICATION_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8088/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  leaderboard-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/leaderboard-service/Dockerfile
-    container_name: acadevia-leaderboard-service
-    ports:
-      - "8089:8089"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${LEADERBOARD_DB_NAME}
-      DB_USER: ${LEADERBOARD_DB_USER}
-      DB_PASS: ${LEADERBOARD_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8089/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  notification-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/notification-service/Dockerfile
-    container_name: acadevia-notification-service
-    ports:
-      - "8090:8090"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${NOTIFICATION_DB_NAME}
-      DB_USER: ${NOTIFICATION_DB_USER}
-      DB_PASS: ${NOTIFICATION_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USERNAME: ${SMTP_USERNAME}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_FROM: ${SMTP_FROM}
-      SMS_PROVIDER: ${SMS_PROVIDER}
-      SMS_API_KEY: ${SMS_API_KEY}
-      FCM_PROJECT_ID: ${FCM_PROJECT_ID}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8090/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  admin-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/admin-service/Dockerfile
-    container_name: acadevia-admin-service
-    ports:
-      - "8092:8092"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${ADMIN_DB_NAME}
-      DB_USER: ${ADMIN_DB_USER}
-      DB_PASS: ${ADMIN_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8092/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  i18n-service:
-    build:
-      context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/i18n-service/Dockerfile
-    container_name: acadevia-i18n-service
-    ports:
-      - "8093:8093"
-    environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${MYSQL_HOST}
-      DB_PORT: ${MYSQL_PORT}
-      DB_NAME: ${I18N_DB_NAME}
-      DB_USER: ${I18N_DB_USER}
-      DB_PASS: ${I18N_DB_PASS}
-      KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8093/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    mem_limit: 512m
-    restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    networks: [acadevia-network]
+    logging: *logging
 
   frontend:
     build:
       context: ../../
-      dockerfile: acadevia-infrastructure/docker/services/frontend/Dockerfile
+      dockerfile: acadevia-infrastructure/docker/services/frontend/Dockerfile.prod
+    image: ${REGISTRY}/frontend:${IMAGE_TAG}
     container_name: acadevia-frontend
     ports:
       - "3000:80"
-    environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
-      VITE_SOCKET_URL: ${VITE_SOCKET_URL}
     depends_on:
       api-gateway:
         condition: service_healthy
-    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
-    networks:
-      - acadevia-network
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    networks: [acadevia-network]
+    logging: *logging
 
-# ==============================
-#  VOLUMES
-# ==============================
 volumes:
   mysql-data:
     driver: local
@@ -820,9 +619,6 @@ volumes:
   minio-data:
     driver: local
 
-# ==============================
-#  NETWORKS
-# ==============================
 networks:
   acadevia-network:
     driver: bridge

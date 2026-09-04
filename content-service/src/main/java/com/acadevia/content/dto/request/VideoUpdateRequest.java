@@ -60,5 +60,9 @@ public class VideoUpdateRequest {
 
     private List<VideoCreateRequest.ChapterMarkerRequest> chapterMarkers;
 
+    private Integer classGrade;
+    private String subject;
+    private String chapter;
+
     private Boolean isActive;
 }
