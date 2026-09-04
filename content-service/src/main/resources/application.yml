@@ -7,9 +7,9 @@ spring:
   config:
     import: optional:configserver:http://${CONFIG_SERVER_HOST:localhost}:${CONFIG_SERVER_PORT:8888}
   datasource:
-    url: jdbc:mysql://localhost:3306/acadevia_content_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: root
+    url: ${DB_URL:jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:acadevia_content}?useSSL=${DB_USE_SSL:false}&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
@@ -29,7 +29,7 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     consumer:
       group-id: content-service-group
       auto-offset-reset: earliest
@@ -42,18 +42,18 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
       timeout: 2000ms
 
   cloud:
     aws:
-      endpoint: ${SPRING_CLOUD_AWS_ENDPOINT:http://minio:9000}
+      endpoint: ${STORAGE_ENDPOINT:${SPRING_CLOUD_AWS_ENDPOINT:http://minio:9000}}
       credentials:
-        access-key: ${SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY:minioadmin}
-        secret-key: ${SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY:minioadmin}
+        access-key: ${STORAGE_ACCESS_KEY:${SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY:minioadmin}}
+        secret-key: ${STORAGE_SECRET_KEY:${SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY:minioadmin}}
       region:
-        static: ${SPRING_CLOUD_AWS_REGION_STATIC:us-east-1}
+        static: ${STORAGE_REGION:${SPRING_CLOUD_AWS_REGION_STATIC:us-east-1}}
 
   servlet:
     multipart:
@@ -64,7 +64,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
   instance:
     prefer-ip-address: true
 
@@ -76,15 +76,17 @@ acadevia:
     download-content-expiry-days: 30
     video-completion-threshold: 90.0
     pop-question-buffer-sec: 5
-    cdn-base-url: https://cdn.acadevia.com
+    cdn-base-url: ${STORAGE_PUBLIC_URL:${CDN_BASE_URL:https://cdn.acadevia.com}}
   minio:
     bucket:
-      videos: ${MINIO_BUCKET_VIDEOS:acadevia-videos}
-      images: ${MINIO_BUCKET_IMAGES:acadevia-images}
-      documents: ${MINIO_BUCKET_DOCUMENTS:acadevia-documents}
+      videos: ${STORAGE_BUCKET_VIDEOS:${MINIO_BUCKET_VIDEOS:acadevia-videos}}
+      images: ${STORAGE_BUCKET_IMAGES:${MINIO_BUCKET_IMAGES:acadevia-images}}
+      documents: ${STORAGE_BUCKET_DOCUMENTS:${MINIO_BUCKET_DOCUMENTS:acadevia-documents}}
+      backups: ${STORAGE_BUCKET_BACKUPS:${MINIO_BUCKET_BACKUPS:acadevia-backups}}
     # Host-accessible URL for presigned URLs returned to the browser
-    public-url: ${MINIO_PUBLIC_URL:http://localhost:9000}
-    presigned-url-expiry-minutes: ${MINIO_PRESIGNED_EXPIRY_MINUTES:15}
+    public-url: ${STORAGE_PUBLIC_URL:${MINIO_PUBLIC_URL:${CDN_BASE_URL:http://localhost:9000}}}
+    presigned-url-expiry-minutes: ${STORAGE_PRESIGNED_EXPIRY_MINUTES:${MINIO_PRESIGNED_EXPIRY_MINUTES:15}}
+    path-style-enabled: ${STORAGE_PATH_STYLE_ENABLED:true}
     max-upload-size-mb: 500
 
 logging:

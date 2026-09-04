@@ -1266,9 +1266,15 @@ function getLeaderboardFromDb(period = 'alltime') {
 // ---------------------------------------------------------------------------
 // 11. Student Learning Progress & Continue Learning System
 // ---------------------------------------------------------------------------
+function escapeSqlString(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'");
+}
+
 function getUserIdByEmail(email) {
   if (!email || typeof email !== 'string') return null;
-  const clean = email.toLowerCase().trim().replace(/'/g, "\\'");
+  const clean = escapeSqlString(email.toLowerCase().trim());
   try {
     const rows = execSql(`SELECT id FROM acadevia_auth_db.users WHERE email = '${clean}' LIMIT 1;`);
     if (rows && rows.length > 0 && rows[0].id) {
@@ -1299,15 +1305,15 @@ function saveLearningProgress(params) {
     throw new Error('contentId is required for saving learning progress');
   }
 
-  const courseId = params.courseId ? `'${String(params.courseId).replace(/'/g, "\\'")}'` : 'NULL';
-  const subject = (params.subject || 'General').replace(/'/g, "\\'");
-  const chapter = (params.chapter || 'General').replace(/'/g, "\\'");
+  const courseId = params.courseId ? `'${escapeSqlString(params.courseId)}'` : 'NULL';
+  const subject = escapeSqlString(params.subject || 'General');
+  const chapter = escapeSqlString(params.chapter || 'General');
   const classGrade = Number(params.classGrade) || 10;
-  const title = (params.title || 'Lesson Video').replace(/'/g, "\\'");
-  const description = (params.description || '').replace(/'/g, "\\'");
-  const contentType = (params.contentType || 'VIDEO').toUpperCase().replace(/'/g, "\\'");
-  const fileUrl = (params.fileUrl || '').replace(/'/g, "\\'");
-  const thumbnailUrl = (params.thumbnailUrl || '').replace(/'/g, "\\'");
+  const title = escapeSqlString(params.title || 'Lesson Video');
+  const description = escapeSqlString(params.description || '');
+  const contentType = escapeSqlString((params.contentType || 'VIDEO').toUpperCase());
+  const fileUrl = escapeSqlString(params.fileUrl || '');
+  const thumbnailUrl = escapeSqlString(params.thumbnailUrl || '');
   const lastPos = Math.max(0, Math.round(Number(params.lastPositionSeconds) || 0));
   const duration = Math.max(0, Math.round(Number(params.durationSeconds) || 0));
 
@@ -1333,7 +1339,7 @@ function saveLearningProgress(params) {
     INSERT INTO acadevia_content_db.student_learning_progress
     (student_id, content_id, course_id, subject, chapter, class_grade, title, description, content_type, file_url, thumbnail_url, last_position_seconds, duration_seconds, progress_percent, completed, last_watched_at)
     VALUES
-    (${studentId}, '${contentId.replace(/'/g, "\\'")}', ${courseId}, '${subject}', '${chapter}', ${classGrade}, '${title}', '${description}', '${contentType}', '${fileUrl}', '${thumbnailUrl}', ${lastPos}, ${duration}, ${progressPct}, ${completed}, '${lastWatchedAt}')
+    (${studentId}, '${escapeSqlString(contentId)}', ${courseId}, '${subject}', '${chapter}', ${classGrade}, '${title}', '${description}', '${contentType}', '${fileUrl}', '${thumbnailUrl}', ${lastPos}, ${duration}, ${progressPct}, ${completed}, '${lastWatchedAt}')
     ON DUPLICATE KEY UPDATE
       last_position_seconds = VALUES(last_position_seconds),
       duration_seconds = VALUES(duration_seconds),
@@ -1460,7 +1466,7 @@ function getLearningProgressByContent(studentId, contentId) {
       completed,
       last_watched_at
     FROM acadevia_content_db.student_learning_progress
-    WHERE student_id = ${numId} AND content_id = '${String(contentId).replace(/'/g, "\\'")}'
+    WHERE student_id = ${numId} AND content_id = '${escapeSqlString(contentId)}'
     LIMIT 1;
   `;
 
