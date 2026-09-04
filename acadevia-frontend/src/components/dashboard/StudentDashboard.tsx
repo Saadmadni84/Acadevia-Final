@@ -173,21 +173,31 @@ function getSubjectTheme(subjectName: string): SubjectTheme {
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const { xp, level, streak } = useGamificationStore();
+  const [dataVersion, setDataVersion] = React.useState(0);
+
+  React.useEffect(() => {
+    dataService.syncFromBackend(true).catch(() => {});
+    const handleUpdate = () => setDataVersion((v) => v + 1);
+    window.addEventListener('acadevia_data_updated', handleUpdate);
+    return () => window.removeEventListener('acadevia_data_updated', handleUpdate);
+  }, []);
+
+  const studentId = user?.id ? String(user.id) : '20';
+  const studentMetrics = useMemo(() => {
+    return dataService.getStudentMetrics(studentId);
+  }, [studentId, dataVersion]);
+
+  const realXP = studentMetrics.totalXP;
+  const realLevel = studentMetrics.level;
+  const realStreak = studentMetrics.streak;
+  const realStudyMinutes = studentMetrics.studyMinutes;
+
   const dailyGoalSetting = useSettingsStore((s) => s.settings.dailyGoalMinutes) || 45;
 
   // Real backend-driven Continue Learning system
   const { data: continueLessons = [], isLoading: isLoadingContinue } = useContinueLearning(4);
 
-  console.log('DASHBOARD CONTINUE DATA', {
-    continueLessons,
-    count: continueLessons.length,
-    isLoadingContinue,
-    userId: user?.id,
-    userEmail: user?.email,
-  });
-
-  const xpInfo = getXPForNextLevel(xp);
+  const xpInfo = getXPForNextLevel(realXP);
   const studentName = user?.fullName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Student');
   const studentClass =
     user?.className ||
@@ -208,7 +218,7 @@ export const StudentDashboard: React.FC = () => {
   }, []);
 
   // Today's Learning Activity Target (Minutes)
-  const todayMinutes = 20;
+  const todayMinutes = realStudyMinutes;
   const dailyGoalPct = Math.min(100, Math.round((todayMinutes / dailyGoalSetting) * 100));
   const minutesRemaining = Math.max(0, dailyGoalSetting - todayMinutes);
 
@@ -392,12 +402,19 @@ export const StudentDashboard: React.FC = () => {
     },
   ];
 
-  // G. Recent Activity (Connected Timeline)
-  const activityTimeline = [
-    { id: '1', title: 'Completed Quadratic Equations (Part 1)', xp: '+50 XP', time: '2 hours ago', icon: '✓', dotColor: 'bg-success', badgeColor: 'text-success' },
-    { id: '2', title: 'Passed Light & Reflection Concept Quiz', xp: '+80 XP', time: 'Yesterday', icon: '🏆', dotColor: 'bg-warning', badgeColor: 'text-warning' },
-    { id: '3', title: 'Earned Math Explorer Badge', xp: '+100 XP', time: '2 days ago', icon: '⭐', dotColor: 'bg-primary', badgeColor: 'text-primary' },
-  ];
+  // G. Recent Activity (Connected Timeline from Real User Activity)
+  const activityTimeline = useMemo(() => {
+    const raw = dataService.getRecentActivities(studentId, 'STUDENT');
+    return raw.map((act) => ({
+      id: act.id,
+      title: act.title,
+      xp: act.badgeText || '+50 XP',
+      time: act.timestamp || 'Recently',
+      icon: act.type === 'QUIZ_COMPLETED' ? '🏆' : '✓',
+      dotColor: act.type === 'QUIZ_COMPLETED' ? 'bg-warning' : 'bg-success',
+      badgeColor: act.type === 'QUIZ_COMPLETED' ? 'text-warning' : 'text-success',
+    }));
+  }, [studentId, dataVersion]);
 
   const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -452,17 +469,17 @@ export const StudentDashboard: React.FC = () => {
             <div className="flex items-center gap-2.5">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/25 border border-orange-400/40 text-orange-200 text-xs font-extrabold shadow-xs">
                 <Flame className="h-4 w-4 fill-orange-400 text-orange-400" />
-                <span>{streak || 5} Day Streak</span>
+                <span>{realStreak} Day Streak</span>
               </div>
 
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/25 border border-amber-400/40 text-amber-200 text-xs font-extrabold shadow-xs">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span>Level {level}</span>
+                <span>Level {realLevel}</span>
               </div>
 
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-400/25 border border-purple-300/40 text-purple-100 text-xs font-extrabold shadow-xs">
                 <Zap className="h-4 w-4 fill-purple-300 text-purple-300" />
-                <span>{xp} XP</span>
+                <span>{realXP} XP</span>
               </div>
             </div>
 
@@ -825,30 +842,44 @@ export const StudentDashboard: React.FC = () => {
             </div>
 
             <div className="rounded-3xl border border-[#E8E2D8] dark:border-[#382447] bg-white dark:bg-card-dark p-6 shadow-xs space-y-4">
-              {activityTimeline.map((act, idx) => (
-                <div key={act.id} className="flex items-start gap-4 relative">
-                  {/* Vertical Line */}
-                  {idx !== activityTimeline.length - 1 && (
-                    <div className="absolute left-4 top-8 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-800 -mb-4" />
-                  )}
+              {activityTimeline.length > 0 ? (
+                activityTimeline.map((act, idx) => (
+                  <div key={act.id} className="flex items-start gap-4 relative">
+                    {/* Vertical Line */}
+                    {idx !== activityTimeline.length - 1 && (
+                      <div className="absolute left-4 top-8 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-800 -mb-4" />
+                    )}
 
-                  <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm z-10', act.dotColor)}>
-                    {act.icon}
-                  </div>
-
-                  <div className="flex-1 min-w-0 pb-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white truncate">
-                        {act.title}
-                      </h4>
-                      <span className={cn('text-xs font-bold shrink-0', act.badgeColor)}>
-                        {act.xp}
-                      </span>
+                    <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm z-10', act.dotColor)}>
+                      {act.icon}
                     </div>
-                    <span className="text-[11px] text-gray-400 font-medium">{act.time}</span>
+
+                    <div className="flex-1 min-w-0 pb-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white truncate">
+                          {act.title}
+                        </h4>
+                        <span className={cn('text-xs font-bold shrink-0', act.badgeColor)}>
+                          {act.xp}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-gray-400 font-medium">{act.time}</span>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="py-6 text-center space-y-2">
+                  <p className="text-xs text-gray-500 font-medium">No quiz activity recorded yet.</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(ROUTES.QUIZZES)}
+                    className="text-xs cursor-pointer"
+                  >
+                    Take a Quiz to Earn XP
+                  </Button>
                 </div>
-              ))}
+              )}
             </div>
           </section>
         </div>
@@ -910,10 +941,10 @@ export const StudentDashboard: React.FC = () => {
               </div>
               <div>
                 <span className="text-lg font-extrabold text-gray-900 dark:text-white block">
-                  {streak || 5} Day Streak 🔥
+                  {realStreak} Day Streak 🔥
                 </span>
                 <span className="text-xs text-orange-900/80 dark:text-orange-200/80 font-medium">
-                  You're on a roll! Keep learning daily.
+                  {realStreak > 0 ? "You're on a roll! Keep learning daily." : "Start your learning streak today!"}
                 </span>
               </div>
             </div>
@@ -926,12 +957,12 @@ export const StudentDashboard: React.FC = () => {
                   <div
                     className={cn(
                       'w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shadow-2xs',
-                      i < (streak || 5)
+                      i < realStreak
                         ? 'bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-orange-500/30'
                         : 'bg-gray-200 dark:bg-gray-800 text-gray-400'
                     )}
                   >
-                    {i < (streak || 5) ? <Check className="h-4 w-4" /> : '•'}
+                    {i < realStreak ? <Check className="h-4 w-4" /> : '•'}
                   </div>
                 </div>
               ))}

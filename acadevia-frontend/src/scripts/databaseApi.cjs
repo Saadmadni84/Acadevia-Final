@@ -635,7 +635,7 @@ function getQuizzesFromDb() {
       q.created_by as teacherId,
       CONCAT(u.first_name, ' ', u.last_name) as teacherName,
       q.created_at as createdAt,
-      q.chapter_info as chapterInfo
+      COALESCE(q.topic, q.chapter_info, '') as chapterInfo
     FROM acadevia_quiz_db.quizzes q
     LEFT JOIN acadevia_auth_db.users u ON q.created_by = u.id
     WHERE q.is_active = 1
@@ -669,10 +669,20 @@ function getQuizzesFromDb() {
     if (!questionMap[qId]) questionMap[qId] = [];
     const options = [q.optA, q.optB, q.optC, q.optD].filter(Boolean);
     let correctIndex = 0;
-    const ans = (q.correctAnswer || 'A').toUpperCase().trim();
-    if (ans === 'B' || ans === '1') correctIndex = 1;
-    else if (ans === 'C' || ans === '2') correctIndex = 2;
-    else if (ans === 'D' || ans === '3') correctIndex = 3;
+    const ans = String(q.correctAnswer || '').trim();
+    const upperAns = ans.toUpperCase();
+    const foundIdx = options.findIndex((opt) => String(opt).trim().toLowerCase() === ans.toLowerCase());
+    if (foundIdx !== -1) {
+      correctIndex = foundIdx;
+    } else if (upperAns === 'B' || upperAns === '1') {
+      correctIndex = 1;
+    } else if (upperAns === 'C' || upperAns === '2') {
+      correctIndex = 2;
+    } else if (upperAns === 'D' || upperAns === '3') {
+      correctIndex = 3;
+    } else {
+      correctIndex = 0;
+    }
 
     questionMap[qId].push({
       id: `q-${q.id}`,
@@ -771,7 +781,18 @@ function getQuizAttemptsFromDb() {
 function submitAttemptToDb(params) {
   const numericQuizId = resolveNumericQuizId(params.quizId);
   const studentId = Number(params.studentId);
-  const answers = Array.isArray(params.answers) ? params.answers : [];
+  if (!studentId || isNaN(studentId)) {
+    throw new Error('Valid studentId is required to submit an attempt');
+  }
+
+  const rawAnswers = params.answers;
+  let answers = [];
+  if (Array.isArray(rawAnswers)) {
+    answers = rawAnswers;
+  } else if (rawAnswers && typeof rawAnswers === 'object') {
+    answers = rawAnswers;
+  }
+
   const timeTakenSeconds = Number(params.timeTakenSeconds) || 180;
   const completedAt = params.completedAt || new Date().toISOString().slice(0, 19).replace('T', ' ');
 
@@ -786,7 +807,11 @@ function submitAttemptToDb(params) {
 
   if (quiz && quiz.questions && quiz.questions.length > 0) {
     quiz.questions.forEach((q, idx) => {
-      if (answers[idx] !== undefined && answers[idx] === q.correctIndex) {
+      let studentAns = Array.isArray(answers) ? answers[idx] : undefined;
+      if (studentAns === undefined && typeof answers === 'object') {
+        studentAns = answers[q.id] !== undefined ? answers[q.id] : answers[String(idx)];
+      }
+      if (studentAns !== undefined && Number(studentAns) === Number(q.correctIndex)) {
         score += q.points;
         correctCount++;
       } else {
@@ -800,17 +825,18 @@ function submitAttemptToDb(params) {
     wrongCount = 1;
   }
 
-  const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 80;
+  const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
   const baseReward = Number(quiz?.xpReward) || 50;
   const xpEarned = Math.max(score * 10, baseReward);
   const isPassed = percentage >= 60 ? 1 : 0;
   const answersJson = JSON.stringify(answers).replace(/'/g, "\\'");
+  const totalQuestions = quiz?.questions?.length || (Array.isArray(answers) ? answers.length : Object.keys(answers).length) || 5;
 
   const insertSql = `
     INSERT INTO acadevia_quiz_db.quiz_attempts
     (quiz_id, user_id, status, attempt_number, score, total_marks, percentage, is_passed, total_questions, correct_answers, wrong_answers, time_taken_seconds, xp_earned, answers_json, completed_at)
     VALUES
-    (${numericQuizId}, ${studentId}, 'SUBMITTED', 1, ${score}, ${totalMarks}, ${percentage}, ${isPassed}, ${answers.length || 5}, ${correctCount}, ${wrongCount}, ${timeTakenSeconds}, ${xpEarned}, '${answersJson}', '${completedAt}');
+    (${numericQuizId}, ${studentId}, 'SUBMITTED', 1, ${score}, ${totalMarks}, ${percentage}, ${isPassed}, ${totalQuestions}, ${correctCount}, ${wrongCount}, ${timeTakenSeconds}, ${xpEarned}, '${answersJson}', '${completedAt}');
   `;
   execSqlMutation(insertSql);
 
@@ -840,6 +866,10 @@ function submitAttemptToDb(params) {
     score,
     totalPoints: totalMarks,
     percentage,
+    totalQuestions,
+    correctAnswers: correctCount,
+    wrongAnswers: wrongCount,
+    isPassed,
     answers,
     completedAt,
     xpEarned,
