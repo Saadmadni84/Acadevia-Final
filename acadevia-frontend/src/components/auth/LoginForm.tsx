@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, ArrowRight, GraduationCap, Briefcase, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Logo } from '@/components/common/Logo';
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  GraduationCap,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  Info,
+} from 'lucide-react';
 import { ROUTES, getDashboardRoute } from '@/config/routes.config';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { authService } from '@/services/auth.service';
@@ -32,16 +38,45 @@ const DEMO_TEACHERS = [
   { username: 'pooja.cs', password: 'Pooja@CS10', name: 'Pooja Patel', sub: 'Computer Science' },
 ];
 
+const GoogleGlyph: React.FC = () => (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+    <path
+      fill="#4285F4"
+      d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"
+    />
+  </svg>
+);
+
+const fieldLabelClass =
+  'mb-1.5 block font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500';
+const fieldInputClass =
+  'w-full rounded-none border border-neutral-300 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-neutral-900 focus:outline-none focus:ring-0';
+
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [showMoreDemo, setShowMoreDemo] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const executeLogin = async (credentials: { email: string; password: string }) => {
     setError('');
+    setInfo('');
     setLoading(true);
     try {
       let userRecord: any;
@@ -159,168 +194,248 @@ const LoginForm: React.FC = () => {
     executeLogin(form);
   };
 
+  const handleGoogleClick = () => {
+    setInfo('Google sign-in is not enabled yet. Use one of the Class 10 quick-access accounts above.');
+  };
+
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md mx-auto">
-      <div className="text-center mb-8">
-        <Logo />
-        <h2 className="mt-6 text-2xl font-bold">Welcome back!</h2>
-        <p className="mt-2 text-sm text-gray-500">Sign in to continue your learning journey</p>
+    <div className="mx-auto w-full max-w-md">
+      {/* Wordmark */}
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center bg-neutral-900 text-white">
+          <GraduationCap className="h-5 w-5" />
+        </span>
+        <div className="leading-none">
+          <span className="block text-[15px] font-bold tracking-[0.28em] text-neutral-900">
+            ACADEVIA
+          </span>
+          <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.22em] text-neutral-500">
+            Student portal
+          </span>
+        </div>
       </div>
 
-      {/* Demo Accounts Quick Login Box */}
-      <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-primary/10 via-[#5B2C6F]/5 to-secondary/10 border border-primary/20 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary dark:text-[#D4A843]">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Class 10 Demo Logins</span>
-          </div>
+      <h2 className="mt-8 font-serif text-3xl tracking-tight text-neutral-900">Welcome back.</h2>
+      <p className="mt-2 text-sm text-neutral-500">
+        Sign in to pick up your learning streak where you left off.
+      </p>
+
+      {/* Demo accounts — quick access */}
+      <section className="mt-8 border border-neutral-300 bg-white">
+        <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-700">
+            Class 10 · Quick access
+          </p>
           <button
             type="button"
             onClick={() => setShowMoreDemo((p) => !p)}
-            className="flex items-center gap-1 text-[11px] font-medium text-primary hover:underline cursor-pointer"
+            className="flex cursor-pointer items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-neutral-500 transition-colors hover:text-neutral-900"
           >
-            <span>{showMoreDemo ? 'Less' : 'All Accounts (16)'}</span>
+            {showMoreDemo ? 'Collapse' : 'All 16 accounts'}
             {showMoreDemo ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           </button>
         </div>
 
-        {/* Primary 1-Click Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2">
           <button
             type="button"
             onClick={() => executeLogin({ email: 'aarav.sharma10', password: 'Aarav@10' })}
             disabled={loading}
-            className="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 hover:border-primary/50 text-left transition hover:shadow-xs disabled:opacity-50 group cursor-pointer"
+            className="group flex cursor-pointer items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3.5 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 sm:border-b-0 sm:border-r"
           >
-            <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center shrink-0">
-              <GraduationCap className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-gray-900 dark:text-white truncate group-hover:text-primary">
-                Demo Student
-              </p>
-              <p className="text-[10px] text-gray-500 truncate">Aarav (Class 10)</p>
-            </div>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-neutral-900">
+                Aarav Sharma{' '}
+                <span className="ml-1 font-mono text-[10px] font-normal uppercase tracking-wider text-neutral-400">
+                  Sec A
+                </span>
+              </span>
+              <span className="mt-0.5 block truncate font-mono text-[11px] text-neutral-500">
+                aarav.sharma10 / Aarav@10
+              </span>
+            </span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-neutral-300 transition group-hover:translate-x-0.5 group-hover:text-neutral-900" />
           </button>
 
           <button
             type="button"
             onClick={() => executeLogin({ email: 'rahul.math', password: 'Rahul@Math10' })}
             disabled={loading}
-            className="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 hover:border-primary/50 text-left transition hover:shadow-xs disabled:opacity-50 group cursor-pointer"
+            className="group flex cursor-pointer items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50"
           >
-            <div className="h-8 w-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center shrink-0">
-              <Briefcase className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-gray-900 dark:text-white truncate group-hover:text-primary">
-                Demo Teacher
-              </p>
-              <p className="text-[10px] text-gray-500 truncate">Rahul Verma (Math)</p>
-            </div>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-neutral-900">
+                Rahul Verma{' '}
+                <span className="ml-1 font-mono text-[10px] font-normal uppercase tracking-wider text-neutral-400">
+                  Teacher
+                </span>
+              </span>
+              <span className="mt-0.5 block truncate font-mono text-[11px] text-neutral-500">
+                rahul.math / Rahul@Math10
+              </span>
+            </span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-neutral-300 transition group-hover:translate-x-0.5 group-hover:text-neutral-900" />
           </button>
         </div>
 
-        {/* Expandable List of All 16 Demo Accounts */}
-        <AnimatePresence>
-          {showMoreDemo && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-3 pt-2 border-t border-primary/10 overflow-hidden"
-            >
-              <div>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                  Class 10 Subject Teachers:
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {DEMO_TEACHERS.map((t) => (
-                    <button
-                      key={t.username}
-                      type="button"
-                      onClick={() => executeLogin({ email: t.username, password: t.password })}
-                      disabled={loading}
-                      className="p-1.5 text-left rounded-lg bg-white/80 dark:bg-card-dark/80 border border-gray-200 dark:border-gray-700 hover:border-primary text-[11px] truncate cursor-pointer transition"
-                    >
-                      <span className="font-semibold block truncate text-gray-800 dark:text-gray-200">{t.name}</span>
-                      <span className="text-[10px] text-primary">{t.sub}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+        {showMoreDemo && (
+          <div className="border-t border-neutral-200 p-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+              Subject teachers
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {DEMO_TEACHERS.map((t) => (
+                <button
+                  key={t.username}
+                  type="button"
+                  onClick={() => executeLogin({ email: t.username, password: t.password })}
+                  disabled={loading}
+                  className="cursor-pointer border border-neutral-200 px-2.5 py-2 text-left transition-colors hover:border-neutral-900 hover:bg-neutral-50 disabled:opacity-50"
+                >
+                  <span className="block truncate text-xs font-semibold text-neutral-900">{t.name}</span>
+                  <span className="block truncate font-mono text-[10px] text-neutral-500">{t.sub}</span>
+                </button>
+              ))}
+            </div>
 
-              <div>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                  Class 10 Students (10 Accounts):
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {DEMO_STUDENTS.map((s) => (
-                    <button
-                      key={s.username}
-                      type="button"
-                      onClick={() => executeLogin({ email: s.username, password: s.password })}
-                      disabled={loading}
-                      className="p-1.5 text-left rounded-lg bg-white/80 dark:bg-card-dark/80 border border-gray-200 dark:border-gray-700 hover:border-primary text-[11px] truncate cursor-pointer transition"
-                    >
-                      <span className="font-semibold block truncate text-gray-800 dark:text-gray-200">{s.name}</span>
-                      <span className="text-[10px] text-gray-500">{s.sec} • {s.username}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+              Students — Class 10
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              {DEMO_STUDENTS.map((s) => (
+                <button
+                  key={s.username}
+                  type="button"
+                  onClick={() => executeLogin({ email: s.username, password: s.password })}
+                  disabled={loading}
+                  className="cursor-pointer border border-neutral-200 px-2.5 py-2 text-left transition-colors hover:border-neutral-900 hover:bg-neutral-50 disabled:opacity-50"
+                >
+                  <span className="block truncate text-xs font-semibold text-neutral-900">{s.name}</span>
+                  <span className="block truncate font-mono text-[10px] text-neutral-500">
+                    {s.sec} · {s.username}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <div className="my-8 flex items-center gap-4">
+        <span aria-hidden="true" className="h-px flex-1 bg-neutral-200" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-400">
+          or sign in manually
+        </span>
+        <span aria-hidden="true" className="h-px flex-1 bg-neutral-200" />
       </div>
 
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200 dark:border-gray-700" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white dark:bg-background-dark px-2 text-gray-400">
-            Or sign in with username or email
-          </span>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <div className="p-3 rounded-lg bg-accent/10 text-accent text-sm">{error}</div>}
-        <Input
-          label="Username or Email"
-          type="text"
-          placeholder="e.g. aarav.sharma10 or rahul.math"
-          leftIcon={<Mail className="h-4 w-4" />}
-          value={form.email}
-          onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-          required
-        />
-        <Input
-          label="Password"
-          type="password"
-          placeholder="••••••••"
-          leftIcon={<Lock className="h-4 w-4" />}
-          value={form.password}
-          onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-          required
-        />
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" className="rounded border-gray-300" />
-            <span className="text-gray-600 dark:text-gray-400">Remember me</span>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label htmlFor="login-username" className={fieldLabelClass}>
+            Username or email
           </label>
-          <Link to={ROUTES.FORGOT_PASSWORD} className="text-primary hover:underline">Forgot password?</Link>
+          <div className="relative">
+            <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              id="login-username"
+              type="text"
+              placeholder="aarav.sharma10 or rahul.math"
+              className={`${fieldInputClass} pl-10`}
+              value={form.email}
+              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+              required
+            />
+          </div>
         </div>
-        <Button type="submit" variant="gradient" className="w-full" isLoading={loading} rightIcon={<ArrowRight className="h-4 w-4" />}>
-          Sign In
-        </Button>
+
+        <div>
+          <label htmlFor="login-password" className={fieldLabelClass}>
+            Password
+          </label>
+          <div className="relative">
+            <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              id="login-password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              className={`${fieldInputClass} pl-10 pr-10`}
+              value={form.password}
+              onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((p) => !p)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-neutral-400 transition-colors hover:text-neutral-700"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-1 text-sm">
+          <label className="flex cursor-pointer select-none items-center gap-2 text-neutral-600">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 cursor-pointer rounded-none border-neutral-400 accent-neutral-900"
+            />
+            Remember me
+          </label>
+          <Link
+            to={ROUTES.FORGOT_PASSWORD}
+            className="text-neutral-600 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 hover:decoration-neutral-900"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
+        {error && (
+          <p role="alert" className="text-sm text-red-600">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 bg-neutral-900 px-4 py-3.5 text-sm font-semibold uppercase tracking-[0.2em] text-white transition-colors hover:bg-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? 'Signing in…' : (
+            <>
+              Sign in
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleGoogleClick}
+          className="flex w-full cursor-pointer items-center justify-center gap-2.5 border border-neutral-300 bg-white px-4 py-3.5 text-sm font-medium text-neutral-700 transition-colors hover:border-neutral-900 hover:bg-neutral-50"
+        >
+          <GoogleGlyph />
+          Continue with Google
+        </button>
+
+        {info && (
+          <p className="flex items-start gap-2 border border-neutral-300 bg-neutral-50 p-3 text-xs leading-relaxed text-neutral-700">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-500" />
+            {info}
+          </p>
+        )}
       </form>
-      <p className="mt-6 text-center text-sm text-gray-500">
-        Don't have an account?{' '}
-        <Link to={ROUTES.REGISTER} className="text-primary font-medium hover:underline">Sign Up</Link>
+
+      <p className="mt-8 text-center text-sm text-neutral-500">
+        New to Acadevia?{' '}
+        <Link
+          to={ROUTES.REGISTER}
+          className="font-semibold text-neutral-900 underline decoration-neutral-300 underline-offset-4 transition-colors hover:decoration-neutral-900"
+        >
+          Create an account
+        </Link>
       </p>
-    </motion.div>
+    </div>
   );
 };
 
