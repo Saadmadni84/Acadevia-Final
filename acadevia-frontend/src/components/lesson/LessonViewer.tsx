@@ -13,12 +13,15 @@ interface LessonContent {
   videoUrl?: string;
   textContent?: string;
   popupQuestions?: any[];
+  initialTime?: number;
 }
 
 interface LessonViewerProps {
   lesson: LessonContent;
   courseTitle: string;
   progress: number;
+  initialTime?: number;
+  onProgressUpdate?: (currentTime: number, duration: number, progressPct: number) => void;
   onBack: () => void;
   onNext?: () => void;
   onPrev?: () => void;
@@ -28,11 +31,26 @@ interface LessonViewerProps {
 }
 
 const LessonViewer: React.FC<LessonViewerProps> = ({
-  lesson, courseTitle, progress, onBack, onNext, onPrev, onComplete, hasNext, hasPrev,
+  lesson,
+  courseTitle,
+  progress,
+  initialTime = 0,
+  onProgressUpdate,
+  onBack,
+  onNext,
+  onPrev,
+  onComplete,
+  hasNext,
+  hasPrev,
 }) => {
   const [completed, setCompleted] = useState(false);
 
-  const handleComplete = () => { setCompleted(true); onComplete(); };
+  const handleComplete = () => {
+    setCompleted(true);
+    onComplete();
+  };
+
+  const startPosition = initialTime || lesson.initialTime || 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
@@ -47,7 +65,14 @@ const LessonViewer: React.FC<LessonViewerProps> = ({
         <h1 className="text-xl font-bold mb-4">{lesson.title}</h1>
 
         {lesson.type === 'video' && lesson.videoUrl && (
-          <VideoPlayer src={lesson.videoUrl} title={lesson.title} popupQuestions={lesson.popupQuestions} onComplete={handleComplete} />
+          <VideoPlayer
+            src={lesson.videoUrl}
+            title={lesson.title}
+            popupQuestions={lesson.popupQuestions}
+            initialTime={startPosition}
+            onProgressUpdate={onProgressUpdate}
+            onComplete={handleComplete}
+          />
         )}
 
         {lesson.type === 'text' && lesson.textContent && (

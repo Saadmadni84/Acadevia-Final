@@ -55,16 +55,16 @@ public class MinioStorageServiceImpl implements StorageService {
     private final VideoRepository videoRepository;
     private final VideoCommentRepository videoCommentRepository;
 
-    @Value("${acadevia.minio.bucket.videos:acadevia-videos}")
+    @Value("${storage.bucket.videos:${acadevia.minio.bucket.videos:acadevia-videos}}")
     private String videoBucket;
 
-    @Value("${acadevia.minio.public-url:http://localhost:9000}")
+    @Value("${storage.public-url:${acadevia.minio.public-url:http://localhost:9000}}")
     private String publicUrl;
 
-    @Value("${spring.cloud.aws.endpoint:http://minio:9000}")
+    @Value("${storage.endpoint:${spring.cloud.aws.endpoint:http://minio:9000}}")
     private String internalEndpoint;
 
-    @Value("${acadevia.minio.presigned-url-expiry-minutes:15}")
+    @Value("${storage.presigned-expiry-minutes:${acadevia.minio.presigned-url-expiry-minutes:15}}")
     private int presignedExpiryMinutes;
 
     public MinioStorageServiceImpl(

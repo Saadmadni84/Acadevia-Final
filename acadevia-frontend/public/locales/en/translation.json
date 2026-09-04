@@ -128,5 +128,23 @@
     "complete": "Complete",
     "offline": "You are offline",
     "backOnline": "Back online!"
+  },
+  "teacher": {
+    "classAnalytics": {
+      "title": "Class Analytics",
+      "subtitle": "Monitor student performance, engagement, and curriculum mastery"
+    },
+    "analytics": {
+      "title": "Class Analytics",
+      "subtitle": "Monitor student performance, engagement, and curriculum mastery",
+      "avgScore": "Average Score by Quiz",
+      "completion": "Completion Rate",
+      "engagement": "Quiz Submission Activity",
+      "topPerformers": "Top Performers",
+      "atRisk": "Students Needing Attention",
+      "noAtRisk": "No students needing attention",
+      "lastActive": "Last active",
+      "subjectWise": "Subject-wise Performance"
+    }
   }
 }

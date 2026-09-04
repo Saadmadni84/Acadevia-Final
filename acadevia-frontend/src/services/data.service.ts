@@ -1916,13 +1916,13 @@ export const dataService = {
 
 // Initial sync in browser runtime & efficient auto-revalidation polling (30s)
 if (typeof window !== 'undefined') {
-  dataService.syncFromBackend(true).catch(() => {});
+  dataService.syncFromBackend(true).catch(() => { });
 
   window.addEventListener('focus', () => {
-    dataService.syncFromBackend().catch(() => {});
+    dataService.syncFromBackend().catch(() => { });
   });
 
   setInterval(() => {
-    dataService.syncFromBackend().catch(() => {});
+    dataService.syncFromBackend().catch(() => { });
   }, 30000);
 }

@@ -40,9 +40,11 @@ interface AuthState {
     (params: AuthParams): void;
     (
       user: AuthUser,
-      accessTokenOrTokens: string | AuthTokens,
+      accessTokenOrTokens?: string | AuthTokens,
       refreshToken?: string
     ): void;
+    (user: AuthUser, accessToken?: string, refreshToken?: string): void;
+    (firstParam: AuthUser | AuthParams, secondParam?: string | AuthTokens, thirdParam?: string): void;
   };
 
   setUser: (user: AuthUser) => void;
@@ -57,7 +59,7 @@ interface AuthState {
   setTokens: {
     (tokens: AuthTokens | SetTokensParams): void;
     (
-      accessTokenOrTokens: string | AuthTokens,
+      accessTokenOrTokens: string | AuthTokens | SetTokensParams,
       refreshToken?: string
     ): void;
   };
@@ -88,6 +90,7 @@ export const useAuthStore = create<AuthState>()(
           // Object-based call: setAuth({ user, ... })
           const p = firstParam as AuthParams;
           user = p.user;
+
           if (p.tokens) {
             accessToken = p.tokens.accessToken ?? null;
             refreshToken = p.tokens.refreshToken ?? null;
@@ -104,6 +107,7 @@ export const useAuthStore = create<AuthState>()(
         } else {
           // Positional call: setAuth(user, ...)
           user = (firstParam as AuthUser) ?? null;
+
           if (secondParam && typeof secondParam === 'object') {
             accessToken = secondParam.accessToken ?? null;
             refreshToken = secondParam.refreshToken ?? null;
@@ -134,6 +138,7 @@ export const useAuthStore = create<AuthState>()(
         if (firstParam && typeof firstParam === 'object') {
           if ('accessTokenOrTokens' in firstParam) {
             const p = firstParam as SetTokensParams;
+
             if (p.accessTokenOrTokens && typeof p.accessTokenOrTokens === 'object') {
               accessToken = p.accessTokenOrTokens.accessToken ?? null;
               refreshToken = p.accessTokenOrTokens.refreshToken ?? null;
@@ -165,6 +170,7 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           // ignore if called outside react lifecycle
         }
+
         set({
           user: null,
           accessToken: null,
@@ -187,8 +193,10 @@ export const useAuthStore = create<AuthState>()(
         if (!state?.user && typeof localStorage !== 'undefined') {
           try {
             const legacy = localStorage.getItem('acadevia-auth');
+
             if (legacy) {
               const parsed = JSON.parse(legacy);
+
               if (parsed?.state?.user) {
                 useAuthStore.setState({
                   user: parsed.state.user,
@@ -200,7 +208,10 @@ export const useAuthStore = create<AuthState>()(
               }
             }
           } catch (err) {
-            console.warn('[useAuthStore] Failed to rehydrate legacy auth storage:', err);
+            console.warn(
+              '[useAuthStore] Failed to rehydrate legacy auth storage:',
+              err
+            );
           }
         }
       },

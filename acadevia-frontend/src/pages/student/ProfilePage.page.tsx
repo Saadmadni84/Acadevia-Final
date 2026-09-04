@@ -186,8 +186,8 @@ const ProfilePage: React.FC = () => {
     badgeFilter === 'earned'
       ? earnedBadgesList
       : badgeFilter === 'locked'
-      ? lockedBadgesList
-      : combinedBadges;
+        ? lockedBadgesList
+        : combinedBadges;
 
   // Real educational fields from logged in student
   const schoolDisplay =

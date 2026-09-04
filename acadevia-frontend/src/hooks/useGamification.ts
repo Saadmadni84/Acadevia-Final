@@ -29,3 +29,20 @@ export function useGamificationProfile() {
 
   return query;
 }
+
+export function useGamification() {
+  const store = (useGamificationStore as any)();
+  return {
+    ...store,
+    addXP: async (amount: number, reason?: string) => {
+      store.addXP?.(amount);
+      store.queueAnimation?.({ type: 'xp', value: amount, reason });
+    },
+    unlockBadge: async (badgeId: string) => {
+      store.unlockBadge?.(badgeId);
+      store.queueAnimation?.({ type: 'badge', badgeId });
+    },
+    dequeueAnimation: () => store.dequeueAnimation?.(),
+  };
+}
+
