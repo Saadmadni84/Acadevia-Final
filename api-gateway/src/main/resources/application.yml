@@ -67,6 +67,9 @@ spring:
                 redis-rate-limiter.burstCapacity: 100
                 key-resolver: "#{@userKeyResolver}"
             - name: JwtAuthenticationFilter
+            - name: RequestSize
+              args:
+                maxSize: 524288000  # 500MB for video uploads
 
         # Quiz Service
         - id: quiz-service

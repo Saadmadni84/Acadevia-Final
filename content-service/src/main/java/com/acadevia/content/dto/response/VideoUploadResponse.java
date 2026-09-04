@@ -6,15 +6,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VideoSummaryResponse {
-
-    private Long id;
+public class VideoUploadResponse {
+    private Long videoId;
     private Long lessonId;
     private Long courseId;
     private Long moduleId;
@@ -22,23 +20,13 @@ public class VideoSummaryResponse {
     private String subject;
     private String chapter;
     private String title;
-    private String description;
-    private Long createdBy;
-    private Integer totalComments;
+    private String objectKey;
+    private String bucket;
     private String originalFilename;
     private String contentType;
     private Long fileSizeBytes;
     private Double fileSizeMb;
-    private String thumbnailUrl;
     private String playUrl;
     private String downloadUrl;
-    private List<VideoQualityOption> downloadOptions;
-    private Integer durationSeconds;
-    private String languageCode;
-    private Integer totalViews;
-    private Double avgWatchPct;
-    private Integer totalPopQuestions;
-    private Boolean isActive;
-    private Boolean isProcessing;
     private LocalDateTime createdAt;
 }

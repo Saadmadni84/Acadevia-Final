@@ -141,6 +141,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JVM_PERFORMANCE_OPTS: "-Xms128m -Xmx256m"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"
     volumes:
@@ -351,6 +352,12 @@ services:
     container_name: acadevia-content-service
     environment:
       <<: [*spring-env, *minio-env]
+      MINIO_BUCKET_VIDEOS: acadevia-videos
+      MINIO_BUCKET_IMAGES: acadevia-images
+      MINIO_BUCKET_DOCUMENTS: acadevia-documents
+      MINIO_PUBLIC_URL: http://localhost:9000
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 500MB
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 520MB
     depends_on:
       mysql:    {condition: service_healthy}
       redis:    {condition: service_healthy}
@@ -563,21 +570,13 @@ services:
       SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
       SPRING_DATA_REDIS_PORT: ${REDIS_PORT}
     depends_on:
-      redis:    {condition: service_healthy}
-      service-registry: {condition: service_healthy}
-      config-server:    {condition: service_healthy}
-      auth-service:     {condition: service_healthy}
-      user-service:     {condition: service_healthy}
-      course-service:   {condition: service_healthy}
-      content-service:  {condition: service_healthy}
-      quiz-service:     {condition: service_healthy}
-      game-service:     {condition: service_healthy}
-      gamification-service: {condition: service_healthy}
-      leaderboard-service:  {condition: service_healthy}
-      notification-service: {condition: service_healthy}
-      i18n-service:     {condition: service_healthy}
-      sync-service:     {condition: service_healthy}
-      admin-service:    {condition: service_healthy}
+      redis:            {condition: service_healthy}
+      service-registry: {condition: service_started}
+      config-server:    {condition: service_started}
+      auth-service:     {condition: service_started}
+      user-service:     {condition: service_started}
+      course-service:   {condition: service_started}
+      content-service:  {condition: service_started}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
       <<: *app-hc
