@@ -84,7 +84,6 @@ export const CoursesPage: React.FC = () => {
   const [allItems, setAllItems] = useState<UploadedContentItem[]>([]);
   const [fileLoadError, setFileLoadError] = useState<boolean>(false);
 
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const activeItemRef = useRef<UploadedContentItem | null>(null);
 
@@ -208,7 +207,7 @@ export const CoursesPage: React.FC = () => {
     };
   }, [flushProgress]);
 
-// Student comments / questions state
+  // Student comments / questions state
   const [comments, setComments] = useState<any[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState<boolean>(false);
   const [newComment, setNewComment] = useState<string>('');
@@ -716,7 +715,6 @@ export const CoursesPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 relative">
-              {/* Dedicated lesson player from gaurav-singh */}
               {(activeItem.contentType === 'VIDEO' || !activeItem.contentType) && (
                 <button
                   type="button"
@@ -820,7 +818,6 @@ export const CoursesPage: React.FC = () => {
                   </button>
                 );
               })()}
-
               <a
                 href={activeItem.downloadUrl || activeItem.cloudinaryUrl}
                 target="_blank"
@@ -878,34 +875,6 @@ export const CoursesPage: React.FC = () => {
                     onTimeUpdate={(e) => handleVideoProgress(e, false)}
                     onPause={(e) => handleVideoProgress(e, true)}
                     onEnded={(e) => handleVideoProgress(e, true)}
-                    onError={(e) => {
-                      console.warn('Video failed to play source:', e);
-                      if (!activeItem.id) {
-                        setFileLoadError(true);
-                      }
-                    }}
-
-                    controls
-                    autoPlay
-                    className="w-full h-full"
-                    poster={activeItem.thumbnailUrl}
-                    onLoadedMetadata={(e) => {
-                      learningProgressService.getContentProgress(activeItem.id, user?.id ? String(user.id) : undefined)
-                        .then((saved) => {
-                          if (saved && saved.lastPositionSeconds > 0 && saved.lastPositionSeconds < e.currentTarget.duration) {
-                            e.currentTarget.currentTime = saved.lastPositionSeconds;
-                            trackerRef.current.lastSavedPos = saved.lastPositionSeconds;
-                            trackerRef.current.currentTime = saved.lastPositionSeconds;
-                          }
-                        })
-                        .catch(() => {});
-                    }}
-                    onPlay={(e) => handleVideoProgress(e, false)}
-                    onSeeked={(e) => handleVideoProgress(e, true)}
-                    onTimeUpdate={(e) => handleVideoProgress(e, false)}
-                    onPause={(e) => handleVideoProgress(e, true)}
-                    onEnded={(e) => handleVideoProgress(e, true)}
-                    onError={() => setFileLoadError(true)}
                     onError={(e) => {
                       console.warn('Video failed to play source:', e);
                       // Only set error if no valid id fallback is present

@@ -43,6 +43,8 @@ interface AuthState {
       accessTokenOrTokens?: string | AuthTokens,
       refreshToken?: string
     ): void;
+    (user: AuthUser, accessToken?: string, refreshToken?: string): void;
+    (firstParam: AuthUser | AuthParams, secondParam?: string | AuthTokens, thirdParam?: string): void;
   };
 
   setUser: (user: AuthUser) => void;
@@ -57,7 +59,7 @@ interface AuthState {
   setTokens: {
     (tokens: AuthTokens | SetTokensParams): void;
     (
-      accessTokenOrTokens: string | AuthTokens,
+      accessTokenOrTokens: string | AuthTokens | SetTokensParams,
       refreshToken?: string
     ): void;
   };
