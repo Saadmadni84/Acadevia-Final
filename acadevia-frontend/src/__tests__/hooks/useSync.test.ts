@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useSync } from '@/hooks/useSync';
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+};
 
 const mockGetPendingActions = vi.fn();
 const mockClearSyncedActions = vi.fn();
@@ -39,7 +49,7 @@ describe('useSync', () => {
     mockGetPendingActions.mockResolvedValue(pendingActions);
     mockSyncActions.mockResolvedValue({ synced: 2, failed: 0 });
 
-    const { result } = renderHook(() => useSync());
+    const { result } = renderHook(() => useSync(), { wrapper: createWrapper() });
 
     await act(async () => {
       await result.current.triggerSync();
@@ -55,7 +65,7 @@ describe('useSync', () => {
       () => new Promise((resolve) => setTimeout(() => resolve({ synced: 1, failed: 0 }), 100))
     );
 
-    const { result } = renderHook(() => useSync());
+    const { result } = renderHook(() => useSync(), { wrapper: createWrapper() });
 
     expect(result.current.syncStatus).toBe('idle');
 
@@ -77,7 +87,7 @@ describe('useSync', () => {
   it('handles offline state', async () => {
     Object.defineProperty(navigator, 'onLine', { writable: true, value: false });
 
-    const { result } = renderHook(() => useSync());
+    const { result } = renderHook(() => useSync(), { wrapper: createWrapper() });
 
     await act(async () => {
       await result.current.triggerSync();
