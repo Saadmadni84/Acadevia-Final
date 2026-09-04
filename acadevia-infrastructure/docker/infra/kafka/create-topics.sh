@@ -31,7 +31,7 @@ create_topic() {
     local retention="${3:-$RETENTION_MS}"
 
     echo "Creating topic: ${topic} (partitions=${partitions}, replication=${REPLICATION}, retention=${retention}ms)"
-    kafka-topics.sh --create \
+    kafka-topics --create \
         --bootstrap-server "$KAFKA_BOOTSTRAP" \
         --topic "$topic" \
         --partitions "$partitions" \
@@ -165,4 +165,4 @@ echo ""
 echo "============================================"
 echo "All Kafka topics created successfully!"
 echo "============================================"
-kafka-topics.sh --list --bootstrap-server "$KAFKA_BOOTSTRAP" | wc -l | xargs echo "Total topics:"
+echo "Total topics: $(kafka-topics --list --bootstrap-server "$KAFKA_BOOTSTRAP" | wc -l)"

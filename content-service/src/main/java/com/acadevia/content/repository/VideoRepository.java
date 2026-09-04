@@ -21,6 +21,12 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
 
     List<Video> findByModuleIdAndIsActiveTrue(Long moduleId);
 
+    Page<Video> findByModuleIdAndIsActiveTrue(Long moduleId, Pageable pageable);
+
+    List<Video> findByClassGradeAndSubjectIgnoreCaseAndChapterIgnoreCaseAndIsActiveTrue(Integer classGrade, String subject, String chapter);
+
+    Page<Video> findByClassGradeAndSubjectIgnoreCaseAndChapterIgnoreCaseAndIsActiveTrue(Integer classGrade, String subject, String chapter, Pageable pageable);
+
     Page<Video> findByIsActiveTrue(Pageable pageable);
 
     Page<Video> findByCreatedByAndIsActiveTrue(Long createdBy, Pageable pageable);
@@ -90,4 +96,8 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
 
     @Query("SELECT v FROM Video v WHERE v.languageCode = :languageCode AND v.isActive = true")
     Page<Video> findByLanguageCode(@Param("languageCode") String languageCode, Pageable pageable);
+
+    List<Video> findByCreatedByAndIsActiveTrueOrderByCreatedAtDesc(Long createdBy);
+
+    List<Video> findByIsActiveTrueOrderByCreatedAtDesc();
 }

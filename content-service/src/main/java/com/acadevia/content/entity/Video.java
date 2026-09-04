@@ -37,14 +37,23 @@ public class Video {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "lesson_id", nullable = false)
+    @Column(name = "lesson_id")
     private Long lessonId;
 
     @Column(name = "course_id", nullable = false)
     private Long courseId;
 
-    @Column(name = "module_id", nullable = false)
+    @Column(name = "module_id")
     private Long moduleId;
+
+    @Column(name = "class_grade")
+    private Integer classGrade;
+
+    @Column(name = "subject", length = 100)
+    private String subject;
+
+    @Column(name = "chapter", length = 255)
+    private String chapter;
 
     @Column(nullable = false)
     private String title;
@@ -169,6 +178,10 @@ public class Video {
     @Builder.Default
     private Integer totalBookmarks = 0;
 
+    @Column(name = "total_comments")
+    @Builder.Default
+    private Integer totalComments = 0;
+
     @Column(name = "total_notes")
     @Builder.Default
     private Integer totalNotes = 0;
@@ -201,6 +214,23 @@ public class Video {
 
     @Column(name = "processing_status", length = 50)
     private String processingStatus;
+
+    // ---- MinIO object storage metadata ----
+
+    @Column(name = "object_key", length = 500)
+    private String objectKey;
+
+    @Column(name = "bucket", length = 100)
+    private String bucket;
+
+    @Column(name = "original_filename", length = 500)
+    private String originalFilename;
+
+    @Column(name = "content_type", length = 100)
+    private String contentType;
+
+    @Column(name = "file_size_bytes")
+    private Long fileSizeBytes;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

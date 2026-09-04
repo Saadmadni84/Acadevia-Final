@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ============================================================
 # Acadevia Platform - MySQL Backup Script
-# Backs up all service databases with compression
+# Backs up all service databases with compression,
+# then uploads to MinIO acadevia-backups bucket.
 # ============================================================
 set -euo pipefail
 
@@ -12,6 +13,14 @@ DB_USER="${DB_USER:-root}"
 DB_PASS="${DB_PASS:-}"
 BACKUP_DIR="${BACKUP_DIR:-/backups/mysql}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
+
+# MinIO upload config
+MINIO_CONTAINER="${MINIO_CONTAINER:-acadevia-minio}"
+MINIO_ALIAS="${MINIO_ALIAS:-local}"
+MINIO_ENDPOINT="${MINIO_ENDPOINT:-http://localhost:9000}"
+MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-minioadmin}"
+MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-minioadmin}"
+MINIO_BUCKET="${MINIO_BUCKET:-acadevia-backups}"
 
 # All Acadevia databases
 DATABASES=(
@@ -76,18 +85,55 @@ for DB in "${DATABASES[@]}"; do
     fi
 done
 
-# ---- Cleanup old backups ----
+# ---- Upload to MinIO (acadevia-backups) ----
 log "------------------------------------------"
-log "Cleaning backups older than ${RETENTION_DAYS} days ..."
+log "Uploading backups to MinIO (${MINIO_BUCKET}) ..."
+
+UPLOAD_OK=0
+
+# Check if minio container is reachable via docker
+if docker inspect "$MINIO_CONTAINER" >/dev/null 2>&1; then
+    # Configure mc alias inside the minio container
+    docker exec "$MINIO_CONTAINER" mc alias set "$MINIO_ALIAS" \
+        "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY" \
+        --api S3v4 >/dev/null 2>&1
+
+    for DUMP_FILE in "${BACKUP_PATH}"/*.sql.gz; do
+        [ -f "$DUMP_FILE" ] || continue
+        FILENAME=$(basename "$DUMP_FILE")
+        log "  Uploading: ${FILENAME}"
+        # Copy from host into the running minio container and upload via mc pipe
+        if cat "$DUMP_FILE" | docker exec -i "$MINIO_CONTAINER" \
+            mc pipe "${MINIO_ALIAS}/${MINIO_BUCKET}/db-backups/${TIMESTAMP}/${FILENAME}"; then
+            log "  ✓ Uploaded ${FILENAME}"
+            ((UPLOAD_OK++))
+        else
+            log "  ✗ FAILED to upload ${FILENAME}"
+        fi
+    done
+
+    # Clean old remote backups
+    log "  Cleaning remote backups older than ${RETENTION_DAYS} days ..."
+    docker exec "$MINIO_CONTAINER" mc rm --recursive --force \
+        --older-than "${RETENTION_DAYS}d" \
+        "${MINIO_ALIAS}/${MINIO_BUCKET}/db-backups/" 2>/dev/null || true
+else
+    log "  ⚠ MinIO container '${MINIO_CONTAINER}' not found — skipping upload"
+    log "    Backups remain at: ${BACKUP_PATH}"
+fi
+
+# ---- Cleanup old local backups ----
+log "------------------------------------------"
+log "Cleaning local backups older than ${RETENTION_DAYS} days ..."
 DELETED=$(find "$BACKUP_DIR" -maxdepth 1 -type d -mtime +${RETENTION_DAYS} -not -path "$BACKUP_DIR" -print -exec rm -rf {} \; | wc -l | tr -d ' ')
-log "Removed ${DELETED} old backup(s)."
+log "Removed ${DELETED} old local backup(s)."
 
 # ---- Summary ----
 log "=========================================="
 log "Backup Complete"
-log "  Succeeded: ${SUCCESS_COUNT}"
-log "  Failed:    ${FAIL_COUNT}"
-log "  Location:  ${BACKUP_PATH}"
+log "  DB Dumps:    Succeeded=${SUCCESS_COUNT}  Failed=${FAIL_COUNT}"
+log "  MinIO:       Uploaded=${UPLOAD_OK}"
+log "  Local Path:  ${BACKUP_PATH}"
 log "=========================================="
 
 if [ "$FAIL_COUNT" -gt 0 ]; then
