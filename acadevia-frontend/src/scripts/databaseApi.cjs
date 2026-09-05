@@ -36,19 +36,11 @@ function execSql(query) {
   try {
     let output;
     try {
-<<<<<<< HEAD
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot -B';
-      output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
-    } catch {
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password -B';
-      output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
-=======
       const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password -B';
       output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
     } catch {
       const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot -B';
       output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
->>>>>>> origin/main
     }
     const lines = output.trim().split('\n');
     if (lines.length < 2) return [];
@@ -73,19 +65,11 @@ function execSql(query) {
 function execSqlMutation(query) {
   try {
     try {
-<<<<<<< HEAD
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
-      execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8' });
-    } catch {
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password';
-      execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
-=======
       const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password';
       execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
     } catch {
       const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
       execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
->>>>>>> origin/main
     }
     return true;
   } catch (err) {
