@@ -18,5 +18,10 @@ tmp/
 *.mp4
 *.webm
 *.mov
-
-ncert-mcp/
+ncert-mcp/data/
+ncert-mcp/.venv/
+ncert-mcp/.venv*/
+ncert-mcp/venv/
+ncert-mcp/__pycache__/
+**/__pycache__/
+*.py[cod]

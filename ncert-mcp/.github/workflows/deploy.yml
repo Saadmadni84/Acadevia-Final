@@ -1,0 +1,52 @@
+name: Deploy to VM
+
+on:
+  push:
+    branches: [production]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy source to VM (excludes data/)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.GCE_HOST }}
+          username: rajanyadav
+          key: ${{ secrets.GCE_SSH_PRIVATE_KEY }}
+          source: "src/,requirements.txt,examples/"
+          target: /home/deploy/ncert-mcp
+          strip_components: 0
+
+      - name: Install deps, write .env, restart service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCE_HOST }}
+          username: rajanyadav
+          key: ${{ secrets.GCE_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            APP=/home/deploy/ncert-mcp
+
+            # Python venv (create once, reuse on subsequent deploys)
+            if [ ! -d "$APP/.venv" ]; then
+              python3 -m venv $APP/.venv
+            fi
+            $APP/.venv/bin/pip install --quiet --upgrade pip
+            $APP/.venv/bin/pip install --quiet -r $APP/requirements.txt
+
+            # Write .env (data/ is already on the VM from a prior scp/pipeline run)
+            cat > $APP/.env <<'ENVEOF'
+            GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+            ENVEOF
+
+            # Restart the service
+            sudo systemctl restart ncert-mcp
+            sudo systemctl status ncert-mcp --no-pager
