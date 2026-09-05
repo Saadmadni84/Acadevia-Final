@@ -1,17 +1,21 @@
 const { execSync } = require('child_process');
-const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-
-// Cloudflare R2 S3 Client
-const r2Client = new S3Client({
-  region: 'auto',
-  endpoint: process.env.STORAGE_ENDPOINT || 'https://c82b5cf783a510eb20c956cc368a0f7f.r2.cloudflarestorage.com',
-  credentials: {
-    accessKeyId: process.env.STORAGE_ACCESS_KEY || 'dc9bbee3c9bba2b9e94b6aec99625f63',
-    secretAccessKey: process.env.STORAGE_SECRET_KEY || '2444f51c4d817af529368d1e40854a234839822712a07d3a0cdb4fd6079f324c',
-  },
-  forcePathStyle: true,
-});
+let S3Client, GetObjectCommand, getSignedUrl, r2Client;
+try {
+  ({ S3Client, GetObjectCommand } = require('@aws-sdk/client-s3'));
+  ({ getSignedUrl } = require('@aws-sdk/s3-request-presigner'));
+  r2Client = new S3Client({
+    region: 'auto',
+    endpoint: process.env.STORAGE_ENDPOINT || 'https://c82b5cf783a510eb20c956cc368a0f7f.r2.cloudflarestorage.com',
+    credentials: {
+      accessKeyId: process.env.STORAGE_ACCESS_KEY || 'dc9bbee3c9bba2b9e94b6aec99625f63',
+      secretAccessKey: process.env.STORAGE_SECRET_KEY || '2444f51c4d817af529368d1e40854a234839822712a07d3a0cdb4fd6079f324c',
+    },
+    forcePathStyle: true,
+  });
+} catch {
+  // Graceful fallback if AWS SDK is not installed
+  r2Client = null;
+}
 
 let presignedUrlCache = {};
 
@@ -20,6 +24,9 @@ async function getR2PresignedUrl(key = 'videos/10/1/1bf07910-3851-452f-b361-ee0b
   const cached = presignedUrlCache[cacheKey];
   if (cached && cached.expiresAt > Date.now() + 60000) {
     return cached.url;
+  }
+  if (!r2Client || !GetObjectCommand || !getSignedUrl) {
+    return `https://c82b5cf783a510eb20c956cc368a0f7f.r2.cloudflarestorage.com/${bucket}/${key}`;
   }
   try {
     const command = new GetObjectCommand({ Bucket: bucket, Key: key });
@@ -36,19 +43,11 @@ function execSql(query) {
   try {
     let output;
     try {
-<<<<<<< HEAD
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot -B';
-      output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
-    } catch {
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password -B';
-      output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
-=======
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password -B';
-      output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
-    } catch {
       const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot -B';
       output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
->>>>>>> origin/main
+    } catch {
+      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password -B';
+      output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
     }
     const lines = output.trim().split('\n');
     if (lines.length < 2) return [];
@@ -73,19 +72,11 @@ function execSql(query) {
 function execSqlMutation(query) {
   try {
     try {
-<<<<<<< HEAD
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
-      execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8' });
-    } catch {
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password';
-      execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8' });
-=======
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password';
-      execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
-    } catch {
       const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
       execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
->>>>>>> origin/main
+    } catch {
+      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password';
+      execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
     }
     return true;
   } catch (err) {
@@ -98,6 +89,7 @@ function execSqlMutation(query) {
 // Ensure database tables exist across MySQL container restarts
 function ensureSchema() {
   const initSql = `
+    CREATE DATABASE IF NOT EXISTS acadevia_content;
     CREATE TABLE IF NOT EXISTS acadevia_content.content_items (
       id INT AUTO_INCREMENT PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
