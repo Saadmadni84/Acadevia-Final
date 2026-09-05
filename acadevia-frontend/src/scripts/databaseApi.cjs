@@ -15,14 +15,18 @@ const r2Client = new S3Client({
 
 let presignedUrlCache = {};
 
-async function getR2PresignedUrl(key = 'videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', bucket = 'acadevia-videos') {
-  const cacheKey = `${bucket}:${key}`;
+async function getR2PresignedUrl(key = 'videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', bucket = 'acadevia-videos', downloadFilename = null) {
+  const cacheKey = `${bucket}:${key}:${downloadFilename || 'stream'}`;
   const cached = presignedUrlCache[cacheKey];
   if (cached && cached.expiresAt > Date.now() + 60000) {
     return cached.url;
   }
   try {
-    const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+    const params = { Bucket: bucket, Key: key };
+    if (downloadFilename) {
+      params.ResponseContentDisposition = `attachment; filename="${downloadFilename}"`;
+    }
+    const command = new GetObjectCommand(params);
     const url = await getSignedUrl(r2Client, command, { expiresIn: 86400 });
     presignedUrlCache[cacheKey] = { url, expiresAt: Date.now() + 86400 * 1000 };
     return url;
