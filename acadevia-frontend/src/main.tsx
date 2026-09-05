@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import 'katex/dist/katex.min.css';
 import './config/i18n.config';
 
 import { executeClass10Simulation } from './services/class10Simulation.service';

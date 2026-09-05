@@ -19,8 +19,10 @@ import {
   AlertCircle,
   Zap,
   BookOpen,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { AiNcertQuizGenerator } from '@/components/quiz/AiNcertQuizGenerator';
 
 const QuizPage: React.FC = () => {
   const navigate = useNavigate();
@@ -62,24 +64,73 @@ const QuizPage: React.FC = () => {
   const [activeQuiz, setActiveQuiz] = useState<QuizRecord | null>(null);
   const [submissionResult, setSubmissionResult] = useState<QuizResultRecord | null>(null);
   const [notFound, setNotFound] = useState<boolean>(false);
+  const [isLoadingQuiz, setIsLoadingQuiz] = useState<boolean>(false);
 
   useEffect(() => {
+    let isCancelled = false;
+
     if (effectiveQuizId) {
+      // 1. If activeQuiz is already loaded and matches the requested ID, preserve it
+      if (
+        activeQuiz &&
+        (String(activeQuiz.id).toLowerCase() === String(effectiveQuizId).toLowerCase() ||
+          ((activeQuiz as any).numericId && String((activeQuiz as any).numericId) === String(effectiveQuizId)))
+      ) {
+        setNotFound(false);
+        setIsLoadingQuiz(false);
+        return;
+      }
+
+      // 2. Search local memory / state
       const found =
         dataService.getQuizById(effectiveQuizId) ||
         quizzes.find((q) => String(q.id).toLowerCase() === String(effectiveQuizId).toLowerCase()) ||
         quizzes.find((q) => (q as any).numericId && String((q as any).numericId) === String(effectiveQuizId));
+
       if (found) {
         setActiveQuiz(found);
         setNotFound(false);
-      } else if (quizzes.length > 0) {
-        setActiveQuiz(null);
-        setNotFound(true);
+        setIsLoadingQuiz(false);
+      } else {
+        // 3. Not in memory yet - asynchronously fetch from backend API
+        setIsLoadingQuiz(true);
+        dataService
+          .fetchQuizById(effectiveQuizId)
+          .then((remoteQuiz) => {
+            if (isCancelled) return;
+            if (remoteQuiz) {
+              setActiveQuiz(remoteQuiz);
+              setNotFound(false);
+              setQuizzes((prev) => {
+                const exists = prev.some((q) => String(q.id) === String(remoteQuiz.id));
+                return exists ? prev : [remoteQuiz, ...prev];
+              });
+            } else {
+              setActiveQuiz(null);
+              setNotFound(true);
+            }
+          })
+          .catch(() => {
+            if (!isCancelled) {
+              setActiveQuiz(null);
+              setNotFound(true);
+            }
+          })
+          .finally(() => {
+            if (!isCancelled) {
+              setIsLoadingQuiz(false);
+            }
+          });
       }
     } else {
       setActiveQuiz(null);
       setNotFound(false);
+      setIsLoadingQuiz(false);
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [effectiveQuizId, quizzes]);
 
   // Subject filter for quiz listing
@@ -101,6 +152,7 @@ const QuizPage: React.FC = () => {
   }, [quizzes, selectedSubject]);
 
   const handleStartQuiz = (quiz: QuizRecord) => {
+    dataService.addQuiz(quiz);
     setSubmissionResult(null);
     setNotFound(false);
     setActiveQuiz(quiz);
@@ -113,6 +165,19 @@ const QuizPage: React.FC = () => {
     setNotFound(false);
     setSearchParams({});
     loadData();
+  };
+
+  const handleQuizGenerated = (newQuiz: QuizRecord) => {
+    dataService.addQuiz(newQuiz);
+    setQuizzes((prev) => {
+      const exists = prev.some((q) => String(q.id) === String(newQuiz.id));
+      return exists ? prev : [newQuiz, ...prev];
+    });
+    setSubmissionResult(null);
+    setNotFound(false);
+    setActiveQuiz(newQuiz);
+    setSearchParams({ id: newQuiz.id });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleQuizComplete = (playerResult: {
@@ -252,6 +317,15 @@ const QuizPage: React.FC = () => {
             onComplete={handleQuizComplete}
           />
         </div>
+      ) : isLoadingQuiz ? (
+        /* Quiz Loading View */
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-card-dark p-12 text-center max-w-lg mx-auto space-y-4 shadow-sm my-8">
+          <Loader2 className="h-10 w-10 text-primary animate-spin mx-auto" />
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Loading Assessment</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Retrieving quiz questions from the curriculum database...
+          </p>
+        </div>
       ) : notFound ? (
         /* Quiz Not Found View */
         <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-card-dark p-8 text-center max-w-lg mx-auto space-y-4 shadow-sm my-8">
@@ -302,6 +376,12 @@ const QuizPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* AI NCERT Quiz Generator */}
+          <AiNcertQuizGenerator
+            onQuizGenerated={handleQuizGenerated}
+            defaultClassGrade={studentClass}
+          />
 
           {/* Subject Filter Tabs */}
           {subjects.length > 2 && (
