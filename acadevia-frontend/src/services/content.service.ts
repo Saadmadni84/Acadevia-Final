@@ -519,52 +519,62 @@ class ContentService {
   }
 
   /**
-   * Securely download a video file from the backend using the student's JWT token.
+   * Securely download a video file from the backend/R2 storage with browser native download handling.
    */
   async downloadVideoFile(downloadUrl: string, fileName?: string): Promise<void> {
-    const { accessToken } = useAuthStore.getState();
+    const finalName = fileName || 'Acadevia_Lesson.mp4';
     let targetUrl = downloadUrl;
 
+    // Resolve relative URL to origin
+    if (targetUrl.startsWith('/')) {
+      targetUrl = `${window.location.origin}${targetUrl}`;
+    }
+
     try {
-      const res = await fetch(targetUrl, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      });
-
-      if (!res.ok) {
-        throw new Error(`Download failed with status ${res.status}`);
-      }
-
-      let finalName = fileName || 'video.mp4';
-      const disposition = res.headers.get('Content-Disposition');
-      if (disposition && disposition.includes('filename=')) {
-        const match = disposition.match(/filename="?([^"]+)"?/);
-        if (match && match[1]) {
-          finalName = match[1];
+      // 1. Try to fetch presigned URL if this is a video ID endpoint
+      const videoIdMatch = targetUrl.match(/\/api\/v1\/content\/videos\/([^/?#]+)/);
+      if (videoIdMatch && videoIdMatch[1]) {
+        try {
+          const presignedRes = await fetch(
+            `${window.location.origin}/api/v1/content/videos/${videoIdMatch[1]}/presigned-url?download=true`
+          );
+          if (presignedRes.ok) {
+            const data = await presignedRes.json();
+            if (data?.data?.presignedUrl) {
+              targetUrl = data.data.presignedUrl;
+            }
+          }
+        } catch {
+          // fallback to targetUrl
         }
       }
 
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = finalName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+      // 2. Trigger browser native download via anchor link
+      const link = document.createElement('a');
+      link.href = targetUrl;
+      link.setAttribute('download', finalName);
+      link.setAttribute('rel', 'noopener noreferrer');
+      link.style.position = 'fixed';
+      link.style.left = '-9999px';
+      link.style.opacity = '0';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (link.parentNode) link.parentNode.removeChild(link);
+      }, 2000);
+
+      // 3. Also trigger via invisible iframe for Safari download resilience
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = targetUrl;
+      document.body.appendChild(iframe);
+      setTimeout(() => {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 30000);
     } catch (err) {
-      console.warn('[contentService] Direct blob download failed, falling back to authenticated navigation:', err);
-      if (accessToken) {
-        const separator = targetUrl.includes('?') ? '&' : '?';
-        targetUrl = `${targetUrl}${separator}token=${encodeURIComponent(accessToken)}`;
-      }
-      const a = document.createElement('a');
-      a.href = targetUrl;
-      a.download = fileName || 'video.mp4';
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      console.warn('[contentService] Download trigger error:', err);
+      // Fallback window open
+      window.open(targetUrl, '_blank');
     }
   }
 
