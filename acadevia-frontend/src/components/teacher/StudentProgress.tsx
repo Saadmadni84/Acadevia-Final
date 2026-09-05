@@ -74,7 +74,7 @@ const StudentProgress: React.FC = () => {
     const rawStudents = dataService.getTeacherStudents(teacherId);
 
     // If no students assigned yet, ensure demo student Aarav is included
-    const studentList = rawStudents.length > 0 ? rawStudents : [dataService.getUserById('9')!].filter(Boolean);
+    const studentList = rawStudents.length > 0 ? rawStudents : [dataService.getUserById('20')!].filter(Boolean);
 
     return studentList.map((st) => {
       const metrics = dataService.getStudentMetrics(st.id);
@@ -339,7 +339,7 @@ const StudentProgress: React.FC = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="w-full max-w-lg bg-white dark:bg-card-dark shadow-2xl p-6 overflow-y-auto space-y-6"
+              className="w-full max-w-xl sm:max-w-2xl bg-white dark:bg-card-dark shadow-2xl p-6 sm:p-8 overflow-y-auto space-y-6"
             >
               {/* Header */}
               <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">

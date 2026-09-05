@@ -210,4 +210,74 @@ describe('Teacher Class Analytics (100% Data-Driven & Persistent)', () => {
     expect(class9Analytics.quizScores.length).toBe(0);
     expect(class9Analytics.topPerformers.length).toBe(0);
   });
+
+  it('correctly filters submissions by dateRange (7D, 30D, 90D, all) and generates dynamic student roster', () => {
+    // 1. Create a quiz
+    const quiz = dataService.createQuiz({
+      teacherId: '10',
+      teacherName: 'Rahul Verma',
+      classGrade: 10,
+      subject: 'Mathematics',
+      title: 'Polynomials Final',
+      timeLimit: 300,
+      difficulty: 'hard',
+      questions: [
+        { id: 'q1', question: 'Q1', options: ['A', 'B'], correctIndex: 0, points: 10 },
+      ],
+    });
+
+    const now = Date.now();
+    const twoDaysAgo = new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const twentyDaysAgo = new Date(now - 20 * 24 * 60 * 60 * 1000).toISOString();
+    const fiftyDaysAgo = new Date(now - 50 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Student 20 submitted 2 days ago (100%)
+    dataService.submitQuizResult({
+      quizId: quiz.id,
+      studentId: '20',
+      answers: [0],
+      completedAt: twoDaysAgo,
+    });
+
+    // Student 21 submitted 20 days ago (100%)
+    dataService.submitQuizResult({
+      quizId: quiz.id,
+      studentId: '21',
+      answers: [0],
+      completedAt: twentyDaysAgo,
+    });
+
+    // Student 22 submitted 50 days ago (0%)
+    dataService.submitQuizResult({
+      quizId: quiz.id,
+      studentId: '22',
+      answers: [1],
+      completedAt: fiftyDaysAgo,
+    });
+
+    // 7D: only student 20 (1 submission)
+    const res7D = dataService.getClassAnalytics({ teacherId: '10', classGrade: 10, dateRange: '7' });
+    expect(res7D.totalSubmissions).toBe(1);
+    expect(res7D.activeStudents).toBe(1);
+    expect(res7D.classAverage).toBe(100);
+
+    // 30D: students 20 and 21 (2 submissions)
+    const res30D = dataService.getClassAnalytics({ teacherId: '10', classGrade: 10, dateRange: '30' });
+    expect(res30D.totalSubmissions).toBe(2);
+    expect(res30D.activeStudents).toBe(2);
+    expect(res30D.classAverage).toBe(100);
+
+    // 90D: students 20, 21, and 22 (3 submissions: 100, 100, 0 -> 67%)
+    const res90D = dataService.getClassAnalytics({ teacherId: '10', classGrade: 10, dateRange: '90' });
+    expect(res90D.totalSubmissions).toBe(3);
+    expect(res90D.activeStudents).toBe(3);
+    expect(res90D.classAverage).toBe(67);
+    expect(res90D.studentRoster).toBeDefined();
+    expect(res90D.studentRoster?.length).toBe(10); // 10 enrolled students in Class 10
+
+    // Check student 22 in 90D roster has NEEDS_ATTENTION status
+    const student22Roster = res90D.studentRoster?.find((s) => s.id === '22');
+    expect(student22Roster?.status).toBe('NEEDS_ATTENTION');
+    expect(student22Roster?.avgScore).toBe(0);
+  });
 });

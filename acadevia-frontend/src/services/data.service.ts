@@ -129,12 +129,25 @@ export interface ClassAnalyticsData {
   subject: string;
   availableSubjects: string[];
   totalStudents: number;
+  activeStudents?: number;
+  totalSubmissions?: number;
+  classAverage?: number;
+  completionRate?: number;
+  dateRange?: string;
   quizScores: {
     id: string;
     name: string;
     fullName: string;
     avg: number;
     attempts: number;
+  }[];
+  detailedQuizzes?: {
+    id: string;
+    title: string;
+    subject: string;
+    classGrade: number;
+    attempts: number;
+    avgScore: number;
   }[];
   completionData: {
     name: string;
@@ -146,6 +159,21 @@ export interface ClassAnalyticsData {
     day: string;
     date: string;
     engagement: number;
+    submissions?: number;
+    score?: number;
+  }[];
+  studentRoster?: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+    className?: string;
+    section?: string;
+    avgScore: number;
+    quizzesCompleted: number;
+    totalXP: number;
+    streak: number;
+    status: 'EXCELLING' | 'ON_TRACK' | 'NEEDS_ATTENTION' | 'NOT_STARTED';
+    needsAttentionReason?: string;
   }[];
   topPerformers: {
     id: string;
@@ -164,6 +192,15 @@ export interface ClassAnalyticsData {
     subject: string;
     score: number;
     submissions: number;
+  }[];
+  actionableInsights?: {
+    id: string;
+    type: 'CRITICAL' | 'WARNING' | 'POSITIVE' | 'NEUTRAL';
+    title: string;
+    description: string;
+    metric?: string;
+    actionLabel?: string;
+    actionType?: string;
   }[];
 }
 
@@ -216,33 +253,11 @@ const INITIAL_USERS: AppUser[] = [
     experience: '10+ Years Teaching Experience',
     location: 'New Delhi, India',
     joinDate: 'August 2022',
-    assignedStudentIds: ['9', '20', '21', '22', '23'],
+    assignedStudentIds: ['20', '21', '22', '23'],
     totalXP: 0,
     currentLevel: 1,
     currentStreak: 0,
     lessonsCompleted: 0,
-  },
-  {
-    id: '9',
-    email: 'aarav.sharma@demo.acadevia.com',
-    studentSchoolId: 'aarav.sharma',
-    fullName: 'Aarav Sharma',
-    role: 'STUDENT',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    schoolName: 'Acadevia Demo School',
-    classGrade: 10,
-    section: 'A',
-    teacherId: '8',
-    enrolledSubjects: ['Mathematics', 'Science', 'English', 'Hindi', 'Social Science', 'Computer Science'],
-    location: 'New Delhi, India',
-    joinDate: 'January 2024',
-    totalXP: 0,
-    currentLevel: 1,
-    currentStreak: 0,
-    longestStreak: 0,
-    lessonsCompleted: 0,
-    coursesCompleted: 0,
-    studyMinutes: 0,
   },
 
   // 6 Class 10 Subject Teachers
@@ -827,6 +842,82 @@ const INITIAL_QUIZZES: QuizRecord[] = [
       { id: 'csq5', question: 'A trail of data you leave behind while browsing online is called:', options: ['Digital Footprint', 'Cyber Space', 'Cookie Jar', 'Cache Trace'], correctIndex: 0, explanation: 'Digital footprint refers to the traceable trail of digital activities left behind by a user.', points: 10 },
     ],
   },
+  {
+    id: 'quiz-c10-eng-2',
+    teacherId: '12',
+    teacherName: 'Amit Sharma',
+    classGrade: 10,
+    subject: 'English',
+    title: 'Footprints Without Feet & Writing Skills',
+    description: 'Literary analysis of supplementary reader and formal letter writing skills.',
+    timeLimit: 300,
+    difficulty: 'medium',
+    createdAt: '2024-08-26T10:00:00Z',
+    questions: [
+      { id: 'q109_1', question: 'Who is the narrator of "A Triumph of Surgery"?', options: ['Mrs. Pumphrey', 'Mr. James Herriot', 'Tricki', 'Joe'], correctIndex: 1, explanation: 'Mr. James Herriot, a veterinary surgeon, is the author and narrator.', points: 10 },
+      { id: 'q109_2', question: 'Why was Tricki hospitalized for a fortnight?', options: ['Leg injury', 'Overfeeding and acute lethargy', 'Rabies vaccine', 'Dental surgery'], correctIndex: 1, explanation: 'Tricki was bloated like a sausage due to overfeeding by Mrs. Pumphrey.', points: 10 },
+      { id: 'q109_3', question: 'Which modal auxiliary expresses moral obligation or duty?', options: ['May', 'Ought to', 'Could', 'Might'], correctIndex: 1, explanation: '"Ought to" conveys moral duty or societal obligation.', points: 10 },
+      { id: 'q109_4', question: 'In a formal letter to an editor, what is the standard salutation?', options: ['Hey Editor', 'Dear Sir/Madam', 'My Friend', 'Greetings all'], correctIndex: 1, explanation: '"Dear Sir/Madam" or "Sir/Madam" is the formal convention.', points: 10 },
+      { id: 'q109_5', question: 'Identify the synonym of "dilapidated":', options: ['Brand new', 'Run-down', 'Gigantic', 'Modern'], correctIndex: 1, explanation: 'Dilapidated means falling apart or run-down.', points: 10 },
+    ],
+  },
+  {
+    id: 'quiz-c10-hin-2',
+    teacherId: '13',
+    teacherName: 'Sunita Mishra',
+    classGrade: 10,
+    subject: 'Hindi',
+    title: 'संचयन एवं व्यावहारिक व्याकरण: वाक्य रूपांतरण',
+    description: 'संचयन पूरक पाठ्यपुस्तक एवं रचना की दृष्टि से वाक्य भेद अभ्यास।',
+    timeLimit: 300,
+    difficulty: 'medium',
+    createdAt: '2024-08-27T10:00:00Z',
+    questions: [
+      { id: 'q110_1', question: '‘हरिहर काका’ कहानी के लेखक कौन हैं?', options: ['मिथिलेश्वर', 'प्रेमचंद', 'महादेवी वर्मा', 'हरिवंश राय बच्चन'], correctIndex: 0, explanation: 'हरिहर काका कथाकार मिथिलेश्वर की प्रसिद्ध कहानी है।', points: 10 },
+      { id: 'q110_2', question: '‘सूरज निकला और पक्षी चहचहाने लगे’ यह किस प्रकार का वाक्य है?', options: ['सरल वाक्य', 'संयुक्त वाक्य', 'मिश्र वाक्य', 'प्रश्नवाचक वाक्य'], correctIndex: 1, explanation: 'दो उपवाक्य ‘और’ योजक से जुड़े हैं, अतः यह संयुक्त वाक्य है।', points: 10 },
+      { id: 'q110_3', question: '‘नौ दो ग्यारह होना’ मुहावरे का सही अर्थ क्या है?', options: ['गिनती सीखना', 'भाग जाना', 'मदद मांगना', 'वापस आना'], correctIndex: 1, explanation: 'नौ दो ग्यारह होना का अर्थ है तुरंत भाग जाना।', points: 10 },
+      { id: 'q110_4', question: '‘अनुराग’ शब्द का सही विलोम शब्द क्या है?', options: ['विराग', 'राग', 'द्वेष', 'घृणा'], correctIndex: 0, explanation: 'अनुराग का विलोम विराग होता है।', points: 10 },
+      { id: 'q110_5', question: '‘पीपर पात सरिस मन डोला’ में कौन-सा अलंकार है?', options: ['रूपक', 'उपमा', 'उत्प्रेक्षा', 'अनुप्रास'], correctIndex: 1, explanation: '‘सरिस’ वाचक शब्द के प्रयोग से उपमा अलंकार सिद्ध होता है।', points: 10 },
+    ],
+  },
+  {
+    id: 'quiz-c10-soc-2',
+    teacherId: '14',
+    teacherName: 'Vikram Singh',
+    classGrade: 10,
+    subject: 'Social Science',
+    title: 'Resources, Development & Democratic Politics',
+    description: 'Assessment on resource planning, federal power sharing, and political institutions.',
+    timeLimit: 300,
+    difficulty: 'medium',
+    createdAt: '2024-08-28T10:00:00Z',
+    questions: [
+      { id: 'q111_1', question: 'Which soil is widely spread across the northern plains of India?', options: ['Black soil', 'Alluvial soil', 'Red soil', 'Arid soil'], correctIndex: 1, explanation: 'Alluvial soil deposited by Himalayan rivers covers northern plains.', points: 10 },
+      { id: 'q111_2', question: 'In which country did power-sharing resolve conflict between Dutch and French communities?', options: ['Sri Lanka', 'Belgium', 'Yugoslavia', 'Lebanon'], correctIndex: 1, explanation: 'Belgium amended its constitution to provide equal representation.', points: 10 },
+      { id: 'q111_3', question: 'Where was the first International Earth Summit held in 1992?', options: ['New York', 'Rio de Janeiro', 'Geneva', 'Kyoto'], correctIndex: 1, explanation: 'The 1992 Earth Summit was held in Rio de Janeiro, Brazil.', points: 10 },
+      { id: 'q111_4', question: 'Activities like dairy farming and agriculture belong to which economic sector?', options: ['Primary sector', 'Secondary sector', 'Tertiary sector', 'Quaternary sector'], correctIndex: 0, explanation: 'Direct extraction and harvesting of natural resources belongs to the primary sector.', points: 10 },
+      { id: 'q111_5', question: 'What is the primary objective of a federal system of government?', options: ['To concentrate power', 'To safeguard and promote unity while accommodating regional diversity', 'To eliminate state laws', 'To centralize all decisions'], correctIndex: 1, explanation: 'Federalism protects national unity while respecting regional diversity.', points: 10 },
+    ],
+  },
+  {
+    id: 'quiz-c10-cs-2',
+    teacherId: '15',
+    teacherName: 'Pooja Patel',
+    classGrade: 10,
+    subject: 'Computer Science',
+    title: 'Web Protocols, HTML & Cybersecurity Basics',
+    description: 'Web architecture, HTML semantic elements, networks, and cyber safety fundamentals.',
+    timeLimit: 300,
+    difficulty: 'medium',
+    createdAt: '2024-08-29T10:00:00Z',
+    questions: [
+      { id: 'q112_1', question: 'Which HTML attribute specifies the hyperlink target URL in an <a> tag?', options: ['src', 'href', 'link', 'target'], correctIndex: 1, explanation: 'The "href" attribute specifies the destination URL.', points: 10 },
+      { id: 'q112_2', question: 'Which secure protocol uses port 443 for encrypted web communication?', options: ['FTP', 'HTTPS', 'Telnet', 'SMTP'], correctIndex: 1, explanation: 'HTTPS encrypts HTTP traffic using TLS on port 443.', points: 10 },
+      { id: 'q112_3', question: 'A system that monitors and filters incoming and outgoing network traffic is called a:', options: ['Firewall', 'Modem', 'Compiler', 'Browser'], correctIndex: 0, explanation: 'A firewall establishes a barrier against unauthorized external network traffic.', points: 10 },
+      { id: 'q112_4', question: 'What does URL stand for in computer networking?', options: ['Uniform Resource Locator', 'Universal Record Link', 'Unified Router Logic', 'Unique Resource Line'], correctIndex: 0, explanation: 'URL stands for Uniform Resource Locator.', points: 10 },
+      { id: 'q112_5', question: 'Fraudulent attempts to steal passwords and sensitive data via fake websites is called:', options: ['Phishing', 'Compiling', 'Defragmenting', 'Formatting'], correctIndex: 0, explanation: 'Phishing involves deceptive emails and spoofed sites to trick users.', points: 10 },
+    ],
+  },
 ];
 
 const INITIAL_RESULTS: QuizResultRecord[] = [];
@@ -1274,7 +1365,31 @@ export const dataService = {
 
     const percentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
     const baseReward = Number(quiz.xpReward) || 50;
-    const xpEarned = Math.max(score * 10, baseReward);
+
+    // Check prior attempts to determine retake and newly mastered questions
+    const priorResults = state.results.filter(
+      (r) => String(r.quizId) === String(quiz.id) && String(r.studentId) === String(student.id)
+    );
+    const isRetest = priorResults.length > 0;
+
+    let newlyMasteredCount = 0;
+    let newlyEarnedXP = 0;
+    quiz.questions.forEach((q, idx) => {
+      const studentAnswer = params.answers[idx];
+      const isCorrect = studentAnswer !== undefined && studentAnswer === q.correctIndex;
+      if (isCorrect) {
+        const wasMasteredBefore = priorResults.some((pr) => {
+          const prAns = pr.answers?.[idx];
+          return prAns !== undefined && prAns === q.correctIndex;
+        });
+        if (!wasMasteredBefore) {
+          newlyMasteredCount++;
+          newlyEarnedXP += (q.points || 1) * 10;
+        }
+      }
+    });
+
+    const xpEarned = isRetest ? newlyEarnedXP : Math.max(newlyEarnedXP, baseReward);
     const timeTakenSeconds = params.timeTakenSeconds || 180;
     const completedAt = params.completedAt || new Date().toISOString();
 
@@ -1606,7 +1721,7 @@ export const dataService = {
   },
 
   /** Calculate real data-driven analytics for a teacher and class */
-  getClassAnalytics(params: { teacherId: string; classGrade?: number; subject?: string }): ClassAnalyticsData {
+  getClassAnalytics(params: { teacherId: string; classGrade?: number; subject?: string; dateRange?: string }): ClassAnalyticsData {
     const state = loadState();
     const teacher = this.getUserById(params.teacherId);
 
@@ -1622,20 +1737,13 @@ export const dataService = {
       ? params.subject
       : 'All';
 
-    // 2. Students in selected class (filtered by teacher assignments if present)
-    let classStudents = state.users.filter(
+    // 2. Students in selected class (all real enrolled students in that class)
+    const classStudents = state.users.filter(
       (u) => u.role === 'STUDENT' && Number(u.classGrade) === Number(selectedClass)
     );
-    if (teacher?.assignedStudentIds && teacher.assignedStudentIds.length > 0) {
-      const assignedSet = new Set(teacher.assignedStudentIds.map(String));
-      const assignedInClass = classStudents.filter((s) => assignedSet.has(String(s.id)));
-      if (assignedInClass.length > 0) {
-        classStudents = assignedInClass;
-      }
-    }
     const totalStudents = classStudents.length;
 
-    // 3. Quizzes in this class (filtered by class, teacher if All, or selected subject)
+    // 3. Quizzes in this class
     const classQuizzes = state.quizzes.filter((q) => {
       const matchClass = Number(q.classGrade) === Number(selectedClass);
       const matchTeacher = !params.teacherId || String(q.teacherId) === String(params.teacherId);
@@ -1645,9 +1753,9 @@ export const dataService = {
       return matchClass && matchSubject;
     });
 
-    // 4. Submissions matching these quizzes
+    // 4. Submissions matching these quizzes and class
     const classQuizIds = new Set(classQuizzes.map((q) => q.id));
-    const relevantResults = state.results.filter((r) => {
+    const allClassResults = state.results.filter((r) => {
       const matchQuiz = classQuizIds.has(r.quizId);
       const matchClass = Number(r.classGrade) === Number(selectedClass);
       const matchTeacher = !params.teacherId || String(r.teacherId) === String(params.teacherId);
@@ -1657,9 +1765,33 @@ export const dataService = {
       return matchQuiz || (matchClass && matchSubject);
     });
 
+    // Date range filter
+    const normDateRange = params.dateRange || '30';
+    let cutoffTime = 0;
+    const now = Date.now();
+    if (normDateRange === '7') {
+      cutoffTime = now - 7 * 24 * 60 * 60 * 1000;
+    } else if (normDateRange === '30') {
+      cutoffTime = now - 30 * 24 * 60 * 60 * 1000;
+    } else if (normDateRange === '90') {
+      cutoffTime = now - 90 * 24 * 60 * 60 * 1000;
+    }
+
+    const filteredResults = cutoffTime > 0
+      ? allClassResults.filter((r) => {
+          const t = r.completedAt ? new Date(r.completedAt).getTime() : 0;
+          return t >= cutoffTime;
+        })
+      : allClassResults;
+
+    const totalSubmissions = filteredResults.length;
+    const classAverage = totalSubmissions > 0
+      ? Math.round(filteredResults.reduce((sum, r) => sum + r.percentage, 0) / totalSubmissions)
+      : 0;
+
     // 5. Average Score by Quiz
     const quizScores = classQuizzes.map((q) => {
-      const qResults = relevantResults.filter((r) => r.quizId === q.id);
+      const qResults = filteredResults.filter((r) => r.quizId === q.id);
       const attempts = qResults.length;
       const avg = attempts > 0
         ? Math.round(qResults.reduce((sum, r) => sum + r.percentage, 0) / attempts)
@@ -1673,43 +1805,67 @@ export const dataService = {
       };
     });
 
-    // 6. Completion Rate
-    const submittedStudentIds = new Set(relevantResults.map((r) => String(r.studentId)));
-    const completedCount = submittedStudentIds.size;
-    const notStartedCount = Math.max(0, totalStudents - completedCount);
-    const completedPct = totalStudents > 0 ? Math.round((completedCount / totalStudents) * 100) : 0;
-    const notStartedPct = Math.max(0, 100 - completedPct);
+    const detailedQuizzes = classQuizzes.map((q) => {
+      const qResults = filteredResults.filter((r) => r.quizId === q.id);
+      const attempts = qResults.length;
+      const avgScore = attempts > 0
+        ? Math.round(qResults.reduce((sum, r) => sum + r.percentage, 0) / attempts)
+        : 0;
+      return {
+        id: q.id,
+        title: q.title,
+        subject: q.subject,
+        classGrade: Number(q.classGrade),
+        attempts,
+        avgScore,
+      };
+    });
+
+    // 6. Completion Rate & Active Students
+    const submittedStudentIds = new Set(filteredResults.map((r) => String(r.studentId)));
+    const activeStudents = submittedStudentIds.size;
+    const notStartedCount = Math.max(0, totalStudents - activeStudents);
+    const completionRate = totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
+    const notStartedPct = Math.max(0, 100 - completionRate);
 
     const completionData = [
-      { name: 'Completed', value: completedPct, count: completedCount, color: '#5B2C6F' },
+      { name: 'Completed', value: completionRate, count: activeStudents, color: '#5B2C6F' },
       { name: 'In Progress', value: 0, count: 0, color: '#f59e0b' },
       { name: 'Not Started', value: notStartedPct, count: notStartedCount, color: '#ef4444' },
     ];
 
-    // 7. Engagement Trend (Last 30 Days)
-    const now = new Date();
-    const engagementTrend: { day: string; date: string; engagement: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now);
+    // 7. Engagement Trend
+    const numDays = normDateRange === '7' ? 7 : normDateRange === '90' ? 90 : 30;
+    const nowDate = new Date();
+    const engagementTrend: { day: string; date: string; engagement: number; submissions?: number; score?: number }[] = [];
+    let runningClassAvg = classAverage;
+    for (let i = numDays - 1; i >= 0; i--) {
+      const d = new Date(nowDate);
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
       const dayLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-      const dayResults = relevantResults.filter((r) => {
+      const dayResults = filteredResults.filter((r) => {
         const rDate = (r.completedAt || '').split('T')[0];
         return rDate === dateStr;
       });
+      const dayCount = dayResults.length;
+      if (dayCount > 0) {
+        runningClassAvg = Math.round(dayResults.reduce((sum, r) => sum + r.percentage, 0) / dayCount);
+      }
 
       engagementTrend.push({
         day: dayLabel,
         date: dateStr,
-        engagement: dayResults.length,
+        engagement: dayCount,
+        submissions: dayCount,
+        score: dayCount > 0 ? runningClassAvg : (classAverage > 0 ? classAverage : 0),
       });
     }
 
-    // 8. Top Performers
+    // 8. Student Performance Aggregation & Top Performers
     const studentPerformanceMap: Record<string, { id: string; name: string; totalScore: number; count: number; totalXP: number }> = {};
-    relevantResults.forEach((r) => {
+    filteredResults.forEach((r) => {
       const sId = String(r.studentId);
       if (!studentPerformanceMap[sId]) {
         studentPerformanceMap[sId] = {
@@ -1722,7 +1878,7 @@ export const dataService = {
       }
       studentPerformanceMap[sId].totalScore += r.percentage;
       studentPerformanceMap[sId].count += 1;
-      studentPerformanceMap[sId].totalXP += r.xpEarned;
+      studentPerformanceMap[sId].totalXP += (r.xpEarned || 0);
     });
 
     const topPerformers = Object.values(studentPerformanceMap)
@@ -1736,7 +1892,6 @@ export const dataService = {
       .sort((a, b) => b.score - a.score || b.xp - a.xp)
       .slice(0, 5);
 
-    // 9. At-Risk Students (students with avg score < 50%)
     const atRiskStudents = Object.values(studentPerformanceMap)
       .filter((s) => Math.round(s.totalScore / s.count) < 50)
       .map((s) => ({
@@ -1746,10 +1901,44 @@ export const dataService = {
         lastActive: 'Recently',
       }));
 
-    // 10. Subject-wise Comparison for this class (connected directly to the class results)
+    // Student Roster (All students in class, with real filtered stats)
+    const studentRoster = classStudents.map((st) => {
+      const stName = (st as any).fullName || st.name || 'Student';
+      const stPerf = studentPerformanceMap[String(st.id)];
+      const quizzesCompleted = stPerf ? stPerf.count : 0;
+      const avgScore = stPerf ? Math.round(stPerf.totalScore / stPerf.count) : 0;
+      const totalXP = stPerf ? stPerf.totalXP : (st.totalXP || 0);
+      const status: 'EXCELLING' | 'ON_TRACK' | 'NEEDS_ATTENTION' | 'NOT_STARTED' =
+        quizzesCompleted === 0
+          ? 'NOT_STARTED'
+          : avgScore >= 80
+          ? 'EXCELLING'
+          : avgScore >= 50
+          ? 'ON_TRACK'
+          : 'NEEDS_ATTENTION';
+      const needsAttentionReason = avgScore < 50 && quizzesCompleted > 0
+        ? `Average score is ${avgScore}% (below 50% passing threshold)`
+        : undefined;
+
+      return {
+        id: String(st.id),
+        name: stName,
+        avatarUrl: st.avatarUrl,
+        className: st.className || `Class ${selectedClass}`,
+        section: st.section || 'A',
+        avgScore,
+        quizzesCompleted,
+        totalXP,
+        streak: st.streak || 0,
+        status,
+        needsAttentionReason,
+      };
+    });
+
+    // 9. Subject-wise Comparison for this class
     const allClassSubjects = this.getSubjectsForClass(selectedClass);
     const subjectComparison = allClassSubjects.map((sub) => {
-      const subResults = relevantResults.filter(
+      const subResults = allClassResults.filter(
         (r) => Number(r.classGrade) === Number(selectedClass) && r.subject.toLowerCase() === sub.toLowerCase()
       );
       const score = subResults.length > 0
@@ -1762,18 +1951,85 @@ export const dataService = {
       };
     });
 
+    // 10. Actionable Insights from real data
+    const actionableInsights: Array<{
+      id: string;
+      type: 'CRITICAL' | 'WARNING' | 'POSITIVE' | 'NEUTRAL';
+      title: string;
+      description: string;
+      metric?: string;
+      actionLabel?: string;
+      actionType?: string;
+    }> = [];
+
+    if (atRiskStudents.length > 0) {
+      actionableInsights.push({
+        id: 'ins-atrisk',
+        type: 'CRITICAL',
+        title: 'Academic Support Recommended',
+        description: `${atRiskStudents.length} student${atRiskStudents.length > 1 ? 's are' : ' is'} averaging below the 50% passing threshold in active assessments.`,
+        metric: `${atRiskStudents.length} Students`,
+        actionLabel: 'View Flagged Students',
+        actionType: 'VIEW_STUDENTS',
+      });
+    }
+
+    const activeSubjectComparisons = subjectComparison.filter((s) => s.submissions > 0);
+    if (activeSubjectComparisons.length > 0) {
+      const weakestSubject = [...activeSubjectComparisons].sort((a, b) => a.score - b.score)[0];
+      if (weakestSubject && weakestSubject.score < 70) {
+        actionableInsights.push({
+          id: 'ins-weak-sub',
+          type: 'WARNING',
+          title: 'Curriculum Focus Area',
+          description: `${weakestSubject.subject} has the lowest average mastery score (${weakestSubject.score}%) across ${weakestSubject.submissions} submission(s).`,
+          metric: `${weakestSubject.score}% Avg`,
+          actionLabel: 'Filter by Subject',
+          actionType: 'VIEW_SUBJECT',
+        });
+      }
+    }
+
+    if (classAverage >= 60 && totalSubmissions > 0) {
+      actionableInsights.push({
+        id: 'ins-progress',
+        type: 'POSITIVE',
+        title: 'Strong Overall Mastery',
+        description: `Class average is ${classAverage}% across ${totalSubmissions} graded submission(s) in this period.`,
+        metric: `${classAverage}%`,
+      });
+    }
+
+    if (completionRate === 100 && totalStudents > 0) {
+      actionableInsights.push({
+        id: 'ins-completion',
+        type: 'POSITIVE',
+        title: 'Full Class Participation',
+        description: `All ${totalStudents} enrolled students in Class ${selectedClass} have submitted assessments.`,
+        metric: '100% Active',
+      });
+    }
+
     return {
       classGrade: selectedClass,
       availableClasses,
       subject: selectedSubject,
       availableSubjects,
+      dateRange: normDateRange,
       totalStudents,
+      activeStudents,
+      totalSubmissions,
+      classAverage,
+      completionRate,
       quizScores,
+      detailedQuizzes,
       completionData,
       engagementTrend,
+      studentRoster,
       topPerformers,
       atRiskStudents,
       subjectComparison,
+      actionableInsights,
     };
   },
 
@@ -1825,6 +2081,27 @@ export const dataService = {
         state.users[uIdx].currentStreak = Number(st.streak) || 0;
         state.users[uIdx].lessonsCompleted = Number(st.quizzesCompleted) || 0;
         state.users[uIdx].studyMinutes = Number(st.studyMinutes) || 0;
+        if (st.section) state.users[uIdx].section = st.section;
+      } else {
+        state.users.push({
+          id: String(st.id),
+          email: st.email || '',
+          studentSchoolId: st.studentSchoolId || '',
+          username: st.email ? st.email.split('@')[0] : `student_${st.id}`,
+          fullName: st.name || 'Student',
+          role: 'STUDENT',
+          avatarUrl: st.avatar || '',
+          schoolName: 'Acadevia School',
+          classGrade: Number(st.classGrade || (st.className ? st.className.replace(/\D/g, '') : 10)) || 10,
+          section: st.section || 'A',
+          totalXP: Number(st.totalXP) || 0,
+          currentLevel: Number(st.level) || Math.floor((st.totalXP || 0) / 500) + 1,
+          currentStreak: Number(st.streak) || 0,
+          longestStreak: Number(st.streak) || 0,
+          lessonsCompleted: Number(st.quizzesCompleted) || 0,
+          coursesCompleted: 0,
+          studyMinutes: Number(st.studyMinutes) || 0,
+        });
       }
       if (Array.isArray(st.results)) {
         st.results.forEach((att: any) => {

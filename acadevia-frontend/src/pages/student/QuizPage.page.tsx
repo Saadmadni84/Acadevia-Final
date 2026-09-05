@@ -115,24 +115,54 @@ const QuizPage: React.FC = () => {
     loadData();
   };
 
-  const handleQuizComplete = (playerResult: {
+  const [, setIsSubmitting] = useState<boolean>(false);
+
+  const handleQuizComplete = async (playerResult: {
     score: number;
     totalPoints: number;
     answers: number[];
     timeTaken: number;
   }) => {
     if (!activeQuiz) return;
+    setIsSubmitting(true);
 
-    // Persist result into data service
-    const savedResult = dataService.submitQuizResult({
-      quizId: activeQuiz.id,
-      studentId,
-      answers: playerResult.answers,
-      timeTakenSeconds: playerResult.timeTaken,
-    });
+    try {
+      const response = await fetch('/api/v1/attempts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quizId: activeQuiz.id,
+          studentId,
+          answers: playerResult.answers,
+          timeTakenSeconds: playerResult.timeTaken,
+        }),
+      });
 
-    setSubmissionResult(savedResult);
-    loadData();
+      const json = await response.json();
+      if (json?.data) {
+        setSubmissionResult(json.data);
+        dataService.syncFromBackend();
+      } else {
+        const savedResult = dataService.submitQuizResult({
+          quizId: activeQuiz.id,
+          studentId,
+          answers: playerResult.answers,
+          timeTakenSeconds: playerResult.timeTaken,
+        });
+        setSubmissionResult(savedResult);
+      }
+    } catch {
+      const savedResult = dataService.submitQuizResult({
+        quizId: activeQuiz.id,
+        studentId,
+        answers: playerResult.answers,
+        timeTakenSeconds: playerResult.timeTaken,
+      });
+      setSubmissionResult(savedResult);
+    } finally {
+      setIsSubmitting(false);
+      loadData();
+    }
   };
 
   // Find latest result for a quiz if student previously completed it
@@ -155,7 +185,7 @@ const QuizPage: React.FC = () => {
 
           <div>
             <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30">
-              Quiz Completed & Recorded
+              {(submissionResult as any).isRetest ? 'Retest Completed & Recorded' : 'Quiz Completed & Recorded'}
             </span>
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mt-2">
               Great Job, {user?.fullName || 'Student'}!
@@ -169,28 +199,43 @@ const QuizPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
-            <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-500">Score</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-lg mx-auto">
+            <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <p className="text-xs text-gray-500 font-medium">Quiz Score</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
                 {submissionResult.score}/{submissionResult.totalPoints}
               </p>
             </div>
-            <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-500">Percentage</p>
-              <p className="text-2xl font-bold text-emerald-600">
-                {submissionResult.percentage}%
+            <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <p className="text-xs text-gray-500 font-medium">New Mastered</p>
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-0.5">
+                {(submissionResult as any).newMasteredCount !== undefined ? (submissionResult as any).newMasteredCount : 0} Qs
               </p>
             </div>
-            <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-500">XP Earned</p>
-              <p className="text-2xl font-bold text-primary dark:text-[#D4A843]">
+            <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <p className="text-xs text-gray-500 font-medium">XP This Attempt</p>
+              <p className="text-xl font-bold text-primary dark:text-[#D4A843] mt-0.5">
                 +{submissionResult.xpEarned} XP
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+              <p className="text-xs text-gray-500 font-medium">Total XP</p>
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                {(submissionResult as any).totalStudentXP ? `${(submissionResult as any).totalStudentXP} XP` : `${submissionResult.xpEarned} XP`}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+          <div className="p-3 rounded-xl bg-primary/5 border border-primary/15 text-xs text-gray-600 dark:text-gray-300 max-w-md mx-auto flex items-center gap-2 justify-center">
+            <Zap className="h-4 w-4 text-amber-500 shrink-0" />
+            <span>
+              {(submissionResult as any).isRetest && Number(submissionResult.xpEarned) === 0
+                ? 'All questions were previously mastered. XP is awarded only for newly mastered questions.'
+                : 'XP is awarded only for newly mastered questions.'}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Button
               variant="gradient"
               onClick={() => navigate(ROUTES.PROFILE)}
@@ -397,7 +442,13 @@ const QuizPage: React.FC = () => {
                     </div>
 
                     {/* Action Button */}
-                    <div className="pt-4 mt-3 border-t border-gray-100 dark:border-gray-800">
+                    <div className="pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-2">
+                      {isCompleted && (
+                        <p className="text-[10px] text-gray-400 text-center flex items-center justify-center gap-1">
+                          <Zap className="h-3 w-3 text-amber-500 shrink-0" />
+                          <span>XP is awarded only for newly mastered questions.</span>
+                        </p>
+                      )}
                       <Button
                         variant={isCompleted ? 'outline' : 'gradient'}
                         size="sm"

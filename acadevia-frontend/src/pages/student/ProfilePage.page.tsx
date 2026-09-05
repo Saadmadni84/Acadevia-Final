@@ -8,11 +8,10 @@ import { BadgeShowcase } from '@/components/gamification/BadgeShowcase';
 import { LearningOverview } from '@/components/profile/LearningOverview';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { userService } from '@/services/user.service';
-import { gamificationService } from '@/services/gamification.service';
 import { courseService } from '@/services/course.service';
 import { analyticsService } from '@/services/analytics.service';
 import { ROUTES } from '@/config/routes.config';
-import { Award, Lock, CheckCircle2 } from 'lucide-react';
+import { Award, Lock, CheckCircle2, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import { dataService } from '@/services/data.service';
@@ -38,9 +37,11 @@ const ProfilePage: React.FC = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [, setSyncCount] = useState(0);
 
+  // Access Control: Students can ONLY view their own profile.
+  // Query param tampering (?id= or ?studentId=) is strictly disallowed for students.
+  const isStudent = user?.role === 'STUDENT' || !user?.role;
   const queryStudentId = searchParams.get('id') || searchParams.get('studentId');
-  const targetStudent = queryStudentId ? dataService.getUserById(queryStudentId) : null;
-  const isViewingOther = Boolean(queryStudentId && (!user?.id || String(queryStudentId) !== String(user.id)) && targetStudent);
+  const targetStudentId = isStudent ? (user?.id ? String(user.id) : '20') : (queryStudentId || (user?.id ? String(user.id) : '20'));
 
   useEffect(() => {
     let mounted = true;
@@ -69,79 +70,83 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // 1. User Profile Data from /api/v1/users/me (parameterized by authenticated user id)
+  // 1. Authoritative Student Academic Profile from live backend database
+  const { data: dbProfile } = useQuery({
+    queryKey: ['student-database-profile', targetStudentId],
+    queryFn: async () => {
+      const res = await fetch(`/api/v1/student/profile?studentId=${targetStudentId}`, {
+        headers: {
+          'X-User-Id': String(user?.id || targetStudentId),
+          'X-User-Role': user?.role || 'STUDENT',
+        },
+      });
+      if (!res.ok) throw new Error('Failed to load profile');
+      const json = await res.json();
+      return json.data;
+    },
+    enabled: Boolean(targetStudentId),
+  });
+
+  // 2. User Profile Data from /api/v1/users/me as secondary enhancement
   const { data: userProfile } = useQuery({
     queryKey: ['user-profile', user?.id],
     queryFn: async () => (await userService.getProfile()).data.data,
-    enabled: Boolean(user) && !isViewingOther,
-  });
-
-  // 2. Gamification Data from /api/v1/gamification/profile
-  const { data: gamification } = useQuery({
-    queryKey: ['gamification-profile', user?.id],
-    queryFn: async () => (await gamificationService.getProfile()).data.data,
-    enabled: Boolean(user) && !isViewingOther,
+    enabled: Boolean(user),
   });
 
   // 3. Enrolled Courses from /api/v1/courses/enrolled
   const { data: enrolledCourses } = useQuery({
     queryKey: ['enrolled-courses', user?.id],
     queryFn: async () => (await courseService.getEnrolled()).data.data,
-    enabled: Boolean(user) && !isViewingOther,
+    enabled: Boolean(user) && isStudent,
   });
 
   // 4. Student Analytics from /api/v1/analytics/student
   const { data: studentAnalytics } = useQuery({
     queryKey: ['student-analytics', user?.id],
     queryFn: async () => (await analyticsService.getStudentAnalytics()).data.data,
-    enabled: Boolean(user) && !isViewingOther,
+    enabled: Boolean(user) && isStudent,
   });
 
-  const profile = isViewingOther && targetStudent
-    ? {
-        id: targetStudent.id,
-        name: targetStudent.fullName,
-        fullName: targetStudent.fullName,
-        email: targetStudent.email,
-        role: targetStudent.role,
-        avatar: targetStudent.avatarUrl,
-        avatarUrl: targetStudent.avatarUrl,
-        classGrade: targetStudent.classGrade,
-        section: targetStudent.section,
-        schoolName: targetStudent.schoolName,
-      }
-    : (userProfile ?? user);
+  const profile = userProfile ?? user;
 
-  const studentId = queryStudentId || (user?.id ? String(user.id) : '20');
+  const studentId = targetStudentId;
   const studentName =
-    (isViewingOther && targetStudent?.fullName) ||
+    dbProfile?.fullName ||
+    dbProfile?.name ||
     user?.fullName ||
-    (profile as any)?.fullName ||
-    (profile as any)?.name ||
     userProfile?.fullName ||
-    (studentId ? dataService.getUserById(String(studentId))?.fullName : undefined) ||
     'Student';
 
-  // Retrieve actual student metrics from persistent data layer
+  // Retrieve actual student metrics from persistent data layer or authoritative database profile
   const metrics = dataService.getStudentMetrics(studentId);
   const realWeeklyActivity = dataService.getStudentWeeklyActivity(studentId);
   const realSubjectProgress = dataService.getStudentSubjectProgress(studentId);
-  const realRecentActivities = dataService.getRecentActivities(studentId, 'STUDENT').map((a) => ({
-    id: a.id,
-    type: (a.type === 'QUIZ_COMPLETED' ? 'quiz' : a.type === 'LESSON_COMPLETED' ? 'lesson' : 'badge') as any,
-    title: a.title,
-    description: a.description,
-    xpEarned: undefined,
-    timestamp: a.timestamp,
-  }));
+  const realRecentActivities = (dbProfile?.activities && dbProfile.activities.length > 0)
+    ? dbProfile.activities.map((a: any) => ({
+        id: a.id,
+        type: (a.type === 'QUIZ_COMPLETED' ? 'quiz' : a.type === 'LESSON_COMPLETED' ? 'lesson' : 'badge') as any,
+        title: a.title,
+        description: a.description,
+        xpEarned: undefined,
+        timestamp: a.timestamp,
+      }))
+    : dataService.getRecentActivities(studentId, 'STUDENT').map((a) => ({
+        id: a.id,
+        type: (a.type === 'QUIZ_COMPLETED' ? 'quiz' : a.type === 'LESSON_COMPLETED' ? 'lesson' : 'badge') as any,
+        title: a.title,
+        description: a.description,
+        xpEarned: undefined,
+        timestamp: a.timestamp,
+      }));
 
-  const level = gamification?.level ?? metrics.level ?? 1;
-  const totalXP = gamification?.totalXP ?? gamification?.xp ?? metrics.totalXP ?? 0;
-  const streak = gamification?.streakDays ?? gamification?.streak ?? metrics.streak ?? 0;
+  const level = dbProfile?.level ?? metrics.level ?? 1;
+  const totalXP = dbProfile?.totalXP ?? metrics.totalXP ?? 0;
+  const streak = dbProfile?.streak ?? metrics.streak ?? 0;
   const requiredXP = Math.max(100, Math.ceil((totalXP + 1) / 100) * 100);
 
   // Real criteria-driven badge evaluation
-  const liveBadges = gamification?.badges ?? [];
+  const liveBadges = (dbProfile?.badges || []) as any[];
   const combinedBadges = acadeviaBadgeCatalog.map((catalogBadge) => {
     let isEarned = false;
     const liveMatch = liveBadges.find(
@@ -294,6 +299,91 @@ const ProfilePage: React.FC = () => {
         weeklyActivity={studentAnalytics?.weeklyActivity || realWeeklyActivity}
         recentActivities={realRecentActivities}
       />
+
+      {/* 3.5 Quiz Performance History Section */}
+      <div className="rounded-3xl border border-gray-200/80 dark:border-gray-800 bg-white dark:bg-card-dark p-6 sm:p-8 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2.5">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                Quiz Performance History
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                {(dbProfile?.results || []).length} completed assessments &bull; Authoritative database submission records
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {(dbProfile?.results || []).length > 0 ? (
+          <div className="rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+            <div className="overflow-x-auto max-h-96">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-gray-50 dark:bg-gray-800/80 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400">
+                  <tr>
+                    <th className="py-3 px-4 font-bold">Quiz Title</th>
+                    <th className="py-3 px-3 font-bold">Subject</th>
+                    <th className="py-3 px-3 font-bold">Completed Date</th>
+                    <th className="py-3 px-3 font-bold text-center">Score</th>
+                    <th className="py-3 px-3 font-bold text-center">Percentage</th>
+                    <th className="py-3 px-3 font-bold text-center">XP Earned</th>
+                    <th className="py-3 px-4 font-bold text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {(dbProfile?.results || []).map((res: any, idx: number) => (
+                    <tr key={`${res.id || idx}`} className="hover:bg-primary/5 transition">
+                      <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white max-w-[240px] truncate">
+                        {res.quizTitle}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                          {res.subject}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-gray-500 font-mono text-[11px]">
+                        {res.completedAt ? new Date(res.completedAt).toLocaleDateString() : 'Recently'}
+                      </td>
+                      <td className="py-3 px-3 text-center font-bold text-gray-700 dark:text-gray-300">
+                        {res.score}/{res.totalPoints}
+                      </td>
+                      <td className="py-3 px-3 text-center font-extrabold text-emerald-600 dark:text-emerald-400">
+                        {res.percentage}%
+                      </td>
+                      <td className="py-3 px-3 text-center font-extrabold text-primary dark:text-[#D4A843]">
+                        +{res.xpEarned} XP
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {res.percentage >= 60 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Passed
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300">
+                            Review
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
+            <BookOpen className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              No quiz submissions recorded yet
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              Complete your first quiz to build your academic history!
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* 4. Badges & Achievements Section */}
       <div className="rounded-3xl border border-gray-200/80 dark:border-gray-800 bg-white dark:bg-card-dark p-6 sm:p-8 shadow-sm">

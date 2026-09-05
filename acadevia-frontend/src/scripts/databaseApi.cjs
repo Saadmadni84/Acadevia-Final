@@ -183,6 +183,14 @@ function ensureSchema() {
   `;
   try {
     execSqlMutation(initSql);
+    try {
+      const hasSection = execSql("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='acadevia_auth_db' AND TABLE_NAME='users' AND COLUMN_NAME='section'");
+      if (hasSection.length === 0) {
+        execSqlMutation("ALTER TABLE acadevia_auth_db.users ADD COLUMN section VARCHAR(10) DEFAULT 'A'");
+      }
+    } catch {
+      // Ignore if column already exists
+    }
   } catch (err) {
     // ignore if docker is offline
   }
@@ -244,6 +252,10 @@ const LEGACY_SEEDED_QUIZ_MAP = {
   '106': 'quiz-c10-cs',
   '107': 'quiz-10-math-1',
   '108': 'quiz-10-math-2',
+  '109': 'quiz-c10-eng-2',
+  '110': 'quiz-c10-hin-2',
+  '111': 'quiz-c10-soc-2',
+  '112': 'quiz-c10-cs-2',
 };
 
 const REVERSE_LEGACY_QUIZ_MAP = {};
@@ -266,7 +278,7 @@ function resolveAliasQuizId(id) {
 }
 
 // ---------------------------------------------------------------------------
-// Standard Curriculum Questions fallback for quizzes 101-106
+// Standard Curriculum Questions fallback for quizzes 101-112
 // ---------------------------------------------------------------------------
 const CURRICULUM_QUESTIONS = {
   101: [
@@ -311,6 +323,46 @@ const CURRICULUM_QUESTIONS = {
     { id: 'csq4', question: 'What does SQL stand for?', options: ['Structured Query Language', 'Standard Question Language', 'Simple Query Logic', 'System Query Language'], correctIndex: 0, explanation: 'SQL stands for Structured Query Language.', points: 10, topic: 'Databases' },
     { id: 'csq5', question: 'A trail of data you leave behind while browsing online is called:', options: ['Digital Footprint', 'Cyber Space', 'Cookie Jar', 'Cache Trace'], correctIndex: 0, explanation: 'Digital footprint refers to traceable digital activities.', points: 10, topic: 'Cyber Ethics' },
   ],
+  107: [
+    { id: 'q107_1', question: 'What is the discriminant of the quadratic equation x² + 5x + 6 = 0?', options: ['1', '25', '36', '11'], correctIndex: 0, explanation: 'D = b² - 4ac = 25 - 24 = 1.', points: 10, topic: 'Quadratic Equations' },
+    { id: 'q107_2', question: 'Which method can be used to solve the equation x² - 9 = 0?', options: ['Factoring as difference of squares', 'Quadratic formula', 'Both A and B', 'None of these'], correctIndex: 2, explanation: 'Both factoring and quadratic formula yield x = ±3.', points: 10, topic: 'Quadratic Equations' },
+    { id: 'q107_3', question: 'If the discriminant b² - 4ac < 0, then the quadratic equation has:', options: ['Two distinct real roots', 'Two equal real roots', 'No real roots', 'Infinite roots'], correctIndex: 2, explanation: 'A negative discriminant means no real solutions in real numbers.', points: 10, topic: 'Quadratic Equations' },
+    { id: 'q107_4', question: 'What are the roots of the equation x² - 7x + 12 = 0?', options: ['3 and 4', '-3 and -4', '2 and 6', '1 and 12'], correctIndex: 0, explanation: '(x - 3)(x - 4) = 0 => x = 3, 4.', points: 10, topic: 'Quadratic Equations' },
+    { id: 'q107_5', question: 'What is the nature of roots for 2x² - 4x + 3 = 0?', options: ['Real and equal', 'Real and distinct', 'No real roots', 'Rational and unequal'], correctIndex: 2, explanation: 'D = (-4)² - 4(2)(3) = 16 - 24 = -8 (< 0), so no real roots exist.', points: 10, topic: 'Quadratic Equations' },
+  ],
+  108: [
+    { id: 'q108_1', question: 'What is the value of sin²(θ) + cos²(θ) for any angle θ?', options: ['0', '1', '2', 'Depends on θ'], correctIndex: 1, explanation: 'sin²(θ) + cos²(θ) = 1 is the fundamental trigonometric identity.', points: 10, topic: 'Trigonometry' },
+    { id: 'q108_2', question: 'If tan(θ) = 1 in a right triangle, what is the angle θ?', options: ['30°', '45°', '60°', '90°'], correctIndex: 1, explanation: 'tan(45°) = 1.', points: 10, topic: 'Trigonometry' },
+    { id: 'q108_3', question: 'Which of the following is equal to sec²(θ) - 1?', options: ['tan²(θ)', 'cot²(θ)', 'sin²(θ)', 'cos²(θ)'], correctIndex: 0, explanation: '1 + tan²(θ) = sec²(θ), therefore sec²(θ) - 1 = tan²(θ).', points: 10, topic: 'Trigonometry' },
+  ],
+  109: [
+    { id: 'q109_1', question: 'Who is the narrator of "A Triumph of Surgery"?', options: ['Mrs. Pumphrey', 'Mr. James Herriot', 'Tricki', 'Joe'], correctIndex: 1, explanation: 'Mr. James Herriot, a veterinary surgeon, is the author and narrator.', points: 10, topic: 'Literature' },
+    { id: 'q109_2', question: 'Why was Tricki hospitalized for a fortnight?', options: ['Leg injury', 'Overfeeding and acute lethargy', 'Rabies vaccine', 'Dental surgery'], correctIndex: 1, explanation: 'Tricki was bloated like a sausage due to overfeeding by Mrs. Pumphrey.', points: 10, topic: 'Literature' },
+    { id: 'q109_3', question: 'Which modal auxiliary expresses moral obligation or duty?', options: ['May', 'Ought to', 'Could', 'Might'], correctIndex: 1, explanation: '"Ought to" conveys moral duty or societal obligation.', points: 10, topic: 'Grammar' },
+    { id: 'q109_4', question: 'In a formal letter to an editor, what is the standard salutation?', options: ['Hey Editor', 'Dear Sir/Madam', 'My Friend', 'Greetings all'], correctIndex: 1, explanation: '"Dear Sir/Madam" or "Sir/Madam" is the formal convention.', points: 10, topic: 'Writing Skills' },
+    { id: 'q109_5', question: 'Identify the synonym of "dilapidated":', options: ['Brand new', 'Run-down', 'Gigantic', 'Modern'], correctIndex: 1, explanation: 'Dilapidated means falling apart or run-down.', points: 10, topic: 'Vocabulary' },
+  ],
+  110: [
+    { id: 'q110_1', question: '‘हरिहर काका’ कहानी के लेखक कौन हैं?', options: ['मिथिलेश्वर', 'प्रेमचंद', 'महादेवी वर्मा', 'हरिवंश राय बच्चन'], correctIndex: 0, explanation: 'हरिहर काका कथाकार मिथिलेश्वर की प्रसिद्ध कहानी है।', points: 10, topic: 'संचयन' },
+    { id: 'q110_2', question: '‘सूरज निकला और पक्षी चहचहाने लगे’ यह किस प्रकार का वाक्य है?', options: ['सरल वाक्य', 'संयुक्त वाक्य', 'मिश्र वाक्य', 'प्रश्नवाचक वाक्य'], correctIndex: 1, explanation: 'दो उपवाक्य ‘और’ योजक से जुड़े हैं, अतः यह संयुक्त वाक्य है।', points: 10, topic: 'वाक्य भेद' },
+    { id: 'q110_3', question: '‘नौ दो ग्यारह होना’ मुहावरे का सही अर्थ क्या है?', options: ['गिनती सीखना', 'भाग जाना', 'मदद मांगना', 'वापस आना'], correctIndex: 1, explanation: 'नौ दो ग्यारह होना का अर्थ है तुरंत भाग जाना।', points: 10, topic: 'मुहावरे' },
+    { id: 'q110_4', question: '‘अनुराग’ शब्द का सही विलोम शब्द क्या है?', options: ['विराग', 'राग', 'द्वेष', 'घृणा'], correctIndex: 0, explanation: 'अनुराग का विलोम विराग होता है।', points: 10, topic: 'विलोम' },
+    { id: 'q110_5', question: '‘पीपर पात सरिस मन डोला’ में कौन-सा अलंकार है?', options: ['रूपक', 'उपमा', 'उत्प्रेक्षा', 'अनुप्रास'], correctIndex: 1, explanation: '‘सरिस’ वाचक शब्द के प्रयोग से उपमा अलंकार सिद्ध होता है।', points: 10, topic: 'अलंकार' },
+  ],
+  111: [
+    { id: 'q111_1', question: 'Which soil is widely spread across the northern plains of India?', options: ['Black soil', 'Alluvial soil', 'Red soil', 'Arid soil'], correctIndex: 1, explanation: 'Alluvial soil deposited by Himalayan rivers covers northern plains.', points: 10, topic: 'Geography' },
+    { id: 'q111_2', question: 'In which country did power-sharing resolve conflict between Dutch and French communities?', options: ['Sri Lanka', 'Belgium', 'Yugoslavia', 'Lebanon'], correctIndex: 1, explanation: 'Belgium amended its constitution to provide equal representation.', points: 10, topic: 'Civics' },
+    { id: 'q111_3', question: 'Where was the first International Earth Summit held in 1992?', options: ['New York', 'Rio de Janeiro', 'Geneva', 'Kyoto'], correctIndex: 1, explanation: 'The 1992 Earth Summit was held in Rio de Janeiro, Brazil.', points: 10, topic: 'Economics' },
+    { id: 'q111_4', question: 'Activities like dairy farming and agriculture belong to which economic sector?', options: ['Primary sector', 'Secondary sector', 'Tertiary sector', 'Quaternary sector'], correctIndex: 0, explanation: 'Direct extraction and harvesting of natural resources belongs to the primary sector.', points: 10, topic: 'Economics' },
+    { id: 'q111_5', question: 'What is the primary objective of a federal system of government?', options: ['To concentrate power', 'To safeguard and promote unity while accommodating regional diversity', 'To eliminate state laws', 'To centralize all decisions'], correctIndex: 1, explanation: 'Federalism protects national unity while respecting regional diversity.', points: 10, topic: 'Civics' },
+  ],
+  112: [
+    { id: 'q112_1', question: 'Which HTML attribute specifies the hyperlink target URL in an <a> tag?', options: ['src', 'href', 'link', 'target'], correctIndex: 1, explanation: 'The "href" attribute specifies the destination URL.', points: 10, topic: 'Web Basics' },
+    { id: 'q112_2', question: 'Which secure protocol uses port 443 for encrypted web communication?', options: ['FTP', 'HTTPS', 'Telnet', 'SMTP'], correctIndex: 1, explanation: 'HTTPS encrypts HTTP traffic using TLS on port 443.', points: 10, topic: 'Networks' },
+    { id: 'q112_3', question: 'A system that monitors and filters incoming and outgoing network traffic is called a:', options: ['Firewall', 'Modem', 'Compiler', 'Browser'], correctIndex: 0, explanation: 'A firewall establishes a barrier against unauthorized external network traffic.', points: 10, topic: 'Cybersecurity' },
+    { id: 'q112_4', question: 'What does URL stand for in computer networking?', options: ['Uniform Resource Locator', 'Universal Record Link', 'Unified Router Logic', 'Unique Resource Line'], correctIndex: 0, explanation: 'URL stands for Uniform Resource Locator.', points: 10, topic: 'Networks' },
+    { id: 'q112_5', question: 'Fraudulent attempts to steal passwords and sensitive data via fake websites is called:', options: ['Phishing', 'Compiling', 'Defragmenting', 'Formatting'], correctIndex: 0, explanation: 'Phishing involves deceptive emails and spoofed sites to trick users.', points: 10, topic: 'Cyber Ethics' },
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -328,6 +380,7 @@ function getTeacherStudentsFromDb(classGrade = 10) {
       CONCAT(u.first_name, ' ', u.last_name) as name, 
       u.email,
       u.class_grade as classGrade,
+      COALESCE(u.section, 'A') as section,
       u.student_school_id as studentSchoolId,
       u.avatar_url as avatarUrl,
       COUNT(a.id) as quizzesCompleted, 
@@ -338,9 +391,9 @@ function getTeacherStudentsFromDb(classGrade = 10) {
       COALESCE(SUM(ROUND(a.time_taken_seconds / 60)), 0) as studyMinutes
     FROM acadevia_auth_db.users u 
     LEFT JOIN acadevia_quiz_db.quiz_attempts a ON u.id = a.user_id 
-    WHERE u.class_grade = ${classGrade} AND u.role = 'STUDENT' AND u.id BETWEEN 20 AND 29
-    GROUP BY u.id, u.first_name, u.last_name, u.email, u.class_grade, u.student_school_id, u.avatar_url, u.total_xp, u.current_level, u.current_streak
-    ORDER BY totalXP DESC;
+    WHERE u.class_grade = ${classGrade} AND u.role = 'STUDENT' AND u.is_active = 1
+    GROUP BY u.id, u.first_name, u.last_name, u.email, u.class_grade, u.section, u.student_school_id, u.avatar_url, u.total_xp, u.current_level, u.current_streak
+    ORDER BY totalXP DESC, u.id ASC;
   `;
 
   const attemptsQuery = `
@@ -351,7 +404,7 @@ function getTeacherStudentsFromDb(classGrade = 10) {
       CONCAT(u.first_name, ' ', u.last_name) as studentName,
       q.title as quizTitle,
       q.subject,
-      ${classGrade} as classGrade,
+      u.class_grade as classGrade,
       q.created_by as teacherId,
       a.percentage,
       a.score,
@@ -366,7 +419,7 @@ function getTeacherStudentsFromDb(classGrade = 10) {
     FROM acadevia_quiz_db.quiz_attempts a
     JOIN acadevia_quiz_db.quizzes q ON a.quiz_id = q.id
     JOIN acadevia_auth_db.users u ON a.user_id = u.id
-    WHERE a.user_id BETWEEN 20 AND 29
+    WHERE u.class_grade = ${classGrade} AND u.role = 'STUDENT'
     ORDER BY a.id ASC;
   `;
 
@@ -385,8 +438,8 @@ function getTeacherStudentsFromDb(classGrade = 10) {
       name: st.name,
       email: st.email,
       avatar: st.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(st.name)}`,
-      className: `Class ${st.classGrade || 10}`,
-      section: 'A',
+      className: `Class ${st.classGrade || classGrade}`,
+      section: st.section || 'A',
       totalXP,
       quizzesCompleted,
       avgScore,
@@ -414,7 +467,17 @@ function getTeacherStudentsFromDb(classGrade = 10) {
         xpEarned: Number(att.xpEarned),
         completedAt: att.completedAt,
       })),
-      activities: [],
+      activities: studentAttempts
+        .slice(-10)
+        .reverse()
+        .map((att) => ({
+          id: `act-att-${att.id}`,
+          type: 'QUIZ_COMPLETED',
+          title: `Completed Quiz: ${att.quizTitle}`,
+          description: `Scored ${att.percentage}% (${att.score}/${att.maxScore} pts) • ${att.subject}`,
+          timestamp: att.completedAt || 'Recently',
+          badgeText: `${att.percentage}% Score`,
+        })),
     };
   });
 
@@ -423,10 +486,206 @@ function getTeacherStudentsFromDb(classGrade = 10) {
 }
 
 // ---------------------------------------------------------------------------
+// 1.5 Get Comprehensive Student Academic Profile
+// ---------------------------------------------------------------------------
+function getStudentProfileFromDb(studentId) {
+  const numId = Number(studentId);
+  if (!numId || isNaN(numId)) return null;
+
+  const userQuery = `
+    SELECT 
+      u.id,
+      u.first_name as firstName,
+      u.last_name as lastName,
+      u.email,
+      u.role,
+      u.class_grade as classGrade,
+      COALESCE(u.section, 'A') as section,
+      u.student_school_id as studentSchoolId,
+      u.avatar_url as avatarUrl,
+      u.total_xp as totalXP,
+      u.current_level as level,
+      u.current_streak as streak,
+      u.longest_streak as longestStreak,
+      u.board,
+      u.preferred_language as language,
+      u.phone,
+      u.created_at as createdAt
+    FROM acadevia_auth_db.users u
+    WHERE u.id = ${numId} AND u.is_active = 1
+    LIMIT 1;
+  `;
+  const users = execSql(userQuery);
+  if (users.length === 0) return null;
+  const u = users[0];
+
+  const attemptsQuery = `
+    SELECT 
+      a.id,
+      a.quiz_id as quizId,
+      q.title as quizTitle,
+      q.subject,
+      a.score,
+      a.total_marks as maxScore,
+      a.percentage,
+      a.is_passed as passed,
+      a.total_questions as totalQuestions,
+      a.correct_answers as correctAnswers,
+      a.wrong_answers as wrongAnswers,
+      a.time_taken_seconds as timeTakenSeconds,
+      a.xp_earned as xpEarned,
+      a.completed_at as completedAt
+    FROM acadevia_quiz_db.quiz_attempts a
+    JOIN acadevia_quiz_db.quizzes q ON a.quiz_id = q.id
+    WHERE a.user_id = ${numId}
+    ORDER BY a.completed_at DESC, a.id DESC;
+  `;
+  const attempts = execSql(attemptsQuery);
+
+  const quizzesCompleted = attempts.length;
+  const totalQuestionsSum = attempts.reduce((sum, a) => sum + (Number(a.totalQuestions) || 0), 0);
+  const correctAnswersSum = attempts.reduce((sum, a) => sum + (Number(a.correctAnswers) || 0), 0);
+  const accuracy = totalQuestionsSum > 0 ? Math.round((correctAnswersSum / totalQuestionsSum) * 100) : 0;
+  const avgScore = quizzesCompleted > 0 ? Math.round(attempts.reduce((sum, a) => sum + (Number(a.percentage) || 0), 0) / quizzesCompleted) : 0;
+  const bestScore = quizzesCompleted > 0 ? Math.max(...attempts.map((a) => Number(a.percentage) || 0)) : 0;
+  const totalStudyMinutes = attempts.reduce((sum, a) => sum + Math.max(1, Math.round((Number(a.timeTakenSeconds) || 180) / 60)), 0);
+
+  // Subject Performance Breakdown
+  const subjectMap = {};
+  attempts.forEach((a) => {
+    const sub = a.subject || 'General';
+    if (!subjectMap[sub]) {
+      subjectMap[sub] = { subject: sub, totalScore: 0, count: 0, totalQuestions: 0, correctAnswers: 0 };
+    }
+    subjectMap[sub].totalScore += Number(a.percentage) || 0;
+    subjectMap[sub].count++;
+    subjectMap[sub].totalQuestions += Number(a.totalQuestions) || 0;
+    subjectMap[sub].correctAnswers += Number(a.correctAnswers) || 0;
+  });
+
+  const subjectPerformance = Object.values(subjectMap).map((sm) => ({
+    subject: sm.subject,
+    score: Math.round(sm.totalScore / sm.count),
+    quizzesTaken: sm.count,
+    accuracy: sm.totalQuestions > 0 ? Math.round((sm.correctAnswers / sm.totalQuestions) * 100) : 0,
+  }));
+
+  // Recent Student Activities (Quiz submissions + learning progress)
+  const learningProgress = execSql(`
+    SELECT title, subject, chapter, progress_percent as progressPercent, completed, last_watched_at as lastWatchedAt
+    FROM acadevia_content_db.student_learning_progress
+    WHERE student_id = ${numId}
+    ORDER BY last_watched_at DESC LIMIT 5;
+  `);
+
+  const activities = [];
+  attempts.slice(0, 10).forEach((att) => {
+    activities.push({
+      id: `act-q-${att.id}`,
+      type: 'QUIZ_COMPLETED',
+      title: `Completed Quiz: ${att.quizTitle}`,
+      description: `Scored ${att.percentage}% (${att.score}/${att.maxScore} pts) • ${att.subject}`,
+      timestamp: att.completedAt || 'Recently',
+      badgeText: `${att.percentage}% Score`,
+      date: att.completedAt,
+    });
+  });
+
+  learningProgress.forEach((lp, idx) => {
+    activities.push({
+      id: `act-lp-${idx}`,
+      type: 'LESSON_COMPLETED',
+      title: `${lp.completed === '1' ? 'Completed' : 'Watched'} Lesson: ${lp.title}`,
+      description: `${lp.subject} • ${lp.chapter} (${Math.round(lp.progressPercent)}% watched)`,
+      timestamp: lp.lastWatchedAt || 'Recently',
+      badgeText: `${Math.round(lp.progressPercent)}% Video`,
+      date: lp.lastWatchedAt,
+    });
+  });
+
+  activities.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+
+  // Badges calculation
+  const totalXP = Number(u.totalXP) || 0;
+  const level = Number(u.level) || 1;
+  const streak = Number(u.streak) || 0;
+  const longestStreak = Number(u.longestStreak) || streak;
+
+  const badges = [
+    { id: 'b1', name: 'First Lesson', description: 'Complete your first lesson or quiz', icon: '📖', isEarned: quizzesCompleted >= 1 },
+    { id: 'b2', name: 'Quiz Master', description: 'Score 80%+ on 10 quizzes', icon: '🧠', isEarned: quizzesCompleted >= 10 && avgScore >= 80 },
+    { id: 'b3', name: 'Week Warrior', description: 'Maintain a 7-day learning streak', icon: '🔥', isEarned: longestStreak >= 7 },
+    { id: 'b4', name: 'Scholar', description: 'Reach Level 10 on Acadevia', icon: '🎓', isEarned: level >= 10 },
+    { id: 'b6', name: 'Perfect Score', description: 'Score 100% on 5 quizzes', icon: '💯', isEarned: attempts.filter((a) => Number(a.percentage) === 100).length >= 5 },
+    { id: 'b7', name: 'Legend', description: 'Reach Level 50 on Acadevia', icon: '⭐', isEarned: level >= 50 },
+  ];
+
+  const fullName = `${u.firstName || ''} ${u.lastName || ''}`.trim();
+  const avatar = (u.avatarUrl && u.avatarUrl !== 'NULL' && u.avatarUrl !== 'null')
+    ? u.avatarUrl
+    : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`;
+
+  return {
+    id: String(u.id),
+    name: fullName,
+    fullName,
+    email: u.email,
+    role: u.role,
+    avatar,
+    avatarUrl: avatar,
+    classGrade: Number(u.classGrade || 10),
+    className: `Class ${u.classGrade || 10}`,
+    section: u.section || 'A',
+    schoolName: 'Acadevia Demo School',
+    enrollmentStatus: 'Enrolled',
+    studentSchoolId: u.studentSchoolId || `STU-${u.id}`,
+    board: u.board || 'CBSE',
+    language: u.language || 'English',
+    phone: u.phone || '+91 98765 43210',
+    totalXP,
+    level,
+    streak,
+    longestStreak,
+    quizzesCompleted,
+    avgScore,
+    accuracy,
+    bestScore,
+    progress: Math.min(100, Math.round((quizzesCompleted / 12) * 100)),
+    curriculumCompletion: Math.min(100, Math.round((quizzesCompleted / 12) * 100)),
+    studyMinutes: totalStudyMinutes,
+    results: attempts.map((att) => ({
+      id: `att-${att.id}`,
+      quizId: resolveAliasQuizId(att.quizId),
+      numericQuizId: String(att.quizId),
+      quizTitle: att.quizTitle,
+      subject: att.subject,
+      studentId: String(numId),
+      studentName: fullName,
+      score: Number(att.score),
+      totalPoints: Number(att.maxScore),
+      percentage: Number(att.percentage),
+      passed: att.passed === '1',
+      totalQuestions: Number(att.totalQuestions),
+      correctAnswers: Number(att.correctAnswers),
+      wrongAnswers: Number(att.wrongAnswers),
+      timeTakenSeconds: Number(att.timeTakenSeconds),
+      xpEarned: Number(att.xpEarned),
+      completedAt: att.completedAt,
+    })),
+    subjectPerformance,
+    activities: activities.slice(0, 10),
+    badges,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // 2. Get Teacher Analytics
 // ---------------------------------------------------------------------------
-function getTeacherAnalyticsFromDb(classGrade = 10, subject = 'All') {
-  const cacheKey = `${classGrade}_${subject}`;
+// 2.5 Teacher Analytics Query with Date Range, Subject & Class Isolation
+// ---------------------------------------------------------------------------
+function getTeacherAnalyticsFromDb(classGrade = 10, subject = 'All', dateRange = '30') {
+  const normDateRange = String(dateRange || '30').toLowerCase();
+  const cacheKey = `${classGrade}_${subject}_${normDateRange}`;
   const cached = serverCache.teacherAnalytics.get(cacheKey);
   if (isFresh(cached)) {
     return cached.data;
@@ -434,128 +693,293 @@ function getTeacherAnalyticsFromDb(classGrade = 10, subject = 'All') {
   const students = getTeacherStudentsFromDb(classGrade);
   const totalStudents = students.length;
 
-  const allAttempts = students.flatMap((s) => s.results);
-  const filteredAttempts = subject && subject !== 'All'
-    ? allAttempts.filter((att) => att.subject.toLowerCase() === subject.toLowerCase())
-    : allAttempts;
+  const allClassAttempts = students.flatMap((s) => s.results);
 
-  // 1. Quizzes summary
-  const quizMap = {};
-  filteredAttempts.forEach((att) => {
-    if (!quizMap[att.quizId]) {
-      quizMap[att.quizId] = {
-        id: att.quizId,
-        name: att.quizTitle.length > 22 ? att.quizTitle.substring(0, 20) + '...' : att.quizTitle,
-        fullName: att.quizTitle,
-        totalScore: 0,
-        count: 0,
-      };
+  // Subject filtering: support CBSE grouping for Science (Physics, Chemistry, Biology)
+  const normSubject = (subject || 'All').trim();
+  const subjectFilter = (att) => {
+    if (!normSubject || normSubject === 'All') return true;
+    const attSub = (att.subject || '').toLowerCase();
+    const selSub = normSubject.toLowerCase();
+    if (selSub === 'science') {
+      return attSub === 'science' || attSub === 'physics' || attSub === 'chemistry' || attSub === 'biology';
     }
-    quizMap[att.quizId].totalScore += att.percentage;
-    quizMap[att.quizId].count += 1;
+    return attSub === selSub;
+  };
+
+  // Date filtering
+  const now = Date.now();
+  let cutoffTime = 0;
+  if (normDateRange === '7') {
+    cutoffTime = now - 7 * 24 * 60 * 60 * 1000;
+  } else if (normDateRange === '30') {
+    cutoffTime = now - 30 * 24 * 60 * 60 * 1000;
+  } else if (normDateRange === '90') {
+    cutoffTime = now - 90 * 24 * 60 * 60 * 1000;
+  }
+
+  const filteredAttempts = allClassAttempts.filter((att) => {
+    if (!subjectFilter(att)) return false;
+    if (cutoffTime > 0) {
+      const attTime = att.completedAt ? new Date(att.completedAt).getTime() : 0;
+      if (attTime < cutoffTime) return false;
+    }
+    return true;
   });
 
-  const quizScores = Object.values(quizMap).map((q) => ({
-    id: q.id,
-    name: q.name,
-    fullName: q.fullName,
-    avg: q.count > 0 ? Math.round(q.totalScore / q.count) : 0,
-    attempts: q.count,
-  }));
+  const totalSubmissions = filteredAttempts.length;
+  const classAverage = totalSubmissions > 0
+    ? Math.round(filteredAttempts.reduce((sum, a) => sum + a.percentage, 0) / totalSubmissions)
+    : 0;
 
-  // 2. Completion rate
-  const submittedStudentIds = new Set(filteredAttempts.map((att) => att.studentId));
-  const completedCount = submittedStudentIds.size;
-  const notStartedCount = Math.max(0, totalStudents - completedCount);
-  const completedPct = totalStudents > 0 ? Math.round((completedCount / totalStudents) * 100) : 0;
-  const notStartedPct = Math.max(0, 100 - completedPct);
+  // Active students in reporting period
+  const submittedStudentIds = new Set(filteredAttempts.map((att) => String(att.studentId)));
+  const activeStudents = submittedStudentIds.size;
+  const completionRate = totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
+  const notStartedCount = Math.max(0, totalStudents - activeStudents);
+  const notStartedPct = Math.max(0, 100 - completionRate);
 
   const completionData = [
-    { name: 'Completed', value: completedPct, count: completedCount, color: '#5B2C6F' },
+    { name: 'Completed', value: completionRate, count: activeStudents, color: '#5B2C6F' },
     { name: 'In Progress', value: 0, count: 0, color: '#f59e0b' },
     { name: 'Not Started', value: notStartedPct, count: notStartedCount, color: '#ef4444' },
   ];
 
-  // 3. Engagement trend (30 days)
-  const now = new Date();
+  // 1. Quizzes summary (filtered by class, subject, date)
+  const allQuizzes = getQuizzesFromDb();
+  const classQuizzes = allQuizzes.filter((q) => {
+    if (Number(q.classGrade) !== Number(classGrade)) return false;
+    if (normSubject !== 'All') {
+      const qSub = (q.subject || '').toLowerCase();
+      const selSub = normSubject.toLowerCase();
+      if (selSub === 'science') {
+        return qSub === 'science' || qSub === 'physics' || qSub === 'chemistry' || qSub === 'biology';
+      }
+      return qSub === selSub;
+    }
+    return true;
+  });
+
+  const detailedQuizzes = classQuizzes.map((q) => {
+    const qAttempts = filteredAttempts.filter((att) => String(att.quizId) === String(q.id) || String(att.quizId) === String(q.numericId));
+    const count = qAttempts.length;
+    const avg = count > 0 ? Math.round(qAttempts.reduce((sum, a) => sum + a.percentage, 0) / count) : 0;
+    const distinctAttempters = new Set(qAttempts.map((a) => String(a.studentId))).size;
+    const compPct = totalStudents > 0 ? Math.round((distinctAttempters / totalStudents) * 100) : 0;
+    const status = avg >= 75 ? 'STRONG' : avg >= 50 ? 'SATISFACTORY' : (count > 0 ? 'NEEDS_ATTENTION' : 'NO_DATA');
+    return {
+      id: q.id,
+      title: q.title,
+      name: q.title.length > 22 ? q.title.substring(0, 20) + '...' : q.title,
+      fullName: q.title,
+      subject: q.subject,
+      chapterInfo: q.chapterInfo || '',
+      avg,
+      avgScore: avg,
+      attempts: count,
+      completionPct: compPct,
+      status,
+    };
+  });
+
+  // Fallback for quizScores
+  const quizScores = detailedQuizzes.map((q) => ({
+    id: q.id,
+    name: q.name,
+    fullName: q.fullName,
+    avg: q.avg,
+    attempts: q.attempts,
+  }));
+
+  // 2. Engagement & Performance Trend (Timeline)
+  const numDays = normDateRange === '7' ? 7 : normDateRange === '90' ? 90 : 30;
   const engagementTrend = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(now);
+  const nowDate = new Date();
+
+  let runningClassAvg = classAverage;
+  for (let i = numDays - 1; i >= 0; i--) {
+    const d = new Date(nowDate);
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().split('T')[0];
     const dayLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const dayAttempts = filteredAttempts.filter((att) => (att.completedAt || '').startsWith(dateStr));
+    const daySubmissions = dayAttempts.length;
+    if (daySubmissions > 0) {
+      runningClassAvg = Math.round(dayAttempts.reduce((sum, a) => sum + a.percentage, 0) / daySubmissions);
+    }
     engagementTrend.push({
       day: dayLabel,
       date: dateStr,
-      engagement: dayAttempts.length,
+      engagement: daySubmissions,
+      submissions: daySubmissions,
+      score: daySubmissions > 0 ? runningClassAvg : (classAverage > 0 ? classAverage : 0),
     });
   }
 
-  // 4. Top performers & at-risk
-  const studentMap = {};
-  filteredAttempts.forEach((att) => {
-    if (!studentMap[att.studentId]) {
-      studentMap[att.studentId] = {
-        id: att.studentId,
-        name: att.studentName,
-        totalScore: 0,
-        count: 0,
-        totalXP: 0,
-      };
-    }
-    studentMap[att.studentId].totalScore += att.percentage;
-    studentMap[att.studentId].count += 1;
-    studentMap[att.studentId].totalXP += att.xpEarned;
+  // 3. Full Student Roster (All students in class, with real filtered stats)
+  const studentRoster = students.map((st) => {
+    const stAttempts = filteredAttempts.filter((a) => String(a.studentId) === String(st.id));
+    const quizzesCompleted = stAttempts.length;
+    const avgScore = quizzesCompleted > 0
+      ? Math.round(stAttempts.reduce((sum, a) => sum + a.percentage, 0) / quizzesCompleted)
+      : 0;
+    const status = quizzesCompleted === 0
+      ? 'NOT_STARTED'
+      : avgScore >= 80
+      ? 'EXCELLING'
+      : avgScore >= 50
+      ? 'ON_TRACK'
+      : 'NEEDS_ATTENTION';
+    const needsAttentionReason = avgScore < 50 && quizzesCompleted > 0
+      ? `Average score is ${avgScore}% (below 50% passing threshold)`
+      : undefined;
+
+    return {
+      id: String(st.id),
+      name: st.name,
+      avatarUrl: st.avatarUrl,
+      className: st.className || `Class ${classGrade}`,
+      section: st.section || 'A',
+      avgScore,
+      quizzesCompleted,
+      totalXP: st.totalXP,
+      streak: st.streak,
+      status,
+      needsAttentionReason,
+    };
   });
 
-  const studentStats = Object.values(studentMap).map((s) => ({
-    id: s.id,
-    name: s.name,
-    score: Math.round(s.totalScore / s.count),
-    xp: s.totalXP,
-    quizzesTaken: s.count,
-  }));
-
-  const topPerformers = [...studentStats]
-    .sort((a, b) => b.score - a.score || b.xp - a.xp)
-    .slice(0, 5);
-
-  const atRiskStudents = studentStats
-    .filter((s) => s.score < 50)
+  // Top performers & at-risk
+  const assessedStudents = studentRoster.filter((s) => s.quizzesCompleted > 0);
+  const topPerformers = [...assessedStudents]
+    .sort((a, b) => b.avgScore - a.avgScore || b.totalXP - a.totalXP)
+    .slice(0, 5)
     .map((s) => ({
       id: s.id,
       name: s.name,
-      score: s.score,
+      score: s.avgScore,
+      xp: s.totalXP,
+      quizzesTaken: s.quizzesCompleted,
+    }));
+
+  const atRiskStudents = assessedStudents
+    .filter((s) => s.avgScore < 50)
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      score: s.avgScore,
       lastActive: 'Recently',
     }));
 
-  // 5. Subject comparison across all class subjects
-  const classSubjects = ['Mathematics', 'Science', 'English', 'Hindi', 'Social Science', 'Computer Science'];
-  const subjectComparison = classSubjects.map((sub) => {
-    const subAttempts = allAttempts.filter((att) => att.subject.toLowerCase() === sub.toLowerCase());
-    const score = subAttempts.length > 0
-      ? Math.round(subAttempts.reduce((sum, att) => sum + att.percentage, 0) / subAttempts.length)
-      : 0;
+  // 4. Subject Comparison across curriculum subjects
+  const classSubjects = ['Mathematics', 'Science', 'Physics', 'Chemistry', 'English', 'Hindi', 'Social Science', 'Computer Science'];
+  const subjectComparison = [
+    { name: 'Mathematics', match: (s) => s === 'mathematics' || s === 'math' },
+    { name: 'Science', match: (s) => s === 'science' || s === 'physics' || s === 'chemistry' || s === 'biology' },
+    { name: 'Social Science', match: (s) => s === 'social science' || s === 'social' || s === 'history' || s === 'civics' },
+    { name: 'English', match: (s) => s === 'english' },
+    { name: 'Hindi', match: (s) => s === 'hindi' },
+    { name: 'Computer Science', match: (s) => s === 'computer science' || s === 'cs' },
+  ].map((subItem) => {
+    const subAttempts = allClassAttempts.filter((att) => {
+      const attSub = (att.subject || '').toLowerCase();
+      if (!subItem.match(attSub)) return false;
+      if (cutoffTime > 0) {
+        const attTime = att.completedAt ? new Date(att.completedAt).getTime() : 0;
+        if (attTime < cutoffTime) return false;
+      }
+      return true;
+    });
+    const count = subAttempts.length;
+    const score = count > 0 ? Math.round(subAttempts.reduce((sum, a) => sum + a.percentage, 0) / count) : 0;
     return {
-      subject: sub === 'Social Science' ? 'Social' : sub,
+      subject: subItem.name === 'Social Science' ? 'Social' : subItem.name,
       score,
-      submissions: subAttempts.length,
+      submissions: count,
     };
   });
+
+  // 5. Actionable Insights from real data
+  const actionableInsights = [];
+  if (atRiskStudents.length > 0) {
+    actionableInsights.push({
+      id: 'ins-atrisk',
+      type: 'CRITICAL',
+      title: 'Academic Support Recommended',
+      description: `${atRiskStudents.length} student${atRiskStudents.length > 1 ? 's are' : ' is'} averaging below the 50% passing threshold in active assessments.`,
+      metric: `${atRiskStudents.length} Students`,
+      actionLabel: 'View Flagged Students',
+      actionType: 'VIEW_STUDENTS',
+    });
+  }
+
+  const activeSubjectComparisons = subjectComparison.filter((s) => s.submissions > 0);
+  if (activeSubjectComparisons.length > 0) {
+    const weakestSubject = [...activeSubjectComparisons].sort((a, b) => a.score - b.score)[0];
+    if (weakestSubject && weakestSubject.score < 70) {
+      actionableInsights.push({
+        id: 'ins-weak-sub',
+        type: 'WARNING',
+        title: 'Curriculum Focus Area',
+        description: `${weakestSubject.subject} has the lowest average mastery score (${weakestSubject.score}%) across ${weakestSubject.submissions} submission(s).`,
+        metric: `${weakestSubject.score}% Avg`,
+        actionLabel: 'Filter by Subject',
+        actionType: 'VIEW_SUBJECT',
+      });
+    }
+  }
+
+  if (classAverage >= 60 && totalSubmissions > 0) {
+    actionableInsights.push({
+      id: 'ins-progress',
+      type: 'POSITIVE',
+      title: 'Strong Overall Mastery',
+      description: `Class average is ${classAverage}% across ${totalSubmissions} graded submission(s) in this period.`,
+      metric: `${classAverage}%`,
+    });
+  }
+
+  if (completionRate === 100 && totalStudents > 0) {
+    actionableInsights.push({
+      id: 'ins-completion',
+      type: 'POSITIVE',
+      title: 'Full Class Participation',
+      description: `All ${totalStudents} enrolled students in Class ${classGrade} have submitted assessments.`,
+      metric: '100% Active',
+    });
+  } else if (totalStudents > 0 && activeStudents < totalStudents) {
+    const inactiveCount = totalStudents - activeStudents;
+    actionableInsights.push({
+      id: 'ins-participation',
+      type: 'NEUTRAL',
+      title: 'Participation Opportunity',
+      description: `${inactiveCount} enrolled student${inactiveCount > 1 ? 's have' : ' has'} not yet submitted assessments in this reporting period.`,
+      metric: `${completionRate}% Active`,
+      actionLabel: 'View Inactive Students',
+      actionType: 'VIEW_INACTIVE',
+    });
+  }
 
   const result = {
     classGrade: Number(classGrade),
     availableClasses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-    subject: subject || 'All',
+    subject: normSubject,
     availableSubjects: ['All', ...classSubjects],
+    dateRange: normDateRange,
     totalStudents,
+    activeStudents,
+    totalSubmissions,
+    classAverage,
+    completionRate,
     quizScores,
+    detailedQuizzes,
     completionData,
     engagementTrend,
+    studentRoster,
     topPerformers,
     atRiskStudents,
     subjectComparison,
+    actionableInsights,
   };
 
   serverCache.teacherAnalytics.set(cacheKey, { data: result, timestamp: Date.now() });
@@ -718,6 +1142,8 @@ function getQuizzesFromDb() {
 
     questionMap[qId].push({
       id: `q-${q.id}`,
+      questionId: Number(q.id),
+      numericId: Number(q.id),
       question: q.question,
       options,
       correctIndex,
@@ -808,9 +1234,97 @@ function getQuizAttemptsFromDb() {
 }
 
 // ---------------------------------------------------------------------------
+// 5.8 Initialize Question Mastery Table and Backfill Existing Attempts
+// ---------------------------------------------------------------------------
+function initQuestionMasteryTable() {
+  try {
+    execSqlMutation(`
+      CREATE TABLE IF NOT EXISTS acadevia_quiz_db.student_question_mastery (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        quiz_id BIGINT NOT NULL,
+        question_id BIGINT NOT NULL,
+        xp_awarded INT NOT NULL DEFAULT 0,
+        mastered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        attempt_id BIGINT,
+        UNIQUE KEY uniq_user_question (user_id, question_id),
+        KEY idx_user_quiz (user_id, quiz_id)
+      );
+    `);
+
+    // Check if backfill is needed
+    const countRows = execSql(`SELECT COUNT(*) as cnt FROM acadevia_quiz_db.student_question_mastery;`);
+    const currentCount = Number(countRows[0]?.cnt || 0);
+
+    if (currentCount === 0) {
+      const attempts = execSql(`SELECT id, quiz_id, user_id, answers_json, completed_at FROM acadevia_quiz_db.quiz_attempts ORDER BY id ASC;`);
+      const questions = execSql(`SELECT id, quiz_id, marks, optiona, optionb, optionc, optiond, correct_answer FROM acadevia_quiz_db.questions WHERE is_active = 1 ORDER BY id ASC;`);
+
+      const questionsByQuiz = {};
+      questions.forEach((q) => {
+        const qzId = String(q.quiz_id);
+        if (!questionsByQuiz[qzId]) questionsByQuiz[qzId] = [];
+        const options = [q.optiona, q.optionb, q.optionc, q.optiond].filter(Boolean);
+        let correctIndex = 0;
+        const ans = String(q.correct_answer || '').trim();
+        const upperAns = ans.toUpperCase();
+        const foundIdx = options.findIndex((opt) => String(opt).trim().toLowerCase() === ans.toLowerCase());
+        if (foundIdx !== -1) {
+          correctIndex = foundIdx;
+        } else if (upperAns === 'B' || upperAns === '1') {
+          correctIndex = 1;
+        } else if (upperAns === 'C' || upperAns === '2') {
+          correctIndex = 2;
+        } else if (upperAns === 'D' || upperAns === '3') {
+          correctIndex = 3;
+        } else {
+          correctIndex = 0;
+        }
+        questionsByQuiz[qzId].push({
+          id: Number(q.id),
+          correctIndex,
+          points: Number(q.marks) || 10,
+        });
+      });
+
+      const masteredSet = new Set();
+      attempts.forEach((att) => {
+        let answers = [];
+        try {
+          answers = JSON.parse(att.answers_json || '[]');
+        } catch {}
+        const qList = questionsByQuiz[String(att.quiz_id)] || [];
+        qList.forEach((q, idx) => {
+          let studentAns = Array.isArray(answers) ? answers[idx] : undefined;
+          if (studentAns !== undefined && Number(studentAns) === Number(q.correctIndex)) {
+            const key = `${att.user_id}_${q.id}`;
+            if (!masteredSet.has(key)) {
+              masteredSet.add(key);
+              const xp = (Number(q.points) || 1) * 10;
+              const completedTime = att.completed_at || new Date().toISOString().slice(0, 19).replace('T', ' ');
+              try {
+                execSqlMutation(`
+                  INSERT IGNORE INTO acadevia_quiz_db.student_question_mastery
+                  (user_id, quiz_id, question_id, xp_awarded, mastered_at, attempt_id)
+                  VALUES
+                  (${att.user_id}, ${att.quiz_id}, ${q.id}, ${xp}, '${completedTime}', ${att.id});
+                `);
+              } catch {}
+            }
+          }
+        });
+      });
+    }
+  } catch (err) {
+    console.warn('[initQuestionMasteryTable] error:', err.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 6. Submit Quiz Attempt to Database & Update Student XP / Streaks
 // ---------------------------------------------------------------------------
 function submitAttemptToDb(params) {
+  initQuestionMasteryTable();
   const numericQuizId = resolveNumericQuizId(params.quizId);
   const studentId = Number(params.studentId);
   if (!studentId || isNaN(studentId)) {
@@ -828,14 +1342,35 @@ function submitAttemptToDb(params) {
   const timeTakenSeconds = Number(params.timeTakenSeconds) || 180;
   const completedAt = params.completedAt || new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-  // Fetch quiz to calculate score
+  // Fetch previous attempts for this student & quiz to determine attempt number
+  const previousAttempts = execSql(`
+    SELECT id, attempt_number, score, total_marks, percentage, is_passed, xp_earned, completed_at 
+    FROM acadevia_quiz_db.quiz_attempts 
+    WHERE quiz_id = ${numericQuizId} AND user_id = ${studentId} 
+    ORDER BY id ASC;
+  `);
+  const attemptNumber = previousAttempts.length + 1;
+  const isRetest = attemptNumber > 1;
+
+  // Fetch quiz to calculate score and question points
   const quizzes = getQuizzesFromDb();
   const quiz = quizzes.find((q) => q.numericId === String(numericQuizId) || q.id === params.quizId);
+
+  // Retrieve already mastered question IDs for this student for this quiz
+  const masteredRows = execSql(`
+    SELECT question_id 
+    FROM acadevia_quiz_db.student_question_mastery 
+    WHERE user_id = ${studentId} AND quiz_id = ${numericQuizId};
+  `);
+  const masteredQuestionIds = new Set(masteredRows.map((r) => Number(r.question_id)));
 
   let score = 0;
   let totalMarks = quiz?.questions?.reduce((acc, q) => acc + q.points, 0) || 50;
   let correctCount = 0;
   let wrongCount = 0;
+  let attemptXpEarned = 0;
+  let newlyMasteredCount = 0;
+  const newlyMasteredQuestions = [];
 
   if (quiz && quiz.questions && quiz.questions.length > 0) {
     quiz.questions.forEach((q, idx) => {
@@ -843,9 +1378,25 @@ function submitAttemptToDb(params) {
       if (studentAns === undefined && typeof answers === 'object') {
         studentAns = answers[q.id] !== undefined ? answers[q.id] : answers[String(idx)];
       }
-      if (studentAns !== undefined && Number(studentAns) === Number(q.correctIndex)) {
+
+      const qNumId = Number(q.numericId || String(q.id).replace(/\D/g, '')) || (idx + 1);
+      const isCorrect = studentAns !== undefined && Number(studentAns) === Number(q.correctIndex);
+
+      if (isCorrect) {
         score += q.points;
         correctCount++;
+
+        // Check if question was ever mastered before
+        if (!masteredQuestionIds.has(qNumId)) {
+          // Newly mastered! Award normal XP
+          const qXp = (Number(q.points) || 1) * 10;
+          attemptXpEarned += qXp;
+          newlyMasteredCount++;
+          newlyMasteredQuestions.push({ questionId: qNumId, xp: qXp });
+          masteredQuestionIds.add(qNumId);
+        } else {
+          // Already mastered in an earlier attempt: 0 additional XP
+        }
       } else {
         wrongCount++;
       }
@@ -855,11 +1406,10 @@ function submitAttemptToDb(params) {
     totalMarks = 50;
     correctCount = 4;
     wrongCount = 1;
+    attemptXpEarned = isRetest ? 0 : 400;
   }
 
   const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
-  const baseReward = Number(quiz?.xpReward) || 50;
-  const xpEarned = Math.max(score * 10, baseReward);
   const isPassed = percentage >= 60 ? 1 : 0;
   const answersJson = JSON.stringify(answers).replace(/'/g, "\\'");
   const totalQuestions = quiz?.questions?.length || (Array.isArray(answers) ? answers.length : Object.keys(answers).length) || 5;
@@ -868,16 +1418,51 @@ function submitAttemptToDb(params) {
     INSERT INTO acadevia_quiz_db.quiz_attempts
     (quiz_id, user_id, status, attempt_number, score, total_marks, percentage, is_passed, total_questions, correct_answers, wrong_answers, time_taken_seconds, xp_earned, answers_json, completed_at)
     VALUES
-    (${numericQuizId}, ${studentId}, 'SUBMITTED', 1, ${score}, ${totalMarks}, ${percentage}, ${isPassed}, ${totalQuestions}, ${correctCount}, ${wrongCount}, ${timeTakenSeconds}, ${xpEarned}, '${answersJson}', '${completedAt}');
+    (${numericQuizId}, ${studentId}, 'SUBMITTED', ${attemptNumber}, ${score}, ${totalMarks}, ${percentage}, ${isPassed}, ${totalQuestions}, ${correctCount}, ${wrongCount}, ${timeTakenSeconds}, ${attemptXpEarned}, '${answersJson}', '${completedAt}');
   `;
   execSqlMutation(insertSql);
 
-  // Update Student XP, Level, and Streak in acadevia_auth_db.users
+  const attemptIdRow = execSql(`SELECT MAX(id) as maxId FROM acadevia_quiz_db.quiz_attempts WHERE user_id = ${studentId} AND quiz_id = ${numericQuizId};`);
+  const attemptId = Number(attemptIdRow[0]?.maxId) || 0;
+
+  // Persist newly mastered questions to student_question_mastery
+  newlyMasteredQuestions.forEach((nm) => {
+    try {
+      execSqlMutation(`
+        INSERT IGNORE INTO acadevia_quiz_db.student_question_mastery
+        (user_id, quiz_id, question_id, xp_awarded, mastered_at, attempt_id)
+        VALUES
+        (${studentId}, ${numericQuizId}, ${nm.questionId}, ${nm.xp}, '${completedAt}', ${attemptId});
+      `);
+    } catch {}
+  });
+
+  // Record individual answers into attempt_answers
+  if (quiz && quiz.questions && quiz.questions.length > 0) {
+    quiz.questions.forEach((q, idx) => {
+      let studentAns = Array.isArray(answers) ? answers[idx] : undefined;
+      if (studentAns === undefined && typeof answers === 'object') {
+        studentAns = answers[q.id] !== undefined ? answers[q.id] : answers[String(idx)];
+      }
+      const qNumId = Number(q.numericId || String(q.id).replace(/\D/g, '')) || (idx + 1);
+      const isCorrect = studentAns !== undefined && Number(studentAns) === Number(q.correctIndex);
+      try {
+        execSqlMutation(`
+          INSERT INTO acadevia_quiz_db.attempt_answers
+          (attempt_id, question_id, quiz_id, user_id, selected_answer, is_correct, marks_awarded, time_taken_seconds)
+          VALUES
+          (${attemptId}, ${qNumId}, ${numericQuizId}, ${studentId}, '${studentAns !== undefined ? String(studentAns) : ''}', ${isCorrect ? 1 : 0}, ${isCorrect ? q.points : 0}, 0);
+        `);
+      } catch {}
+    });
+  }
+
+  // Authoritatively update student total_xp and current_level in acadevia_auth_db.users from actual attempts sum
   const updateStudentSql = `
     UPDATE acadevia_auth_db.users
     SET 
-      total_xp = total_xp + ${xpEarned},
-      current_level = FLOOR((total_xp + ${xpEarned}) / 500) + 1,
+      total_xp = (SELECT COALESCE(SUM(xp_earned), 0) FROM acadevia_quiz_db.quiz_attempts WHERE user_id = ${studentId}),
+      current_level = FLOOR((SELECT COALESCE(SUM(xp_earned), 0) FROM acadevia_quiz_db.quiz_attempts WHERE user_id = ${studentId}) / 500) + 1,
       current_streak = GREATEST(current_streak, 1),
       longest_streak = GREATEST(longest_streak, current_streak, 1)
     WHERE id = ${studentId};
@@ -885,13 +1470,20 @@ function submitAttemptToDb(params) {
   execSqlMutation(updateStudentSql);
   invalidateServerCache();
 
+  // Fetch updated total XP and student name
+  const updatedUser = execSql(`SELECT first_name, last_name, total_xp, current_level FROM acadevia_auth_db.users WHERE id = ${studentId};`);
+  const studentName = updatedUser[0] ? `${updatedUser[0].first_name || ''} ${updatedUser[0].last_name || ''}`.trim() : 'Student';
+  const updatedTotalXP = Number(updatedUser[0]?.total_xp) || 0;
+  const updatedLevel = Number(updatedUser[0]?.current_level) || 1;
+
   return {
-    id: `res-${Date.now()}`,
+    id: `res-${attemptId}`,
+    attemptId: Number(attemptId),
     quizId: resolveAliasQuizId(numericQuizId),
     numericQuizId: String(numericQuizId),
     quizTitle: quiz?.title || 'Class Assessment',
     studentId: String(studentId),
-    studentName: 'Student',
+    studentName,
     teacherId: quiz?.teacherId || '10',
     classGrade: quiz?.classGrade || 10,
     subject: quiz?.subject || 'Mathematics',
@@ -904,8 +1496,183 @@ function submitAttemptToDb(params) {
     isPassed,
     answers,
     completedAt,
-    xpEarned,
+    attemptNumber,
+    isRetest,
+    newMasteredCount: newlyMasteredCount,
+    xpEarned: attemptXpEarned,
+    totalStudentXP: updatedTotalXP,
+    level: updatedLevel,
     timeTakenSeconds,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 6.5 Get Subject Mastery Detail & Student Drill-Down for Teacher Analytics
+// ---------------------------------------------------------------------------
+function getSubjectMasteryDetailFromDb(classGrade = 10, subjectName = 'Mathematics') {
+  initQuestionMasteryTable();
+  const students = getTeacherStudentsFromDb(classGrade);
+  const totalEnrolledStudents = students.length;
+
+  const normSubject = (subjectName || 'Mathematics').trim().toLowerCase();
+  const matchSubject = (sub) => {
+    const s = (sub || '').toLowerCase();
+    if (normSubject === 'all') return true;
+    if (normSubject === 'mathematics' || normSubject === 'math') {
+      return s === 'mathematics' || s === 'math';
+    }
+    if (normSubject === 'science') {
+      return s === 'science' || s === 'physics' || s === 'chemistry' || s === 'biology';
+    }
+    if (normSubject === 'social' || normSubject === 'social science') {
+      return s === 'social science' || s === 'social' || s === 'history' || s === 'civics';
+    }
+    if (normSubject === 'english') return s === 'english';
+    if (normSubject === 'hindi') return s === 'hindi';
+    if (normSubject === 'computer science' || normSubject === 'cs') {
+      return s === 'computer science' || s === 'cs';
+    }
+    return s === normSubject;
+  };
+
+  // Extract all attempts across students for this subject
+  const allAttempts = [];
+  students.forEach((st) => {
+    (st.results || []).forEach((res) => {
+      if (matchSubject(res.subject)) {
+        allAttempts.push({
+          ...res,
+          studentId: String(st.id),
+          studentName: st.name,
+          studentAvatar: st.avatar,
+          className: st.className,
+          section: st.section,
+        });
+      }
+    });
+  });
+
+  // Group attempts by student and quiz
+  const studentQuizMap = new Map();
+  allAttempts.forEach((att) => {
+    const key = `${att.studentId}_${att.quizId}`;
+    if (!studentQuizMap.has(key)) {
+      studentQuizMap.set(key, []);
+    }
+    studentQuizMap.get(key).push(att);
+  });
+
+  // Process student quiz performance records
+  const studentRows = [];
+  const uniqueStudentsSet = new Set();
+  const studentsWithRetestsSet = new Set();
+  let totalRetestAttempts = 0;
+  let totalCorrect = 0;
+  let totalQuestions = 0;
+  let totalScoreSum = 0;
+
+  studentQuizMap.forEach((attemptsList) => {
+    // Sort attempts chronologically
+    attemptsList.sort((a, b) => new Date(a.completedAt || 0).getTime() - new Date(b.completedAt || 0).getTime() || (Number(a.id.replace(/\D/g, '')) - Number(b.id.replace(/\D/g, ''))));
+
+    const first = attemptsList[0];
+    const latest = attemptsList[attemptsList.length - 1];
+    const attemptCount = attemptsList.length;
+    const retests = Math.max(0, attemptCount - 1);
+    const bestScore = Math.max(...attemptsList.map((a) => Number(a.percentage) || 0));
+    const latestScore = Number(latest.percentage) || 0;
+    const firstScore = Number(first.percentage) || 0;
+
+    uniqueStudentsSet.add(first.studentId);
+    if (retests > 0) {
+      studentsWithRetestsSet.add(first.studentId);
+      totalRetestAttempts += retests;
+    }
+
+    attemptsList.forEach((a) => {
+      totalScoreSum += Number(a.percentage) || 0;
+      totalCorrect += Number(a.correctAnswers) || 0;
+      totalQuestions += Number(a.totalQuestions) || 0;
+    });
+
+    let status = 'On Track';
+    if (retests > 0 && latestScore > firstScore) {
+      status = 'Improved';
+    } else if (retests > 0 && latestScore === firstScore) {
+      status = 'Consistent';
+    } else if (retests > 0 && latestScore < firstScore) {
+      status = 'Regressed';
+    } else if (latestScore >= 80) {
+      status = 'Mastered';
+    } else if (latestScore < 50) {
+      status = 'Needs Help';
+    }
+
+    studentRows.push({
+      studentId: first.studentId,
+      studentName: first.studentName,
+      avatar: first.studentAvatar,
+      className: first.className,
+      section: first.section,
+      quizId: first.quizId,
+      numericQuizId: first.numericQuizId,
+      quizTitle: first.quizTitle,
+      subject: first.subject,
+      firstAttemptScore: firstScore,
+      retestsCount: retests,
+      bestScore,
+      latestScore,
+      status,
+      attemptsCount: attemptCount,
+      lastAttemptDate: latest.completedAt,
+    });
+  });
+
+  // Sort student rows by latest activity DESC, then status
+  studentRows.sort((a, b) => new Date(b.lastAttemptDate || 0).getTime() - new Date(a.lastAttemptDate || 0).getTime());
+
+  // Group by quizzes in this subject
+  const allQuizzes = getQuizzesFromDb();
+  const subjectQuizzes = allQuizzes.filter((q) => Number(q.classGrade) === Number(classGrade) && matchSubject(q.subject));
+
+  const quizzesSummary = subjectQuizzes.map((q) => {
+    const qRows = studentRows.filter((r) => String(r.quizId) === String(q.id) || String(r.numericQuizId) === String(q.numericId));
+    const attemptedStudents = qRows.length;
+    const retestedStudents = qRows.filter((r) => r.retestsCount > 0).length;
+    const totalQAttempts = qRows.reduce((sum, r) => sum + r.attemptsCount, 0);
+    const avgQScore = attemptedStudents > 0
+      ? Math.round(qRows.reduce((sum, r) => sum + r.latestScore, 0) / attemptedStudents)
+      : 0;
+
+    return {
+      id: q.id,
+      numericId: q.numericId,
+      title: q.title,
+      subject: q.subject,
+      chapter: q.chapter,
+      studentsAttempted: attemptedStudents,
+      studentsRetested: retestedStudents,
+      totalAttempts: totalQAttempts,
+      avgScore: avgQScore,
+    };
+  });
+
+  const totalAttempts = allAttempts.length;
+  const avgScore = totalAttempts > 0 ? Math.round(totalScoreSum / totalAttempts) : 0;
+  const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : avgScore;
+
+  return {
+    subject: subjectName,
+    classGrade: Number(classGrade),
+    totalEnrolledStudents,
+    uniqueStudentsCount: uniqueStudentsSet.size,
+    totalQuizAttempts: totalAttempts,
+    studentsWithRetestsCount: studentsWithRetestsSet.size,
+    totalRetestAttempts,
+    avgScore,
+    accuracy,
+    quizzes: quizzesSummary,
+    students: studentRows,
   };
 }
 
@@ -1719,6 +2486,83 @@ function getLearningProgressByContent(studentId, contentId) {
   };
 }
 
+function calculateStreakFromDates(dates) {
+  if (!dates || dates.length === 0) {
+    return { currentStreak: 0, longestStreak: 0 };
+  }
+  const uniqueDays = Array.from(
+    new Set(
+      dates.map((d) => {
+        const dateObj = new Date(d);
+        return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+      }),
+    ),
+  ).sort().reverse();
+
+  if (uniqueDays.length === 0) {
+    return { currentStreak: 0, longestStreak: 0 };
+  }
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const yesterday = new Date(today.getTime() - 86400000);
+  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+  let currentStreak = 0;
+  if (uniqueDays[0] === todayStr || uniqueDays[0] === yesterdayStr) {
+    currentStreak = 1;
+    for (let i = 0; i < uniqueDays.length - 1; i++) {
+      const d1 = new Date(uniqueDays[i]);
+      const d2 = new Date(uniqueDays[i + 1]);
+      const diffDays = Math.round((d1.getTime() - d2.getTime()) / 86400000);
+      if (diffDays === 1) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+  }
+
+  let longestStreak = 0;
+  if (uniqueDays.length > 0) {
+    let tempStreak = 1;
+    longestStreak = 1;
+    for (let i = 0; i < uniqueDays.length - 1; i++) {
+      const d1 = new Date(uniqueDays[i]);
+      const d2 = new Date(uniqueDays[i + 1]);
+      const diffDays = Math.round((d1.getTime() - d2.getTime()) / 86400000);
+      if (diffDays === 1) {
+        tempStreak++;
+      } else if (diffDays > 1) {
+        tempStreak = 1;
+      }
+      if (tempStreak > longestStreak) {
+        longestStreak = tempStreak;
+      }
+    }
+  }
+
+  return { currentStreak, longestStreak };
+}
+
+function recalculateAllStudentStatsInDb() {
+  const students = execSql("SELECT id FROM acadevia_auth_db.users WHERE role = 'STUDENT' AND is_active = 1;");
+  for (const st of students) {
+    const dates = execSql(`SELECT DISTINCT completed_at FROM acadevia_quiz_db.quiz_attempts WHERE user_id = ${st.id} ORDER BY completed_at DESC;`).map((r) => r.completed_at);
+    const { currentStreak, longestStreak } = calculateStreakFromDates(dates);
+    execSqlMutation(`
+      UPDATE acadevia_auth_db.users
+      SET
+        total_xp = (SELECT COALESCE(SUM(xp_earned), 0) FROM acadevia_quiz_db.quiz_attempts WHERE user_id = ${st.id}),
+        current_level = FLOOR((SELECT COALESCE(SUM(xp_earned), 0) FROM acadevia_quiz_db.quiz_attempts WHERE user_id = ${st.id}) / 500) + 1,
+        current_streak = ${currentStreak},
+        longest_streak = ${longestStreak}
+      WHERE id = ${st.id};
+    `);
+  }
+  invalidateServerCache();
+}
+
 module.exports = {
   getStateVersion,
   invalidateServerCache,
@@ -1745,4 +2589,9 @@ module.exports = {
   getRecentLearningProgress,
   getLearningProgressByContent,
   getUserIdByEmail,
+  getStudentProfileFromDb,
+  recalculateAllStudentStatsInDb,
+  calculateStreakFromDates,
+  getSubjectMasteryDetailFromDb,
+  initQuestionMasteryTable,
 };

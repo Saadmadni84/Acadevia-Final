@@ -158,7 +158,57 @@ function databaseApiPlugin() {
           try {
             const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 10;
             const subject = parsedUrl.searchParams.get('subject') || 'All';
-            const data = db.getTeacherAnalyticsFromDb(classGrade, subject);
+            const dateRange = parsedUrl.searchParams.get('dateRange') || '30';
+            const data = db.getTeacherAnalyticsFromDb(classGrade, subject, dateRange);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 3.1 Student Academic Profile (authoritative database profile for student or teacher)
+        if (pathname === '/api/v1/student/profile' && req.method === 'GET') {
+          try {
+            const userRole = (req.headers['x-user-role'] as string) || '';
+            let targetStudentId = parsedUrl.searchParams.get('studentId') || parsedUrl.searchParams.get('id');
+
+            // If caller is student, enforce isolation: can ONLY view own profile
+            const authenticatedId = getAuthenticatedStudentId(req, targetStudentId);
+            if (userRole === 'STUDENT' || !userRole) {
+              targetStudentId = authenticatedId;
+            } else {
+              targetStudentId = targetStudentId || authenticatedId;
+            }
+
+            const data = db.getStudentProfileFromDb(targetStudentId);
+            if (!data) {
+              res.statusCode = 404;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ status: 404, error: 'Student profile not found' }));
+              return;
+            }
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 3.2 Teacher Analytics Subject Drill-Down
+        if (pathname === '/api/v1/teacher/analytics/subject-drilldown' && req.method === 'GET') {
+          try {
+            const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 10;
+            const subject = parsedUrl.searchParams.get('subject') || 'Mathematics';
+            const data = db.getSubjectMasteryDetailFromDb(classGrade, subject);
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 200, success: true, data }));
             return;

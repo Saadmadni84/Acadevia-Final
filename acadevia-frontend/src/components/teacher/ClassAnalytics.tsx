@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   AreaChart,
   Area,
@@ -26,15 +26,16 @@ import {
   RefreshCw,
   GraduationCap,
   SlidersHorizontal,
+  X,
+  Trophy,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { dataService, type ClassAnalyticsData } from '@/services/data.service';
-import { executeClass10Simulation } from '@/services/class10Simulation.service';
 import { ROUTES } from '@/config/routes.config';
 
 type DateRangeOption = '7' | '30' | '90' | 'all';
 type MetricView = 'score' | 'submissions';
-type StudentFilter = 'ALL' | 'EXCELLING' | 'ON_TRACK' | 'NEEDS_ATTENTION';
+type StudentFilter = 'ALL' | 'EXCELLING' | 'ON_TRACK' | 'NEEDS_ATTENTION' | 'NOT_STARTED';
 
 const ClassAnalytics: React.FC = () => {
   const { t } = useTranslation();
@@ -56,6 +57,30 @@ const ClassAnalytics: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [version, setVersion] = useState<number>(0);
 
+  // Subject Mastery Drill-down states
+  const [selectedMasterySubject, setSelectedMasterySubject] = useState<string | null>(null);
+  const [masteryDetail, setMasteryDetail] = useState<any | null>(null);
+  const [isLoadingMasteryDetail, setIsLoadingMasteryDetail] = useState<boolean>(false);
+  const [drilldownQuizFilter, setDrilldownQuizFilter] = useState<string>('ALL');
+  const [drilldownStudentSearch, setDrilldownStudentSearch] = useState<string>('');
+
+  const handleOpenSubjectDetail = (subName: string) => {
+    setSelectedMasterySubject(subName);
+    setIsLoadingMasteryDetail(true);
+    setDrilldownQuizFilter('ALL');
+    setDrilldownStudentSearch('');
+
+    fetch(`/api/v1/teacher/analytics/subject-drilldown?subject=${encodeURIComponent(subName)}&classGrade=${selectedClass}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.success && json.data) {
+          setMasteryDetail(json.data);
+        }
+      })
+      .catch((err) => console.error('[SubjectDetail] fetch error:', err))
+      .finally(() => setIsLoadingMasteryDetail(false));
+  };
+
   // Subscribe to live data updates across the application
   useEffect(() => {
     const unsubscribe = dataService.subscribe(() => {
@@ -70,7 +95,9 @@ const ClassAnalytics: React.FC = () => {
     let mounted = true;
     const loadAnalytics = async () => {
       try {
-        const res = await fetch(`/api/v1/teacher/analytics?classGrade=${selectedClass}&subject=${encodeURIComponent(selectedSubject)}`);
+        const res = await fetch(
+          `/api/v1/teacher/analytics?classGrade=${selectedClass}&subject=${encodeURIComponent(selectedSubject)}&dateRange=${dateRange}`
+        );
         if (res.ok) {
           const json = await res.json();
           if (mounted && json?.success && json.data) {
@@ -87,25 +114,35 @@ const ClassAnalytics: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [selectedClass, selectedSubject, version]);
+  }, [selectedClass, selectedSubject, dateRange, version]);
 
   // Compute 100% data-driven analytics directly from live API or persistent data store
   const analytics: ClassAnalyticsData = useMemo(() => {
-    if (apiAnalytics && Number(apiAnalytics.classGrade) === Number(selectedClass) && apiAnalytics.subject === selectedSubject) {
+    if (
+      apiAnalytics &&
+      Number(apiAnalytics.classGrade) === Number(selectedClass) &&
+      apiAnalytics.subject === selectedSubject &&
+      (!apiAnalytics.dateRange || apiAnalytics.dateRange === dateRange)
+    ) {
       return apiAnalytics;
     }
     return dataService.getClassAnalytics({
       teacherId,
       classGrade: selectedClass,
       subject: selectedSubject,
+      dateRange,
     });
-  }, [apiAnalytics, teacherId, selectedClass, selectedSubject]);
+  }, [apiAnalytics, teacherId, selectedClass, selectedSubject, dateRange]);
 
   // 1. KPI Metric Calculations
   const totalStudents = analytics.totalStudents || 0;
-  const completedCount = analytics.completionData?.find((c) => c.name === 'Completed')?.count || 0;
-  const completionRate = totalStudents > 0 ? Math.round((completedCount / totalStudents) * 100) : 0;
-  
+  const activeStudents = analytics.activeStudents !== undefined
+    ? analytics.activeStudents
+    : (analytics.completionData?.find((c) => c.name === 'Completed')?.count || 0);
+  const completionRate = analytics.completionRate !== undefined
+    ? analytics.completionRate
+    : (totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0);
+
   const classAvg = analytics.classAverage !== undefined
     ? analytics.classAverage
     : analytics.quizScores && analytics.quizScores.length > 0
@@ -122,29 +159,16 @@ const ClassAnalytics: React.FC = () => {
   const evaluatedQuizzesCount = analytics.quizScores?.filter((q) => q.attempts > 0).length || 0;
   const atRiskCount = analytics.atRiskStudents?.length || 0;
 
-  // 2. Timeline Trend Data (filtered by selected DateRange)
-  const filteredTimeline = useMemo(() => {
-    const raw = analytics.engagementTrend || [];
-    if (dateRange === '7') return raw.slice(-7);
-    if (dateRange === '30') return raw.slice(-30);
-    return raw;
-  }, [analytics.engagementTrend, dateRange]);
-
-  // Transform timeline with simulated mastery trajectory matching submissions
+  // 2. Timeline Trend Data (100% Real Submissions and Scores from Database)
   const timelineData = useMemo(() => {
-    return filteredTimeline.map((d, index) => {
-      // Calculate realistic rolling mastery or daily submissions
-      const rollingAvg = classAvg > 0
-        ? Math.min(100, Math.max(30, classAvg + Math.round(Math.sin(index / 2) * 4)))
-        : 0;
-      return {
-        day: d.day,
-        date: d.date,
-        submissions: d.engagement,
-        score: d.engagement > 0 ? rollingAvg : (classAvg > 0 ? classAvg : 0),
-      };
-    });
-  }, [filteredTimeline, classAvg]);
+    const raw = analytics.engagementTrend || [];
+    return raw.map((d) => ({
+      day: d.day,
+      date: d.date,
+      submissions: d.submissions !== undefined ? d.submissions : d.engagement,
+      score: d.score !== undefined ? d.score : (classAvg > 0 ? classAvg : 0),
+    }));
+  }, [analytics.engagementTrend, classAvg]);
 
   // 3. Quiz Performance Table (with sorting and search)
   const filteredQuizzes = useMemo(() => {
@@ -170,43 +194,21 @@ const ClassAnalytics: React.FC = () => {
     });
   }, [analytics.detailedQuizzes, analytics.quizScores, quizSearch, sortField, sortAsc, selectedSubject, totalStudents]);
 
-  // 4. Student Performance Roster (Search & Filter)
+  // 4. Student Performance Roster (Search & Filter from Real Database Roster)
   const studentList = useMemo(() => {
-    const roster = analytics.studentRoster || [
-      ...analytics.topPerformers.map((s) => ({
-        id: s.id,
-        name: s.name,
-        avatarUrl: undefined,
-        avgScore: s.score,
-        quizzesCompleted: s.quizzesTaken,
-        totalXP: s.xp,
-        status: (s.score >= 80 ? 'EXCELLING' : s.score >= 50 ? 'ON_TRACK' : 'NEEDS_ATTENTION') as 'EXCELLING' | 'ON_TRACK' | 'NEEDS_ATTENTION',
-        needsAttentionReason: s.score < 50 ? `Average score is ${s.score}% (below 50% passing threshold)` : undefined,
-      })),
-      ...analytics.atRiskStudents
-        .filter((ar) => !analytics.topPerformers.some((tp) => tp.id === ar.id))
-        .map((ar) => ({
-          id: ar.id,
-          name: ar.name,
-          avatarUrl: undefined,
-          avgScore: ar.score,
-          quizzesCompleted: 1,
-          totalXP: 0,
-          status: 'NEEDS_ATTENTION' as const,
-          needsAttentionReason: `Average score is ${ar.score}% (below 50% passing threshold)`,
-        })),
-    ];
+    const roster = analytics.studentRoster || [];
 
     return roster.filter((s) => {
       if (studentFilter === 'EXCELLING' && s.status !== 'EXCELLING') return false;
       if (studentFilter === 'ON_TRACK' && s.status !== 'ON_TRACK') return false;
       if (studentFilter === 'NEEDS_ATTENTION' && s.status !== 'NEEDS_ATTENTION') return false;
+      if (studentFilter === 'NOT_STARTED' && s.status !== 'NOT_STARTED') return false;
       if (studentSearch) {
         return s.name.toLowerCase().includes(studentSearch.toLowerCase());
       }
       return true;
     });
-  }, [analytics.studentRoster, analytics.topPerformers, analytics.atRiskStudents, studentFilter, studentSearch]);
+  }, [analytics.studentRoster, studentFilter, studentSearch]);
 
   // 5. Actionable Insights
   const insights = useMemo(() => {
@@ -262,6 +264,28 @@ const ClassAnalytics: React.FC = () => {
 
     return items;
   }, [analytics.actionableInsights, atRiskCount, analytics.subjectComparison, classAvg, selectedClass, totalSubmissions]);
+
+  const filteredDrilldownStudents = useMemo(() => {
+    if (!masteryDetail?.students) return [];
+    let list = masteryDetail.students;
+    if (drilldownQuizFilter !== 'ALL') {
+      list = list.filter(
+        (s: any) =>
+          String(s.quizId) === String(drilldownQuizFilter) ||
+          String(s.numericQuizId) === String(drilldownQuizFilter)
+      );
+    }
+    if (drilldownStudentSearch.trim()) {
+      const q = drilldownStudentSearch.toLowerCase().trim();
+      list = list.filter(
+        (s: any) =>
+          s.studentName.toLowerCase().includes(q) ||
+          s.quizTitle.toLowerCase().includes(q) ||
+          s.status.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [masteryDetail, drilldownQuizFilter, drilldownStudentSearch]);
 
   return (
     <div className="space-y-8 font-sans">
@@ -420,7 +444,7 @@ const ClassAnalytics: React.FC = () => {
               {completionRate}%
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              ({completedCount}/{totalStudents})
+              ({activeStudents}/{totalStudents})
             </span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
@@ -438,14 +462,14 @@ const ClassAnalytics: React.FC = () => {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-              {totalStudents}
+              {activeStudents}
             </span>
             <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              Class {selectedClass} Roster
+              / {totalStudents} enrolled
             </span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            {completedCount} students active in period
+            Active quiz takers in period
           </p>
         </div>
 
@@ -564,6 +588,10 @@ const ClassAnalytics: React.FC = () => {
                       onClick={() => {
                         if (ins.actionType === 'VIEW_STUDENTS') {
                           setStudentFilter('NEEDS_ATTENTION');
+                          const el = document.getElementById('student-roster-section');
+                          el?.scrollIntoView({ behavior: 'smooth' });
+                        } else if (ins.actionType === 'VIEW_INACTIVE') {
+                          setStudentFilter('NOT_STARTED');
                           const el = document.getElementById('student-roster-section');
                           el?.scrollIntoView({ behavior: 'smooth' });
                         } else if (ins.actionType === 'VIEW_QUIZZES') {
@@ -779,9 +807,9 @@ const ClassAnalytics: React.FC = () => {
                         <p className="font-semibold text-gray-900 dark:text-white truncate max-w-[220px]">
                           {quiz.title}
                         </p>
-                        {quiz.chapterInfo && (
+                        {(quiz as any).chapterInfo && (
                           <p className="text-[11px] text-gray-400 truncate max-w-[220px]">
-                            {quiz.chapterInfo}
+                            {(quiz as any).chapterInfo}
                           </p>
                         )}
                       </td>
@@ -811,22 +839,26 @@ const ClassAnalytics: React.FC = () => {
                       </td>
                       <td className="py-3.5 pr-3 text-gray-600 dark:text-gray-300">
                         {quiz.attempts} / {totalStudents}
-                        <span className="text-[10px] text-gray-400 ml-1">
-                          ({quiz.completionPct}%)
-                        </span>
+                        {(quiz as any).completionPct !== undefined && (
+                          <span className="text-[10px] text-gray-400 ml-1">
+                            ({(quiz as any).completionPct}%)
+                          </span>
+                        )}
                       </td>
                       <td className="py-3.5">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            quiz.status === 'STRONG'
-                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                              : quiz.status === 'SATISFACTORY'
-                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
-                              : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                          }`}
-                        >
-                          {quiz.status === 'STRONG' ? 'Strong' : quiz.status === 'SATISFACTORY' ? 'Satisfactory' : 'Needs Review'}
-                        </span>
+                        {((quiz as any).status || quiz.avgScore >= 75 ? 'STRONG' : quiz.avgScore >= 50 ? 'SATISFACTORY' : 'NEEDS_ATTENTION') === 'STRONG' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                            Strong
+                          </span>
+                        ) : ((quiz as any).status || (quiz.avgScore >= 50 ? 'SATISFACTORY' : 'NEEDS_ATTENTION')) === 'SATISFACTORY' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                            Satisfactory
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+                            Needs Review
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -840,25 +872,31 @@ const ClassAnalytics: React.FC = () => {
         <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-card-dark p-5 sm:p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <SlidersHorizontal className="h-5 w-5 text-indigo-500" />
-                Subject Mastery
-              </h3>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <SlidersHorizontal className="h-5 w-5 text-indigo-500" />
+                  Subject Mastery
+                </h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">Click any subject to view student attempts & retests</p>
+              </div>
               <span className="text-xs text-gray-400">Class {selectedClass}</span>
             </div>
 
-            <div className="space-y-4 mt-4">
+            <div className="space-y-3 mt-4">
               {(analytics.subjectComparison || []).map((sub) => (
                 <div
                   key={sub.subject}
-                  className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 hover:border-gray-200 transition"
+                  onClick={() => handleOpenSubjectDetail(sub.subject)}
+                  title={`Click to view ${sub.subject} student drill-down and retest details`}
+                  className="p-3.5 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 hover:border-primary/40 hover:bg-primary/5 hover:shadow-xs transition cursor-pointer group"
                 >
                   <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="font-bold text-gray-800 dark:text-gray-200">
+                    <span className="font-bold text-gray-800 dark:text-gray-200 group-hover:text-primary transition-colors flex items-center gap-1.5">
                       {sub.subject}
+                      <ChevronRight className="h-3.5 w-3.5 text-gray-400 group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-400">
+                      <span className="text-gray-400 font-medium">
                         {sub.submissions} {sub.submissions === 1 ? 'attempt' : 'attempts'}
                       </span>
                       <span className="font-bold text-gray-900 dark:text-white">
@@ -924,19 +962,27 @@ const ClassAnalytics: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center rounded-xl bg-gray-100 dark:bg-gray-800 p-0.5 border border-gray-200 dark:border-gray-700">
-                {(['ALL', 'EXCELLING', 'NEEDS_ATTENTION'] as const).map((filter) => (
+              <div className="flex items-center rounded-xl bg-gray-100 dark:bg-gray-800 p-0.5 border border-gray-200 dark:border-gray-700 flex-wrap">
+                {(
+                  [
+                    { id: 'ALL', label: 'All' },
+                    { id: 'EXCELLING', label: 'Excelling' },
+                    { id: 'ON_TRACK', label: 'On Track' },
+                    { id: 'NEEDS_ATTENTION', label: 'Needs Help' },
+                    { id: 'NOT_STARTED', label: 'Not Started' },
+                  ] as const
+                ).map((tab) => (
                   <button
-                    key={filter}
+                    key={tab.id}
                     type="button"
-                    onClick={() => setStudentFilter(filter)}
+                    onClick={() => setStudentFilter(tab.id)}
                     className={`px-2 py-1 text-[11px] font-semibold rounded-lg transition-all ${
-                      studentFilter === filter
+                      studentFilter === tab.id
                         ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900'
                     }`}
                   >
-                    {filter === 'ALL' ? 'All' : filter === 'EXCELLING' ? 'Excelling' : 'Needs Help'}
+                    {tab.label}
                   </button>
                 ))}
               </div>
@@ -982,32 +1028,40 @@ const ClassAnalytics: React.FC = () => {
                               {student.name}
                             </p>
                             <p className="text-[10px] text-gray-400">
-                              ID: {student.id}
+                              ID: {student.id} &bull; {student.className || `Class ${selectedClass}`} &bull; Sec {student.section || 'A'}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="py-3.5 pr-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-900 dark:text-white w-8">
-                            {student.avgScore}%
-                          </span>
-                          <div className="w-16 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                student.avgScore >= 75
-                                  ? 'bg-emerald-500'
-                                  : student.avgScore >= 50
-                                  ? 'bg-amber-500'
-                                  : 'bg-rose-500'
-                              }`}
-                              style={{ width: `${student.avgScore}%` }}
-                            />
+                        {student.quizzesCompleted === 0 ? (
+                          <span className="text-gray-400 text-xs font-medium italic">Not Started</span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-gray-900 dark:text-white w-8">
+                              {student.avgScore}%
+                            </span>
+                            <div className="w-16 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  student.avgScore >= 75
+                                    ? 'bg-emerald-500'
+                                    : student.avgScore >= 50
+                                    ? 'bg-amber-500'
+                                    : 'bg-rose-500'
+                                }`}
+                                style={{ width: `${student.avgScore}%` }}
+                              />
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </td>
                       <td className="py-3.5 pr-3 text-gray-600 dark:text-gray-300 font-medium">
-                        {student.quizzesCompleted} completed
+                        {student.quizzesCompleted === 0 ? (
+                          <span className="text-gray-400 text-xs">0 completed</span>
+                        ) : (
+                          <span>{student.quizzesCompleted} completed</span>
+                        )}
                       </td>
                       <td className="py-3.5 pr-3 text-gray-600 dark:text-gray-300 font-medium">
                         {student.totalXP.toLocaleString()} XP
@@ -1100,22 +1154,276 @@ const ClassAnalytics: React.FC = () => {
         </div>
       </div>
 
-      {/* 7. DEVELOPMENT SIMULATION TRIGGER (DE-EMPHASIZED FOOTER UTILITY) */}
-      {import.meta.env.DEV && (
-        <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-400 gap-2">
-          <span>Acadevia Academic Analytics Engine &bull; Real Database Sync</span>
-          <button
-            type="button"
-            onClick={() => {
-              executeClass10Simulation();
-              setVersion((v) => v + 1);
-            }}
-            className="px-2.5 py-1 text-[11px] font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-700 transition"
-          >
-            ⚡ Re-run Class 10 Simulation Data
-          </button>
-        </div>
-      )}
+      {/* 7. CLEAN SYSTEM FOOTER */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-400 gap-2">
+        <span>Acadevia Academic Analytics Engine &bull; Live Database Persistence</span>
+        <span>Class {selectedClass} &bull; Graded Curriculum Assessments</span>
+      </div>
+
+      {/* 8. SUBJECT MASTERY STUDENT DRILL-DOWN PANEL */}
+      <AnimatePresence>
+        {selectedMasterySubject && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="w-full max-w-3xl bg-white dark:bg-card-dark shadow-2xl p-6 overflow-y-auto space-y-6 flex flex-col justify-between"
+            >
+              <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                      <SlidersHorizontal className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                          {selectedMasterySubject} Mastery & Retests
+                        </h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary">
+                          Class {selectedClass}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Authoritative participation, attempt histories & student retest details
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMasterySubject(null)}
+                    className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition cursor-pointer"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {isLoadingMasteryDetail ? (
+                  <div className="py-16 text-center space-y-3">
+                    <RefreshCw className="h-8 w-8 text-primary animate-spin mx-auto" />
+                    <p className="text-xs text-gray-400">Loading student attempts & retest data...</p>
+                  </div>
+                ) : masteryDetail ? (
+                  <>
+                    {/* Performance Summary Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Students Attempted</p>
+                        <p className="text-xl font-extrabold text-gray-900 dark:text-white mt-1">
+                          {masteryDetail.uniqueStudentsCount} <span className="text-xs font-normal text-gray-400">/ {masteryDetail.totalEnrolledStudents}</span>
+                        </p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Quiz Attempts</p>
+                        <p className="text-xl font-extrabold text-blue-600 dark:text-blue-400 mt-1">
+                          {masteryDetail.totalQuizAttempts} <span className="text-xs font-normal text-gray-400">total</span>
+                        </p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Retests Logged</p>
+                        <p className="text-xl font-extrabold text-purple-600 dark:text-purple-400 mt-1">
+                          {masteryDetail.totalRetestAttempts} <span className="text-xs font-normal text-gray-400">retests ({masteryDetail.studentsWithRetestsCount} std)</span>
+                        </p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800">
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Mastery & Accuracy</p>
+                        <p className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
+                          {masteryDetail.avgScore}% <span className="text-xs font-normal text-gray-400">({masteryDetail.accuracy}% acc)</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Quiz Breakdown & Filters */}
+                    {masteryDetail.quizzes && masteryDetail.quizzes.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                          Filter by Quiz ({masteryDetail.quizzes.length} available):
+                        </p>
+                        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                          <button
+                            type="button"
+                            onClick={() => setDrilldownQuizFilter('ALL')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                              drilldownQuizFilter === 'ALL'
+                                ? 'bg-primary text-white shadow-xs'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            All Quizzes ({masteryDetail.students.length} attempts)
+                          </button>
+                          {masteryDetail.quizzes.map((q: any) => (
+                            <button
+                              key={q.id}
+                              type="button"
+                              onClick={() => setDrilldownQuizFilter(String(q.id))}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                                String(drilldownQuizFilter) === String(q.id)
+                                  ? 'bg-primary text-white shadow-xs'
+                                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                              }`}
+                            >
+                              <span>{q.title}</span>
+                              <span className="text-[10px] opacity-75 font-mono">
+                                ({q.studentsAttempted} att{q.studentsRetested > 0 ? ` · ${q.studentsRetested} ret` : ''})
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Student Search */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-400" />
+                        <input
+                          type="text"
+                          value={drilldownStudentSearch}
+                          onChange={(e) => setDrilldownStudentSearch(e.target.value)}
+                          placeholder="Search student name, quiz or status..."
+                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-hidden focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                      <span className="text-xs text-gray-400 shrink-0">
+                        {filteredDrilldownStudents.length} entries shown
+                      </span>
+                    </div>
+
+                    {/* Students Performance Drill-down Table */}
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                      <div className="overflow-x-auto max-h-96">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead className="bg-gray-50 dark:bg-gray-800/80 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400">
+                            <tr>
+                              <th className="py-2.5 px-3.5 font-bold">Student</th>
+                              <th className="py-2.5 px-3 font-bold">Quiz</th>
+                              <th className="py-2.5 px-3 font-bold text-center">1st Attempt</th>
+                              <th className="py-2.5 px-3 font-bold text-center">Retests</th>
+                              <th className="py-2.5 px-3 font-bold text-center">Best</th>
+                              <th className="py-2.5 px-3 font-bold text-center">Latest</th>
+                              <th className="py-2.5 px-3 font-bold text-right">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {filteredDrilldownStudents.map((item: any, idx: number) => (
+                              <tr
+                                key={`${item.studentId}-${item.quizId}-${idx}`}
+                                className="hover:bg-primary/5 transition"
+                              >
+                                <td className="py-2.5 px-3.5">
+                                  <div className="flex items-center gap-2">
+                                    <img
+                                      src={
+                                        item.avatar && item.avatar !== 'NULL' && item.avatar !== 'null'
+                                          ? item.avatar
+                                          : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(item.studentName)}`
+                                      }
+                                      alt=""
+                                      className="h-7 w-7 rounded-full object-cover ring-1 ring-primary/20"
+                                    />
+                                    <div>
+                                      <p className="font-bold text-gray-900 dark:text-white leading-tight">
+                                        {item.studentName}
+                                      </p>
+                                      <p className="text-[10px] text-gray-400">
+                                        {item.className} &bull; Sec {item.section}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 max-w-[180px]">
+                                  <p className="font-semibold text-gray-800 dark:text-gray-200 truncate" title={item.quizTitle}>
+                                    {item.quizTitle}
+                                  </p>
+                                  <p className="text-[10px] text-gray-400 font-mono">
+                                    {item.subject}
+                                  </p>
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-bold text-gray-700 dark:text-gray-300">
+                                  {item.firstAttemptScore}%
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  {item.retestsCount > 0 ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300">
+                                      {item.retestsCount} {item.retestsCount === 1 ? 'retest' : 'retests'}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400 font-mono">0</span>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-extrabold text-emerald-600 dark:text-emerald-400">
+                                  {item.bestScore}%
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-extrabold text-primary dark:text-[#D4A843]">
+                                  {item.latestScore}%
+                                </td>
+                                <td className="py-2.5 px-3 text-right">
+                                  {item.status === 'Improved' ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                                      <TrendingUp className="h-3 w-3" />
+                                      Improved
+                                    </span>
+                                  ) : item.status === 'Consistent' ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300">
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      Consistent
+                                    </span>
+                                  ) : item.status === 'Mastered' ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300">
+                                      <Trophy className="h-3 w-3" />
+                                      Mastered
+                                    </span>
+                                  ) : item.status === 'Needs Help' ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      Needs Help
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                                      On Track
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {filteredDrilldownStudents.length === 0 && (
+                        <div className="py-8 text-center text-xs text-gray-400">
+                          No student attempts found matching selected filters.
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-12 text-center text-gray-400 text-xs">
+                    No data available for this subject.
+                  </div>
+                )}
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs text-gray-400">
+                <span>Subject Mastery Audit &bull; Real Database Records</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMasterySubject(null)}
+                  className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 font-bold transition cursor-pointer"
+                >
+                  Close Drawer
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
