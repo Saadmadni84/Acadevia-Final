@@ -1,6 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ROUTES } from '@/config/routes.config';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useGamificationStore } from '@/stores/useGamificationStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -24,7 +22,6 @@ import { AdaptivePracticeModal } from './AdaptivePracticeModal';
 import { GlobalSearchModal } from './GlobalSearchModal';
 
 export const StudentDashboard: React.FC = () => {
-  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { xp, level, streak } = useGamificationStore();
   const dailyGoalSetting = useSettingsStore((s) => s.settings.dailyGoalMinutes) || 45;
@@ -70,18 +67,6 @@ export const StudentDashboard: React.FC = () => {
   const [practiceTopic, setPracticeTopic] = useState<{ title: string; mastery: number } | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Global search shortcut (CMD/CTRL + K)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsSearchOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   return (
     <div className="space-y-8 pb-16 animate-fade-in max-w-7xl mx-auto">
       {/* 1. EDITORIAL DASHBOARD HEADER */}
@@ -91,10 +76,6 @@ export const StudentDashboard: React.FC = () => {
         schoolName={schoolName}
         minutesRemaining={minutesRemaining}
         todayMinutes={todayMinutes}
-        streak={resolvedStreak}
-        dailyGoalMinutes={dailyGoalSetting}
-        onOpenStreak={() => navigate(ROUTES.STREAKS)}
-        onOpenGoal={() => setIsXPHistoryOpen(true)}
       />
 
       {/* 2. CONTINUE LEARNING FLAGSHIP HERO */}
@@ -131,7 +112,6 @@ export const StudentDashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-7">
             <RecentActivityTimeline
-              studentId={studentId}
               onOpenXPHistory={() => setIsXPHistoryOpen(true)}
             />
           </div>
@@ -139,9 +119,6 @@ export const StudentDashboard: React.FC = () => {
           <div className="lg:col-span-5">
             <LeaderboardPreview
               currentXP={resolvedXP}
-              userId={studentId}
-              userName={studentName}
-              userAvatar={user?.avatarUrl}
               userRank={1}
             />
           </div>
@@ -153,19 +130,15 @@ export const StudentDashboard: React.FC = () => {
         isOpen={isXPHistoryOpen}
         onClose={() => setIsXPHistoryOpen(false)}
         currentXP={resolvedXP}
-        level={resolvedLevel}
       />
 
       <SubjectDetailModal
-        isOpen={Boolean(selectedSubject)}
         subject={selectedSubject}
         onClose={() => setSelectedSubject(null)}
       />
 
       <AdaptivePracticeModal
-        isOpen={Boolean(practiceTopic)}
-        topicTitle={practiceTopic?.title}
-        initialMastery={practiceTopic?.mastery}
+        topic={practiceTopic}
         onClose={() => setPracticeTopic(null)}
       />
 
