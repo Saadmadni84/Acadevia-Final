@@ -149,3 +149,6 @@ export const StudentDashboard: React.FC = () => {
     </div>
   );
 };
+
+export default StudentDashboard;
+
