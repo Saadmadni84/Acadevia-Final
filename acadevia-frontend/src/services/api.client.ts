@@ -27,10 +27,20 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const { accessToken, refreshToken } = useAuthStore.getState();
+    const isDemoSession =
+      accessToken?.startsWith('demo-') ||
+      refreshToken?.startsWith('demo-') ||
+      accessToken === 'demo-token';
+
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Demo accounts operate locally/mocked; never trigger backend refresh or evict demo session
+      if (isDemoSession) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
       try {
-        const { refreshToken } = useAuthStore.getState();
         if (!refreshToken) throw new Error('No refresh token');
         const { data } = await axios.post(
           `${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/auth/refresh-token`,
@@ -44,7 +54,7 @@ apiClient.interceptors.response.use(
         // Only logout if the refresh token itself was explicitly rejected (401)
         // Don't logout for network errors, 500s, or missing refresh endpoints
         console.warn('[api.client] Refresh failed:', refreshError?.response?.status, refreshError?.message);
-        if (refreshError?.response?.status === 401) {
+        if (refreshError?.response?.status === 401 && !isDemoSession) {
           console.warn('[api.client] LOGOUT triggered by 401 on refresh');
           useAuthStore.getState().logout();
         }

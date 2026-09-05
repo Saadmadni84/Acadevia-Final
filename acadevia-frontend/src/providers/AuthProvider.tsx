@@ -35,6 +35,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       logout();
       return;
     }
+    if (currentRefreshToken.startsWith('demo-')) {
+      return;
+    }
 
     try {
       const { data } = await authService.refreshToken(currentRefreshToken);
@@ -57,6 +60,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const scheduleRefresh = useCallback(
     (token: string) => {
       clearRefreshTimer();
+      if (!token || token.startsWith('demo-')) return;
       const expiry = parseTokenExpiry(token);
       if (!expiry) return;
 
@@ -71,6 +75,16 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     const verify = async () => {
       const { accessToken: token, refreshToken: rt } = useAuthStore.getState();
       if (!token || !rt) {
+        setLoading(false);
+        return;
+      }
+
+      // Demo tokens are local mock tokens that should remain authenticated without backend calls
+      if (token.startsWith('demo-') || rt.startsWith('demo-')) {
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          useAuthStore.getState().setAuth(currentUser, token, rt);
+        }
         setLoading(false);
         return;
       }
