@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AreaChart,
   Area,
@@ -39,11 +39,15 @@ type StudentFilter = 'ALL' | 'EXCELLING' | 'ON_TRACK' | 'NEEDS_ATTENTION';
 const ClassAnalytics: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const teacherId = user?.id ? String(user.id) : '10';
 
-  const [selectedClass, setSelectedClass] = useState<number>(user?.classGrade || 10);
-  const [selectedSubject, setSelectedSubject] = useState<string>('All');
+  const initialClass = Number(searchParams.get('classGrade')) || user?.classGrade || 10;
+  const initialSubject = searchParams.get('subject') || 'All';
+
+  const [selectedClass, setSelectedClass] = useState<number>(initialClass);
+  const [selectedSubject, setSelectedSubject] = useState<string>(initialSubject);
   const [dateRange, setDateRange] = useState<DateRangeOption>('30');
   const [trendMetric, setTrendMetric] = useState<MetricView>('score');
   const [quizSearch, setQuizSearch] = useState<string>('');
