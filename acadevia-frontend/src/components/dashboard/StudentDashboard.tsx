@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useGamificationStore } from '@/stores/useGamificationStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -24,15 +24,31 @@ import { GlobalSearchModal } from './GlobalSearchModal';
 export const StudentDashboard: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const { xp, level, streak } = useGamificationStore();
-  const dailyGoalSetting = useSettingsStore((s) => s.settings.dailyGoalMinutes) || 30;
+  const dailyGoalSetting = useSettingsStore((s) => s.settings.dailyGoalMinutes) || 45;
+
+  const [dataVersion, setDataVersion] = useState(0);
+
+  useEffect(() => {
+    dataService.syncFromBackend(true).catch(() => {});
+    const handleUpdate = () => setDataVersion((v) => v + 1);
+    window.addEventListener('acadevia_data_updated', handleUpdate);
+    return () => window.removeEventListener('acadevia_data_updated', handleUpdate);
+  }, []);
+
+  const studentId = user?.id ? String(user.id) : '20';
+  const studentMetrics = useMemo(() => {
+    return dataService.getStudentMetrics(studentId);
+  }, [studentId, dataVersion]);
 
   // Real backend-driven Continue Learning system
   const { data: continueLessons = [], isLoading: isLoadingContinue } = useContinueLearning(4);
 
   // Active student metadata
-  const resolvedXP = xp > 0 ? xp : 720;
-  const resolvedLevel = level > 1 ? level : 4;
-  const resolvedStreak = streak > 0 ? streak : 5;
+  const resolvedXP = studentMetrics.totalXP || xp || 720;
+  const resolvedLevel = studentMetrics.level || level || 4;
+  const resolvedStreak = studentMetrics.streak || streak || 5;
+  const todayMinutes = studentMetrics.studyMinutes || 20;
+  const minutesRemaining = Math.max(0, dailyGoalSetting - todayMinutes);
 
   const studentName = user?.fullName?.split(' ')[0] || (user?.email ? user.email.split('@')[0] : 'Aarav');
   const studentClass =
@@ -45,9 +61,6 @@ export const StudentDashboard: React.FC = () => {
     (user?.id ? dataService.getUserById(String(user.id))?.schoolName : undefined) ||
     'Delhi Public School';
 
-  const todayMinutes = 20;
-  const minutesRemaining = Math.max(0, dailyGoalSetting - todayMinutes);
-
   // Modal State Controls
   const [isXPHistoryOpen, setIsXPHistoryOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<SubjectData | null>(null);
@@ -55,58 +68,37 @@ export const StudentDashboard: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-16 px-3 sm:px-6 select-none">
-      {/* ==================================================== */}
-      {/* LAYER 1: LEARNING CORE                               */}
-      {/* Greeting, Continue Learning Module, Today's Focus     */}
-      {/* ==================================================== */}
-      <section className="space-y-6">
-        <DashboardHeader
-          studentName={studentName}
-          studentClass={studentClass}
-          schoolName={schoolName}
-          minutesRemaining={minutesRemaining}
-          todayMinutes={todayMinutes}
+    <div className="space-y-8 pb-16 animate-fade-in max-w-7xl mx-auto">
+      {/* 1. EDITORIAL DASHBOARD HEADER */}
+      <DashboardHeader
+        studentName={studentName}
+        studentClass={studentClass}
+        schoolName={schoolName}
+        minutesRemaining={minutesRemaining}
+        todayMinutes={todayMinutes}
+      />
+
+      {/* 2. CONTINUE LEARNING FLAGSHIP HERO */}
+      <section className="space-y-4">
+        <ContinueLearningHero
+          activeLesson={continueLessons.length > 0 ? continueLessons[0] : null}
+          isLoading={isLoadingContinue}
         />
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Main Hero: What to learn right now (70% ~ 8 cols) */}
-          <div className="lg:col-span-8">
-            <ContinueLearningHero
-              activeLesson={continueLessons.length > 0 ? continueLessons[0] : null}
-              isLoading={isLoadingContinue}
-            />
-          </div>
-
-          {/* Today's Goal / Daily Mission (30% ~ 4 cols) */}
-          <div className="lg:col-span-4">
-            <DailyGoalCard
-              todayMinutes={todayMinutes}
-              goalMinutes={dailyGoalSetting}
-              streak={resolvedStreak}
-            />
-          </div>
-        </div>
       </section>
 
-      {/* ==================================================== */}
-      {/* LAYER 2: PROGRESS & ADAPTIVE LEARNING                */}
-      {/* Subject Mastery Track, Recommendations, Weak Topics  */}
-      {/* ==================================================== */}
+      {/* 3. CORE TWO-COLUMN ACTION WORKSPACE */}
       <section className="space-y-6 pt-2">
         {/* Subject Mastery Grid */}
         <SubjectProgressGrid
           onSelectSubject={(subj) => setSelectedSubject(subj)}
         />
 
-        {/* 2-Column Split: Algorithmic Recommendations & Weak Topics */}
+        {/* 2-Column Split: Recommendations & Weak Topics */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Algorithmic Recommendations (7 cols) */}
           <div className="lg:col-span-7">
             <RecommendedLearningGrid />
           </div>
 
-          {/* Weak Topics Diagnostic & Practice Launcher (5 cols) */}
           <div className="lg:col-span-5">
             <WeakTopicsCard
               onPracticeTopic={(title, mastery) => setPracticeTopic({ title, mastery })}
@@ -115,51 +107,39 @@ export const StudentDashboard: React.FC = () => {
         </div>
       </section>
 
-      {/* ==================================================== */}
-      {/* LAYER 3: GAMIFICATION & SOCIAL COMPETITIVENESS        */}
-      {/* Recent Activity Timeline & Leaderboard Preview       */}
-      {/* ==================================================== */}
+      {/* 4. RECENT ACTIVITY & LEADERBOARD */}
       <section className="pt-2">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Recent Activity Feed with XP delta (7 cols) */}
           <div className="lg:col-span-7">
             <RecentActivityTimeline
               onOpenXPHistory={() => setIsXPHistoryOpen(true)}
             />
           </div>
 
-          {/* Weekly Class Leaderboard & Arena Battle (5 cols) */}
           <div className="lg:col-span-5">
             <LeaderboardPreview
               currentXP={resolvedXP}
-              userRank={4}
+              userRank={1}
             />
           </div>
         </div>
       </section>
 
-      {/* ==================================================== */}
-      {/* MODALS & SLIDE-OVERS (100% Functional Interactions)  */}
-      {/* ==================================================== */}
+      {/* Interactive Modals */}
       <XPHistoryModal
         isOpen={isXPHistoryOpen}
         onClose={() => setIsXPHistoryOpen(false)}
         currentXP={resolvedXP}
-        level={resolvedLevel}
-        levelTitle="Explorer"
       />
 
       <SubjectDetailModal
-        isOpen={Boolean(selectedSubject)}
-        onClose={() => setSelectedSubject(null)}
         subject={selectedSubject}
+        onClose={() => setSelectedSubject(null)}
       />
 
       <AdaptivePracticeModal
-        isOpen={Boolean(practiceTopic)}
+        topic={practiceTopic}
         onClose={() => setPracticeTopic(null)}
-        topicTitle={practiceTopic?.title}
-        initialMastery={practiceTopic?.mastery}
       />
 
       <GlobalSearchModal
@@ -169,5 +149,3 @@ export const StudentDashboard: React.FC = () => {
     </div>
   );
 };
-
-export default StudentDashboard;

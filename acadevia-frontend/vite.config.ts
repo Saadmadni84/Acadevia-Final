@@ -56,6 +56,48 @@ function databaseApiPlugin() {
         }
         const db = require('./src/scripts/databaseApi.cjs');
 
+        // Helper to securely identify authenticated student and enforce isolation
+        const getAuthenticatedStudentId = (req: any, fallbackParam?: string | null): string => {
+          const authHeader = req.headers['authorization'] || '';
+          if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.slice(7).trim();
+            try {
+              const parts = token.split('.');
+              if (parts.length === 3) {
+                const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+                // 1. Prioritize explicit numeric userId / id
+                if (payload.userId && !isNaN(Number(payload.userId))) return String(payload.userId);
+                if (payload.id && !isNaN(Number(payload.id))) return String(payload.id);
+                // 2. Check if sub is numeric ID
+                if (payload.sub && !isNaN(Number(payload.sub))) return String(payload.sub);
+                // 3. Resolve by email from payload.sub or payload.email
+                const email = payload.email || (payload.sub && payload.sub.includes('@') ? payload.sub : '');
+                if (email) {
+                  const resolved = db.getUserIdByEmail?.(email);
+                  if (resolved) return String(resolved);
+                }
+              }
+            } catch {}
+          }
+
+          const headerUser = req.headers['x-user-id'];
+          if (headerUser && typeof headerUser === 'string' && headerUser.trim()) {
+            const val = headerUser.trim();
+            if (!isNaN(Number(val))) return val;
+            const resolved = db.getUserIdByEmail?.(val);
+            if (resolved) return String(resolved);
+          }
+
+          if (fallbackParam && typeof fallbackParam === 'string' && fallbackParam.trim()) {
+            const val = fallbackParam.trim();
+            if (!isNaN(Number(val))) return val;
+            const resolved = db.getUserIdByEmail?.(val);
+            if (resolved) return String(resolved);
+          }
+
+          return '20';
+        };
+
         // 0. Lightweight State Version Check (< 0.1ms, zero DB queries)
         if (pathname === '/api/v1/data/version' && req.method === 'GET') {
           res.setHeader('Content-Type', 'application/json');
@@ -128,9 +170,27 @@ function databaseApiPlugin() {
           }
         }
 
-        // 4. Quizzes
-        if (pathname === '/api/v1/quizzes' && req.method === 'GET') {
+        // 4. Quizzes (List or Single Quiz by ID)
+        if ((pathname === '/api/v1/quizzes' || pathname.startsWith('/api/v1/quizzes/')) && req.method === 'GET') {
           try {
+            let quizId = parsedUrl.searchParams.get('id');
+            if (!quizId && pathname.startsWith('/api/v1/quizzes/')) {
+              quizId = decodeURIComponent(pathname.replace('/api/v1/quizzes/', '').trim());
+            }
+
+            if (quizId) {
+              const quiz = db.getQuizByIdFromDb(quizId);
+              if (!quiz) {
+                res.statusCode = 404;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ status: 404, error: 'Quiz not found' }));
+                return;
+              }
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ status: 200, success: true, data: quiz }));
+              return;
+            }
+
             const data = db.getQuizzesFromDb();
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 200, success: true, data }));
@@ -205,7 +265,8 @@ function databaseApiPlugin() {
         if ((pathname === '/api/v1/attempts' || pathname === '/api/v1/quiz-attempts') && req.method === 'POST') {
           try {
             const body = await parseBody(req);
-            const data = db.submitAttemptToDb(body);
+            const studentId = getAuthenticatedStudentId(req, body.studentId);
+            const data = db.submitAttemptToDb({ ...body, studentId });
             res.statusCode = 201;
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 201, success: true, data }));
@@ -533,48 +594,6 @@ function databaseApiPlugin() {
           }
         }
 
-        // Helper to securely identify authenticated student and enforce isolation
-        const getAuthenticatedStudentId = (req: any, fallbackParam?: string | null): string => {
-          const authHeader = req.headers['authorization'] || '';
-          if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.slice(7).trim();
-            try {
-              const parts = token.split('.');
-              if (parts.length === 3) {
-                const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
-                // 1. Prioritize explicit numeric userId / id
-                if (payload.userId && !isNaN(Number(payload.userId))) return String(payload.userId);
-                if (payload.id && !isNaN(Number(payload.id))) return String(payload.id);
-                // 2. Check if sub is numeric ID
-                if (payload.sub && !isNaN(Number(payload.sub))) return String(payload.sub);
-                // 3. Resolve by email from payload.sub or payload.email
-                const email = payload.email || (payload.sub && payload.sub.includes('@') ? payload.sub : '');
-                if (email) {
-                  const resolved = db.getUserIdByEmail?.(email);
-                  if (resolved) return String(resolved);
-                }
-              }
-            } catch {}
-          }
-
-          const headerUser = req.headers['x-user-id'];
-          if (headerUser && typeof headerUser === 'string' && headerUser.trim()) {
-            const val = headerUser.trim();
-            if (!isNaN(Number(val))) return val;
-            const resolved = db.getUserIdByEmail?.(val);
-            if (resolved) return String(resolved);
-          }
-
-          if (fallbackParam && typeof fallbackParam === 'string' && fallbackParam.trim()) {
-            const val = fallbackParam.trim();
-            if (!isNaN(Number(val))) return val;
-            const resolved = db.getUserIdByEmail?.(val);
-            if (resolved) return String(resolved);
-          }
-
-          return '20';
-        };
-
         // 8. Learning Progress & Continue Learning APIs
         if ((pathname === '/api/v1/student/learning/continue' || pathname === '/api/v1/learning-progress/recent') && req.method === 'GET') {
           try {
@@ -629,6 +648,56 @@ function databaseApiPlugin() {
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 9. AI NCERT Available Chapters
+        if (pathname === '/api/v1/ai/ncert/chapters' && req.method === 'GET') {
+          try {
+            const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 9;
+            const subject = parsedUrl.searchParams.get('subject') || 'Mathematics';
+            const data = db.getNcertAvailableChapters({ classGrade, subject });
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 10. AI NCERT Quiz Generation
+        if (pathname === '/api/v1/ai/quiz/generate' && req.method === 'POST') {
+          try {
+            const body = await parseBody(req);
+            const studentId = getAuthenticatedStudentId(req, body.studentId);
+            const data = db.generateNcertQuiz({
+              studentId,
+              classGrade: body.classGrade || 9,
+              subject: body.subject || 'Mathematics',
+              chapter: body.chapter || 'Coordinate Geometry',
+              difficulty: body.difficulty || 'medium',
+              questionType: body.questionType || 'MCQ',
+              count: body.count || 1,
+            });
+            res.statusCode = 201;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 201, success: true, data }));
+            return;
+          } catch (err: any) {
+            const isQuota = err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'));
+            const status = isQuota ? 429 : 500;
+            res.statusCode = status;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({
+              status,
+              error: isQuota 
+                ? 'NCERT AI generation daily quota reached. Please try again later.' 
+                : (err.message || 'Failed to generate NCERT quiz')
+            }));
             return;
           }
         }
@@ -701,5 +770,5 @@ export default defineConfig({
         secure: false,
       },
     },
-  }
+  },
 })

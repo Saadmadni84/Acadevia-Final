@@ -78,6 +78,8 @@ export interface QuizRecord {
   timeLimit: number; // in seconds
   difficulty: 'easy' | 'medium' | 'hard';
   xpReward?: number;
+  assignedStudentId?: string;
+  isAiGenerated?: boolean;
   questions: QuizQuestion[];
   createdAt: string;
 }
@@ -1083,10 +1085,16 @@ export const dataService = {
 
     return state.quizzes
       .filter((q) => {
-        // Matches student's academic class (Classes 1-12)
+        // 1. Matches student's academic class (Classes 1-12)
         const matchesClass = Number(q.classGrade) === Number(classGrade);
-        if (!matchesClass) return false;
-        return true;
+
+        // 2. Or explicitly generated for/assigned to this student
+        const isAssignedToStudent = q.assignedStudentId && String(q.assignedStudentId) === String(studentId);
+
+        // 3. Or student's personal NCERT practice quiz (either matching class, or assigned to student, or open practice)
+        const isPracticeQuiz = q.isAiGenerated && (matchesClass || isAssignedToStudent || !q.assignedStudentId);
+
+        return matchesClass || isAssignedToStudent || isPracticeQuiz;
       })
       .sort((a, b) => {
         // Prioritize assigned teacher quizzes first, then newest
@@ -1140,6 +1148,44 @@ export const dataService = {
       if (rawNum && (idStr === rawNum || numIdStr === rawNum || idStr.replace(/^quiz-/, '') === rawNum)) return true;
       return false;
     });
+  },
+
+  /** Register or update a quiz in local cache */
+  addQuiz(quiz: QuizRecord): void {
+    if (!quiz || !quiz.id) return;
+    const state = loadState();
+    const idx = state.quizzes.findIndex(
+      (q) => String(q.id) === String(quiz.id) || (quiz.numericId && (q as any).numericId === quiz.numericId)
+    );
+    if (idx >= 0) {
+      state.quizzes[idx] = { ...state.quizzes[idx], ...quiz };
+    } else {
+      state.quizzes.unshift(quiz);
+    }
+    saveState(state);
+  },
+
+  /** Fetch quiz by ID from backend API if not found in local state */
+  async fetchQuizById(quizId: string): Promise<QuizRecord | null> {
+    const cached = this.getQuizById(quizId);
+    if (cached) return cached;
+
+    try {
+      if (typeof window !== 'undefined') {
+        const res = await fetch(getApiUrl(`/api/v1/quizzes/${encodeURIComponent(quizId)}`));
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.success && json.data) {
+            const quiz = json.data as QuizRecord;
+            this.addQuiz(quiz);
+            return quiz;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[dataService] Failed to fetch quiz by id:', err);
+    }
+    return null;
   },
 
   /** Teacher creates and publishes a quiz */

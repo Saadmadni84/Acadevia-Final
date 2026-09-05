@@ -143,6 +143,7 @@ function ensureSchema() {
       xp_reward INT DEFAULT 50,
       is_active TINYINT(1) DEFAULT 1,
       created_by BIGINT DEFAULT 10,
+      assigned_to_student_id BIGINT DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -150,17 +151,25 @@ function ensureSchema() {
       id BIGINT AUTO_INCREMENT PRIMARY KEY,
       quiz_id BIGINT NOT NULL,
       question_text TEXT NOT NULL,
-      option_a VARCHAR(255) NOT NULL,
-      option_b VARCHAR(255) NOT NULL,
-      option_c VARCHAR(255) NOT NULL,
-      option_d VARCHAR(255) NOT NULL,
-      correct_answer VARCHAR(10) NOT NULL,
+      option_a TEXT NOT NULL,
+      option_b TEXT NOT NULL,
+      option_c TEXT NOT NULL,
+      option_d TEXT NOT NULL,
+      correct_answer TEXT NOT NULL,
       explanation TEXT,
       marks INT DEFAULT 10,
-      topic VARCHAR(100) DEFAULT 'General',
+      topic VARCHAR(255) DEFAULT 'General',
       is_active TINYINT(1) DEFAULT 1,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    ALTER TABLE acadevia_quiz_db.questions
+      MODIFY COLUMN option_a TEXT NOT NULL,
+      MODIFY COLUMN option_b TEXT NOT NULL,
+      MODIFY COLUMN option_c TEXT NOT NULL,
+      MODIFY COLUMN option_d TEXT NOT NULL,
+      MODIFY COLUMN correct_answer TEXT NOT NULL,
+      MODIFY COLUMN topic VARCHAR(255) DEFAULT 'General';
 
     CREATE TABLE IF NOT EXISTS acadevia_quiz_db.quiz_attempts (
       id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -665,9 +674,10 @@ function getQuizzesFromDb() {
       q.difficulty_level as difficulty,
       q.xp_reward as xpReward,
       q.created_by as teacherId,
+      q.assigned_to_student_id as assignedStudentId,
       CONCAT(u.first_name, ' ', u.last_name) as teacherName,
       q.created_at as createdAt,
-      q.chapter_info as chapterInfo
+      COALESCE(q.topic, q.chapter_info, '') as chapterInfo
     FROM acadevia_quiz_db.quizzes q
     LEFT JOIN acadevia_auth_db.users u ON q.created_by = u.id
     WHERE q.is_active = 1
@@ -701,10 +711,20 @@ function getQuizzesFromDb() {
     if (!questionMap[qId]) questionMap[qId] = [];
     const options = [q.optA, q.optB, q.optC, q.optD].filter(Boolean);
     let correctIndex = 0;
-    const ans = (q.correctAnswer || 'A').toUpperCase().trim();
-    if (ans === 'B' || ans === '1') correctIndex = 1;
-    else if (ans === 'C' || ans === '2') correctIndex = 2;
-    else if (ans === 'D' || ans === '3') correctIndex = 3;
+    const ans = String(q.correctAnswer || '').trim();
+    const upperAns = ans.toUpperCase();
+    const foundIdx = options.findIndex((opt) => String(opt).trim().toLowerCase() === ans.toLowerCase());
+    if (foundIdx !== -1) {
+      correctIndex = foundIdx;
+    } else if (upperAns === 'B' || upperAns === '1') {
+      correctIndex = 1;
+    } else if (upperAns === 'C' || upperAns === '2') {
+      correctIndex = 2;
+    } else if (upperAns === 'D' || upperAns === '3') {
+      correctIndex = 3;
+    } else {
+      correctIndex = 0;
+    }
 
     questionMap[qId].push({
       id: `q-${q.id}`,
@@ -729,7 +749,7 @@ function getQuizzesFromDb() {
       id: aliasId,
       numericId,
       teacherId: String(q.teacherId || '10'),
-      teacherName: (q.teacherName || 'Faculty').trim(),
+      teacherName: (q.teacherName && q.teacherName !== 'NULL' && q.teacherName.trim()) ? q.teacherName.trim() : (String(q.teacherId) === '10' ? 'NCERT AI Tutor' : 'Faculty'),
       classGrade: Number(q.classGrade) || 10,
       subject: q.subject,
       chapter: q.chapterInfo || '',
@@ -739,12 +759,25 @@ function getQuizzesFromDb() {
       timeLimit: (Number(q.timeLimitMinutes) || 5) * 60,
       difficulty: (q.difficulty || 'medium').toLowerCase(),
       xpReward: Number(q.xpReward) || 50,
+      assignedStudentId: (q.assignedStudentId && q.assignedStudentId !== 'NULL') ? String(q.assignedStudentId) : undefined,
+      isAiGenerated: String(q.teacherId) === '10' || !!(q.assignedStudentId && q.assignedStudentId !== 'NULL'),
       createdAt: q.createdAt || new Date().toISOString(),
       questions,
     };
   });
   serverCache.quizzes = { data: result, timestamp: Date.now() };
   return result;
+}
+
+function getQuizByIdFromDb(quizId) {
+  if (!quizId) return null;
+  const targetId = String(quizId).toLowerCase().trim();
+  const quizzes = getQuizzesFromDb();
+  return quizzes.find((q) => {
+    const idStr = String(q.id).toLowerCase().trim();
+    const numIdStr = q.numericId ? String(q.numericId).toLowerCase().trim() : '';
+    return idStr === targetId || numIdStr === targetId;
+  }) || null;
 }
 
 // ---------------------------------------------------------------------------
@@ -803,7 +836,18 @@ function getQuizAttemptsFromDb() {
 function submitAttemptToDb(params) {
   const numericQuizId = resolveNumericQuizId(params.quizId);
   const studentId = Number(params.studentId);
-  const answers = Array.isArray(params.answers) ? params.answers : [];
+  if (!studentId || isNaN(studentId)) {
+    throw new Error('Valid studentId is required to submit an attempt');
+  }
+
+  const rawAnswers = params.answers;
+  let answers = [];
+  if (Array.isArray(rawAnswers)) {
+    answers = rawAnswers;
+  } else if (rawAnswers && typeof rawAnswers === 'object') {
+    answers = rawAnswers;
+  }
+
   const timeTakenSeconds = Number(params.timeTakenSeconds) || 180;
   const completedAt = params.completedAt || new Date().toISOString().slice(0, 19).replace('T', ' ');
 
@@ -818,7 +862,11 @@ function submitAttemptToDb(params) {
 
   if (quiz && quiz.questions && quiz.questions.length > 0) {
     quiz.questions.forEach((q, idx) => {
-      if (answers[idx] !== undefined && answers[idx] === q.correctIndex) {
+      let studentAns = Array.isArray(answers) ? answers[idx] : undefined;
+      if (studentAns === undefined && typeof answers === 'object') {
+        studentAns = answers[q.id] !== undefined ? answers[q.id] : answers[String(idx)];
+      }
+      if (studentAns !== undefined && Number(studentAns) === Number(q.correctIndex)) {
         score += q.points;
         correctCount++;
       } else {
@@ -832,17 +880,18 @@ function submitAttemptToDb(params) {
     wrongCount = 1;
   }
 
-  const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 80;
+  const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
   const baseReward = Number(quiz?.xpReward) || 50;
   const xpEarned = Math.max(score * 10, baseReward);
   const isPassed = percentage >= 60 ? 1 : 0;
   const answersJson = JSON.stringify(answers).replace(/'/g, "\\'");
+  const totalQuestions = quiz?.questions?.length || (Array.isArray(answers) ? answers.length : Object.keys(answers).length) || 5;
 
   const insertSql = `
     INSERT INTO acadevia_quiz_db.quiz_attempts
     (quiz_id, user_id, status, attempt_number, score, total_marks, percentage, is_passed, total_questions, correct_answers, wrong_answers, time_taken_seconds, xp_earned, answers_json, completed_at)
     VALUES
-    (${numericQuizId}, ${studentId}, 'SUBMITTED', 1, ${score}, ${totalMarks}, ${percentage}, ${isPassed}, ${answers.length || 5}, ${correctCount}, ${wrongCount}, ${timeTakenSeconds}, ${xpEarned}, '${answersJson}', '${completedAt}');
+    (${numericQuizId}, ${studentId}, 'SUBMITTED', 1, ${score}, ${totalMarks}, ${percentage}, ${isPassed}, ${totalQuestions}, ${correctCount}, ${wrongCount}, ${timeTakenSeconds}, ${xpEarned}, '${answersJson}', '${completedAt}');
   `;
   execSqlMutation(insertSql);
 
@@ -872,6 +921,10 @@ function submitAttemptToDb(params) {
     score,
     totalPoints: totalMarks,
     percentage,
+    totalQuestions,
+    correctAnswers: correctCount,
+    wrongAnswers: wrongCount,
+    isPassed,
     answers,
     completedAt,
     xpEarned,
@@ -896,13 +949,15 @@ function createQuizInDb(data) {
   const totalQuestions = questions.length || 5;
   const totalMarks = questions.reduce((acc, q) => acc + (Number(q.points) || 10), 0) || 50;
   const xpReward = Math.max(10, Math.min(500, Number(data.xpReward) || 50));
+  const assignedStudentId = (data.assignedStudentId || data.studentId) ? Number(data.assignedStudentId || data.studentId) : null;
+  const assignedSql = assignedStudentId ? `${assignedStudentId}` : 'NULL';
 
   const sqlStatements = [
     'START TRANSACTION;',
     `INSERT INTO acadevia_quiz_db.quizzes
-     (title, description, chapter_info, quiz_type, quiz_status, difficulty_level, subject, class_grade, board, language, total_questions, time_limit_minutes, pass_percentage, max_attempts, xp_reward, marks_per_question, total_marks, created_by)
+     (title, description, subject, class_grade, chapter_info, time_limit_minutes, difficulty_level, xp_reward, is_active, created_by, assigned_to_student_id)
      VALUES
-     ('${title}', '${description}', ${chapterSql}, 'PRACTICE', 'ACTIVE', '${difficulty}', '${subject}', ${classGrade}, 'CBSE', 'en', ${totalQuestions}, ${timeLimitMin}, 60, 5, ${xpReward}, 10, ${totalMarks}, ${teacherId});`,
+     ('${title}', '${description}', '${subject}', ${classGrade}, ${chapterSql}, ${timeLimitMin}, '${difficulty}', ${xpReward}, 1, ${teacherId}, ${assignedSql});`,
     'SET @new_quiz_id = LAST_INSERT_ID();',
   ];
 
@@ -920,9 +975,9 @@ function createQuizInDb(data) {
 
     sqlStatements.push(`
       INSERT INTO acadevia_quiz_db.questions
-      (quiz_id, question_text, question_type, option_a, option_b, option_c, option_d, correct_answer, explanation, subject, class_grade, board, topic, concept, difficulty_level, language, marks, xp_value, created_by)
+      (quiz_id, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation, marks, topic, is_active)
       VALUES
-      (@new_quiz_id, '${qText}', 'MCQ', '${optA}', '${optB}', '${optC}', '${optD}', '${correctLetter}', '${explanation}', '${subject}', ${classGrade}, 'CBSE', '${topic}', '${topic}', '${difficulty}', 'en', ${points}, ${points}, ${teacherId});
+      (@new_quiz_id, '${qText}', '${optA}', '${optB}', '${optC}', '${optD}', '${correctLetter}', '${explanation}', ${points}, '${topic}', 1);
     `);
   });
 
@@ -954,7 +1009,7 @@ function createQuizInDb(data) {
     id: String(newQuizId),
     numericId: String(newQuizId),
     teacherId: String(teacherId),
-    teacherName: data.teacherName || 'Teacher',
+    teacherName: data.teacherName || (String(teacherId) === '10' ? 'NCERT AI Tutor' : 'Teacher'),
     classGrade,
     subject: data.subject,
     chapter: chapterInfo,
@@ -964,6 +1019,8 @@ function createQuizInDb(data) {
     timeLimit: Number(data.timeLimit) || 300,
     difficulty: (data.difficulty || 'medium').toLowerCase(),
     xpReward,
+    assignedStudentId: assignedStudentId ? String(assignedStudentId) : undefined,
+    isAiGenerated: String(teacherId) === '10' || !!assignedStudentId || !!data.isAiGenerated,
     questions: questions.map((q, idx) => ({
       id: q.id || `q-${idx}`,
       question: q.question,
@@ -1689,6 +1746,83 @@ function getLearningProgressByContent(studentId, contentId) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// 9. NCERT Integration Methods
+// ---------------------------------------------------------------------------
+const ncertBridge = require('./ncertBridge.cjs');
+
+function getNcertAvailableChapters({ classGrade = 9, subject = 'Mathematics' } = {}) {
+  const chapters = ncertBridge.getIndexedChapters(classGrade, subject);
+  return {
+    classGrade: Number(classGrade),
+    subject,
+    chapters: chapters.map(c => ({
+      id: c.chapterNumber,
+      chapter: c.chapterNumber,
+      name: c.title,
+      sourceFile: c.sourceFile,
+      chunkCount: c.chunkCount
+    }))
+  };
+}
+
+function generateNcertQuiz({
+  studentId,
+  classGrade = 9,
+  subject = 'Mathematics',
+  chapter = 'Coordinate Geometry',
+  difficulty = 'medium',
+  questionType = 'MCQ',
+  count = 1
+}) {
+  if (Number(classGrade) !== 9) {
+    throw new Error('Currently only NCERT Class 9 Mathematics dataset is indexed.');
+  }
+
+  const requestedCount = Math.min(Math.max(1, Number(count) || 1), 5);
+  const questions = [];
+
+  for (let i = 0; i < requestedCount; i++) {
+    const q = ncertBridge.generateNcertQuestion({
+      grade: classGrade,
+      subject,
+      topic: chapter,
+      difficulty,
+      bloomLevel: 'understand'
+    });
+    questions.push(q);
+  }
+
+  const newQuiz = createQuizInDb({
+    teacherId: 10,
+    teacherName: 'NCERT AI Tutor',
+    classGrade: Number(classGrade),
+    subject,
+    chapter,
+    chapterInfo: `${chapter} (NCERT Grounded)`,
+    title: `NCERT Practice: ${chapter}`,
+    description: `Personalized practice quiz grounded in NCERT Class ${classGrade} ${subject}.`,
+    timeLimit: (questions.length * 60) || 300,
+    difficulty: difficulty.toUpperCase(),
+    xpReward: questions.length * 20,
+    studentId,
+    assignedStudentId: studentId ? String(studentId) : null,
+    isAiGenerated: true,
+    questions: questions.map((q, idx) => ({
+      id: `q-ncert-${Date.now()}-${idx + 1}`,
+      question: q.question,
+      options: q.options,
+      correctIndex: q.correctIndex,
+      explanation: q.explanation,
+      points: q.points || 10,
+      topic: q.topic || chapter,
+      source: q.source
+    }))
+  });
+
+  return newQuiz;
+}
+
 module.exports = {
   getStateVersion,
   invalidateServerCache,
@@ -1700,6 +1834,7 @@ module.exports = {
   getTeacherAnalyticsFromDb,
   getUsersFromDb,
   getQuizzesFromDb,
+  getQuizByIdFromDb,
   getQuizAttemptsFromDb,
   submitAttemptToDb,
   createQuizInDb,
@@ -1715,4 +1850,7 @@ module.exports = {
   getRecentLearningProgress,
   getLearningProgressByContent,
   getUserIdByEmail,
+  getNcertAvailableChapters,
+  generateNcertQuiz,
 };
+

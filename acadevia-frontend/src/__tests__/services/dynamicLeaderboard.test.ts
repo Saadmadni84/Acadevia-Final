@@ -136,9 +136,11 @@ describe('Dynamic Database-Driven Leaderboard Service', () => {
       zeroXpEntries.forEach((z) => {
         expect(z.xp).toBe(0);
         // Rank of zero-XP student must be lower than any positive-XP student
-        if (minPositiveXp > 0) {
+        if (Number.isFinite(minPositiveXp) && minPositiveXp > 0) {
           const positiveStudent = alltime.find((e) => e.xp === minPositiveXp);
-          expect(z.rank).toBeGreaterThan(positiveStudent!.rank);
+          if (positiveStudent) {
+            expect(z.rank).toBeGreaterThan(positiveStudent.rank);
+          }
         }
       });
     }

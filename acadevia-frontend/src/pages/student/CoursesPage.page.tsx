@@ -250,12 +250,12 @@ export const CoursesPage: React.FC = () => {
         prev.map((c) =>
           c.id === commentId
             ? {
-                ...c,
-                ...updated,
-                reply: replyText.trim(),
-                repliedByName: (user as any)?.name || (user as any)?.firstName || 'Teacher',
-                isResolved: true,
-              }
+              ...c,
+              ...updated,
+              reply: replyText.trim(),
+              repliedByName: (user as any)?.name || (user as any)?.firstName || 'Teacher',
+              isResolved: true,
+            }
             : c
         )
       );
@@ -581,11 +581,10 @@ export const CoursesPage: React.FC = () => {
                 setSelectedChapter(ch.title);
                 setView('content');
               }}
-              className={`w-full flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all hover:shadow-sm ${
-                count > 0
+              className={`w-full flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all hover:shadow-sm ${count > 0
                   ? 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
                   : 'border-gray-100 dark:border-gray-800 opacity-70'
-              }`}
+                }`}
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary shrink-0">
                 {idx + 1}
@@ -703,13 +702,12 @@ export const CoursesPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    activeItem.contentType === 'VIDEO' || !activeItem.contentType
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${activeItem.contentType === 'VIDEO' || !activeItem.contentType
                       ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
                       : activeItem.contentType === 'PDF'
-                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
-                      : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                  }`}
+                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                    }`}
                 >
                   {(activeItem.contentType === 'VIDEO' || !activeItem.contentType) && (
                     <Film className="h-3 w-3" />
@@ -751,15 +749,15 @@ export const CoursesPage: React.FC = () => {
                   activeItem.downloadOptions && activeItem.downloadOptions.length > 0
                     ? activeItem.downloadOptions
                     : [{
-                        quality: 'original',
-                        label: 'Original Quality',
-                        fileSizeMb: activeItem.fileSize
-                          ? Math.round((activeItem.fileSize / (1024 * 1024)) * 100) / 100
-                          : undefined,
-                        downloadUrl:
-                          activeItem.downloadUrl ||
-                          `/api/v1/content/videos/${activeItem.id}/download`,
-                      }];
+                      quality: 'original',
+                      label: 'Original Quality',
+                      fileSizeMb: activeItem.fileSize
+                        ? Math.round((activeItem.fileSize / (1024 * 1024)) * 100) / 100
+                        : undefined,
+                      downloadUrl:
+                        activeItem.downloadUrl ||
+                        `/api/v1/content/videos/${activeItem.id}/download`,
+                    }];
 
                 const isDownloading = downloadingId === activeItem.id;
 
@@ -832,8 +830,8 @@ export const CoursesPage: React.FC = () => {
                       {isDownloading
                         ? 'Downloading...'
                         : singleOpt.fileSizeMb
-                        ? `Download (${singleOpt.fileSizeMb.toFixed(1)} MB)`
-                        : 'Download'}
+                          ? `Download (${singleOpt.fileSizeMb.toFixed(1)} MB)`
+                          : 'Download'}
                     </span>
                   </button>
                 );
@@ -954,10 +952,10 @@ export const CoursesPage: React.FC = () => {
                 <span>
                   {(activeItem as any).createdAt
                     ? new Date((activeItem as any).createdAt).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
                     : 'Recently updated'}
                 </span>
                 <span>•</span>
@@ -1093,11 +1091,10 @@ export const CoursesPage: React.FC = () => {
                   return (
                     <div key={c.id} className="flex items-start gap-3 group">
                       {/* Avatar */}
-                      <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                        isTeacher
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${isTeacher
                           ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                           : 'bg-primary/10 text-primary'
-                      }`}>
+                        }`}>
                         {c.userName?.charAt(0)?.toUpperCase() || 'U'}
                       </div>
 
@@ -1135,9 +1132,8 @@ export const CoursesPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => toggleLikeComment(c.id)}
-                            className={`inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition cursor-pointer ${
-                              isLiked ? 'text-primary font-bold' : ''
-                            }`}
+                            className={`inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white transition cursor-pointer ${isLiked ? 'text-primary font-bold' : ''
+                              }`}
                           >
                             <ThumbsUp className={`h-3.5 w-3.5 ${isLiked ? 'fill-primary text-primary' : ''}`} />
                             <span>{isLiked ? 1 : ''}</span>
@@ -1299,11 +1295,10 @@ export const CoursesPage: React.FC = () => {
                     flushProgress();
                     setActiveItem(item);
                   }}
-                  className={`w-full flex items-center gap-4 rounded-xl border-2 p-3.5 text-left transition-all hover:shadow-sm ${
-                    isSelected
+                  className={`w-full flex items-center gap-4 rounded-xl border-2 p-3.5 text-left transition-all hover:shadow-sm ${isSelected
                       ? 'border-primary bg-primary/5'
                       : 'border-gray-200 dark:border-gray-700 hover:border-primary/40'
-                  }`}
+                    }`}
                 >
                   <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                     {item.contentType === 'VIDEO' || !item.contentType ? (
@@ -1317,13 +1312,12 @@ export const CoursesPage: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                          item.contentType === 'VIDEO' || !item.contentType
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${item.contentType === 'VIDEO' || !item.contentType
                             ? 'bg-purple-100 text-purple-700'
                             : item.contentType === 'PDF'
-                            ? 'bg-rose-100 text-rose-700'
-                            : 'bg-emerald-100 text-emerald-700'
-                        }`}
+                              ? 'bg-rose-100 text-rose-700'
+                              : 'bg-emerald-100 text-emerald-700'
+                          }`}
                       >
                         {item.contentType || 'VIDEO'}
                       </span>

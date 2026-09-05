@@ -9,6 +9,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import type { QuizQuestion, QuizResult } from '@/types/quiz.types';
+import { MathMarkdownRenderer } from '@/components/common/MathMarkdownRenderer';
 
 interface QuizReviewProps {
   questions: QuizQuestion[];
@@ -105,9 +106,9 @@ const QuizReview: React.FC<QuizReviewProps> = ({ questions, result, onBackToCour
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                     {t('quiz.questionN', 'Question {{n}}', { n: qi + 1 })}
                   </p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {q.text}
-                  </p>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white leading-relaxed">
+                    <MathMarkdownRenderer content={q.text} />
+                  </div>
                 </div>
               </div>
 
@@ -127,10 +128,12 @@ const QuizReview: React.FC<QuizReviewProps> = ({ questions, result, onBackToCour
                         !isThisCorrect && !isThisSelected && 'text-gray-600 dark:text-gray-400',
                       )}
                     >
-                      <span className="font-mono text-xs w-5" aria-hidden="true">
+                      <span className="font-mono text-xs w-5 flex-shrink-0" aria-hidden="true">
                         {LETTERS[oi] ?? oi + 1}.
                       </span>
-                      <span className="flex-1">{opt}</span>
+                      <span className="flex-1 min-w-0 break-words leading-relaxed">
+                        <MathMarkdownRenderer content={opt} />
+                      </span>
                       {isThisCorrect && <CheckCircle className="h-4 w-4 text-green-500 shrink-0" aria-hidden="true" />}
                       {isThisSelected && !isThisCorrect && <XCircle className="h-4 w-4 text-red-500 shrink-0" aria-hidden="true" />}
                     </div>
@@ -144,7 +147,9 @@ const QuizReview: React.FC<QuizReviewProps> = ({ questions, result, onBackToCour
                   <p className="text-xs font-semibold text-primary dark:text-purple-300 mb-0.5">
                     {t('quiz.explanation', 'Explanation')}
                   </p>
-                  <p className="text-xs text-[#172033] dark:text-gray-300">{q.explanation}</p>
+                  <div className="text-xs text-[#172033] dark:text-gray-300 leading-relaxed">
+                    <MathMarkdownRenderer content={q.explanation} />
+                  </div>
                 </div>
               )}
             </motion.div>
