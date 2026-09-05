@@ -4,6 +4,7 @@ import { Clock, ChevronRight, AlertCircle, CheckCircle, XCircle } from 'lucide-r
 import { Button } from '@/components/ui/Button';
 import { Progress } from '@/components/ui/Progress';
 import { cn } from '@/lib/utils';
+import { MathMarkdownRenderer } from '@/components/common/MathMarkdownRenderer';
 
 interface QuizQuestion {
   id: string;
@@ -11,6 +12,7 @@ interface QuizQuestion {
   options: string[];
   correctIndex: number;
   explanation?: string;
+  hint?: string;
   points: number;
 }
 
@@ -114,7 +116,9 @@ const QuizPlayer: React.FC<QuizPlayerProps> = ({ title, chapter, questions, time
               </span>
               <span className="text-xs text-gray-500">{q.points} pts</span>
             </div>
-            <h3 className="text-base font-semibold mb-6">{q.question}</h3>
+            <div className="text-base font-semibold mb-6 text-gray-900 dark:text-white leading-relaxed">
+              <MathMarkdownRenderer content={q.question} />
+            </div>
             <div className="space-y-3">
               {q.options.map((opt, idx) => (
                 <motion.button
@@ -137,16 +141,31 @@ const QuizPlayer: React.FC<QuizPlayerProps> = ({ title, chapter, questions, time
                   )}>
                     {String.fromCharCode(65 + idx)}
                   </span>
-                  <span className="flex-1">{opt}</span>
-                  {selected !== null && idx === q.correctIndex && <CheckCircle className="h-5 w-5 text-secondary" />}
-                  {selected !== null && idx === selected && idx !== q.correctIndex && <XCircle className="h-5 w-5 text-accent" />}
+                  <span className="flex-1 min-w-0 break-words leading-relaxed text-left">
+                    <MathMarkdownRenderer content={opt} />
+                  </span>
+                  {selected !== null && idx === q.correctIndex && <CheckCircle className="h-5 w-5 text-secondary flex-shrink-0" />}
+                  {selected !== null && idx === selected && idx !== q.correctIndex && <XCircle className="h-5 w-5 text-accent flex-shrink-0" />}
                 </motion.button>
               ))}
             </div>
             {selected !== null && q.explanation && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 p-3 rounded-lg bg-primary/10 dark:bg-primary/20 text-sm border border-primary/20">
-                <p className="flex items-start gap-2"><AlertCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />{q.explanation}</p>
+                <div className="flex items-start gap-2 text-gray-800 dark:text-gray-200">
+                  <AlertCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 leading-relaxed">
+                    <MathMarkdownRenderer content={q.explanation} />
+                  </div>
+                </div>
               </motion.div>
+            )}
+            {q.hint && (
+              <div className="mt-3 p-2.5 rounded-lg bg-amber-500/10 text-xs text-amber-800 dark:text-amber-200 border border-amber-500/20 flex items-start gap-2">
+                <span className="font-bold flex-shrink-0">Hint:</span>
+                <div className="flex-1 leading-relaxed">
+                  <MathMarkdownRenderer content={q.hint} />
+                </div>
+              </div>
             )}
             <div className="flex justify-end mt-6">
               <Button variant="gradient" onClick={handleNext} disabled={selected === null} rightIcon={<ChevronRight className="h-4 w-4" />}>
