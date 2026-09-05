@@ -423,7 +423,7 @@ const GamesPage: React.FC = () => {
             {/* Left: Large Artwork (60% visual prominence) */}
             <div className="lg:col-span-6 relative h-64 sm:h-72 lg:h-auto overflow-hidden bg-gray-950 flex items-center justify-center p-3 sm:p-5">
               <div className="w-full h-full rounded-2xl overflow-hidden shadow-inner relative group">
-                <GameThumbnail game={featuredGame} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
+                <GameThumbnail game={featuredGame} preferRaster={true} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
               </div>
             </div>
 
@@ -714,7 +714,7 @@ const GamesPage: React.FC = () => {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 shadow-xs">
-                        <GameThumbnail game={game} className="w-full h-full object-cover" />
+                        <GameThumbnail game={game} preferRaster={true} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs font-black text-gray-900 dark:text-white truncate group-hover:text-amber-600 transition-colors">

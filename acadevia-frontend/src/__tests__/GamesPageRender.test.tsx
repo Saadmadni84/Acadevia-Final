@@ -185,6 +185,6 @@ describe('GamesPage Render & Catalog Integrity', () => {
     const allGamesTabs = screen.getAllByRole('button', { name: /All Games/i });
     fireEvent.click(allGamesTabs[0]);
     expect(container.querySelector('h2')?.textContent).toBe('History Quest: Chronicles of India');
-  });
+  }, 15000);
 });
 

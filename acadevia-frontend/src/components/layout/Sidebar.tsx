@@ -1,16 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/config/routes.config';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { useGamificationStore } from '@/stores/useGamificationStore';
-import { LEVEL_NAMES } from '@/lib/constants';
-import { XPHistoryModal } from '@/components/dashboard/XPHistoryModal';
 import {
   Home, BookOpen, Trophy, User, Settings,
   Download, ChevronLeft, ChevronRight,
-  GraduationCap, BarChart3, Users, Shield, Brain, Swords, Star, Award
+  GraduationCap, BarChart3, Users, Shield, Brain, Swords, Award
 } from 'lucide-react';
 
 interface SidebarProps { collapsed: boolean; onToggle: () => void; }
@@ -27,15 +24,7 @@ interface NavGroup {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const { xp, level } = useGamificationStore();
   const role = user?.role || 'STUDENT';
-  const [isXPOpen, setIsXPOpen] = useState(false);
-
-  const resolvedXP = xp > 0 ? xp : 720;
-  const resolvedLevel = level > 1 ? level : 4;
-  const nextThreshold = 1000;
-  const progressPercent = Math.min(100, Math.round((resolvedXP / nextThreshold) * 100));
-  const xpNeeded = Math.max(0, nextThreshold - resolvedXP);
 
   const studentGroups: NavGroup[] = [
     {
@@ -88,8 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   ];
 
   return (
-    <>
-      <motion.aside
+    <motion.aside
         animate={{ width: collapsed ? 72 : 260 }}
         className="hidden lg:flex flex-col h-screen bg-[#FDFCF9] dark:bg-card-dark border-r border-[#E7E1D8] dark:border-[#382447] fixed left-0 top-0 z-30"
       >
@@ -185,64 +173,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
             })
           )}
         </nav>
-
-        {/* Level Status Card at Bottom */}
-        {role === 'STUDENT' && (
-          <div className="p-3 border-t border-[#E8E2D8] dark:border-[#382447]">
-            {!collapsed ? (
-              <div
-                onClick={() => setIsXPOpen(true)}
-                className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-primary/25 hover:border-primary/50 transition-all cursor-pointer space-y-2 group shadow-2xs hover:shadow-xs"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Star className="h-3.5 w-3.5 text-warning fill-warning" />
-                    <span className="text-xs font-extrabold text-gray-900 dark:text-white">
-                      Level {resolvedLevel}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-black text-primary dark:text-purple-300 uppercase tracking-wider">
-                    Explorer
-                  </span>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[11px] font-bold text-gray-500 dark:text-gray-400">
-                    <span>{resolvedXP} / {nextThreshold} XP</span>
-                    <span className="text-primary dark:text-purple-300">{progressPercent}%</span>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-purple-100 dark:bg-purple-950/60 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-primary to-purple-500 transition-all duration-500"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] text-gray-400 font-semibold pt-0.5">
-                    {xpNeeded} XP to Level {resolvedLevel + 1}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setIsXPOpen(true)}
-                className="w-full py-2 flex items-center justify-center text-primary dark:text-purple-300 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl cursor-pointer"
-                title={`Level ${resolvedLevel} Explorer • ${resolvedXP} XP`}
-              >
-                <Star className="h-5 w-5 text-warning fill-warning" />
-              </button>
-            )}
-          </div>
-        )}
       </motion.aside>
-
-      <XPHistoryModal
-        isOpen={isXPOpen}
-        onClose={() => setIsXPOpen(false)}
-        currentXP={resolvedXP}
-        level={resolvedLevel}
-        levelTitle={LEVEL_NAMES[resolvedLevel - 1] || 'Explorer'}
-      />
-    </>
   );
 };
 
