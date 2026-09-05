@@ -472,25 +472,24 @@ const RegisterForm: React.FC = () => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md mx-auto"
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      className="w-full"
     >
-      {/* HEADER */}
-      <div className="text-center mb-8">
-        <Logo />
+      <div className="bg-white/95 backdrop-blur-md rounded-3xl border border-[#E8E3D8] shadow-[0_8px_32px_-8px_rgba(40,30,20,0.06),0_1px_3px_rgba(0,0,0,0.02)] p-6 sm:p-9 text-left">
+        {/* HEADER */}
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-[28px] font-extrabold text-stone-900 tracking-tight leading-tight">
+            Create your account
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-stone-500">
+            Step {step + 1} of 4: {steps[step]}
+          </p>
+        </div>
 
-        <h2 className="mt-6 text-2xl font-bold">
-          Create your account
-        </h2>
-
-        <p className="mt-2 text-sm text-gray-500">
-          Step {step + 1} of 4: {steps[step]}
-        </p>
-      </div>
-
-      {/* PROGRESS STEPS */}
-      <div className="flex items-center justify-between mb-8 px-4">
+        {/* PROGRESS STEPS */}
+        <div className="flex items-center justify-between mb-6 px-1">
         {steps.map((s, i) => (
           <React.Fragment key={s}>
             <div
@@ -576,16 +575,17 @@ const RegisterForm: React.FC = () => {
         </Button>
       </div>
 
-      {/* LOGIN LINK */}
-      <p className="mt-6 text-center text-sm text-gray-500">
-        Already have an account?{' '}
-        <Link
-          to={ROUTES.LOGIN}
-          className="text-primary font-medium hover:underline"
-        >
-          Sign In
-        </Link>
-      </p>
+        {/* LOGIN LINK */}
+        <p className="mt-6 text-center text-sm text-stone-500">
+          Already have an account?{' '}
+          <Link
+            to={ROUTES.LOGIN}
+            className="text-[#5B2C6F] font-semibold hover:underline"
+          >
+            Sign In
+          </Link>
+        </p>
+      </div>
     </motion.div>
   );
 };

@@ -1010,6 +1010,25 @@ export const dataService = {
     saveState(state);
   },
 
+  /** Set or update current active user */
+  setCurrentUser(user: any): void {
+    if (!user) return;
+    try {
+      const state = loadState();
+      const idx = state.users.findIndex(
+        (u) => String(u.id) === String(user.id) || (user.email && u.email.toLowerCase() === user.email.toLowerCase())
+      );
+      if (idx >= 0) {
+        state.users[idx] = { ...state.users[idx], ...user };
+      } else {
+        state.users.push(user);
+      }
+      saveState(state);
+    } catch (e) {
+      console.warn('setCurrentUser fallback warning:', e);
+    }
+  },
+
   /* ---------------------------------------------------------------- */
   /*  RELATIONSHIPS                                                   */
   /* ---------------------------------------------------------------- */

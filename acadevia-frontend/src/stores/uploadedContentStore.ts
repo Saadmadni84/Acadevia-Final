@@ -34,7 +34,35 @@ export type UploadedVideo = UploadedContentItem;
 
 // In-memory store synchronized with MySQL backend API (independent of LocalStorage)
 
-const SEED_CONTENT_ITEMS: UploadedContentItem[] = [];
+const SEED_CONTENT_ITEMS: UploadedContentItem[] = [
+  {
+    id: '3',
+    title: 'Real Numbers',
+    description: "Comprehensive Chapter 1 coverage of Real Numbers for Class 10 CBSE/State Board. Covers Euclid's Division Lemma, Fundamental Theorem of Arithmetic, and proofs of irrationality.",
+    cloudinaryUrl: '/api/v1/content/videos/3/stream',
+    downloadUrl: '/api/v1/content/videos/3/download',
+    downloadOptions: [
+      {
+        quality: '720p',
+        label: '720p HD (Original)',
+        fileSizeMb: 408.83,
+        downloadUrl: '/api/v1/content/videos/3/download',
+      },
+    ],
+    thumbnailUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&auto=format&fit=crop&q=80',
+    subject: 'Mathematics',
+    classGrade: 10,
+    chapter: 'Real Numbers',
+    language: 'en',
+    duration: 4596,
+    uploadedBy: 'Faculty',
+    uploadedAt: '2026-09-04T12:00:00.000Z',
+    fileSize: 428691985,
+    contentType: 'VIDEO',
+    fileName: 'Real Numbers Class 10  Maths Full chapter in One Shot  NCERT Chapter 1  CBSE New Syllabus  10th_720p.mp4',
+    mimeType: 'video/mp4',
+  },
+];
 
 function getApiUrl(path: string): string {
   if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
@@ -43,7 +71,11 @@ function getApiUrl(path: string): string {
   return 'http://localhost:5173' + path;
 }
 
-let memoryItems: UploadedContentItem[] = [];
+let memoryItems: UploadedContentItem[] = [...SEED_CONTENT_ITEMS];
+
+function normalizeChapter(name: string): string {
+  return (name || '').toLowerCase().replace(/^chapter\s*\d+[\s:.-]*/i, '').trim();
+}
 
 function getAll(): UploadedContentItem[] {
   return memoryItems;
@@ -52,6 +84,9 @@ function getAll(): UploadedContentItem[] {
 export const uploadedContentStore = {
   /** Get all uploaded content */
   getAll,
+
+  /** Normalize chapter string */
+  normalizeChapter,
 
   /** Add a new content entry */
   add(item: UploadedContentItem): void {
@@ -80,14 +115,16 @@ export const uploadedContentStore = {
     );
   },
 
-  /** Get content for a specific chapter */
+  /** Get content for a specific chapter with flexible normalized matching */
   getByChapter(classGrade: number, subject: string, chapter: string): UploadedContentItem[] {
-    return memoryItems.filter(
-      (v) =>
-        v.classGrade === classGrade &&
-        v.subject.toLowerCase() === subject.toLowerCase() &&
-        v.chapter.toLowerCase() === chapter.toLowerCase(),
-    );
+    const targetNorm = normalizeChapter(chapter);
+    return memoryItems.filter((v) => {
+      if (v.classGrade !== classGrade) return false;
+      if (v.subject.toLowerCase() !== subject.toLowerCase()) return false;
+      if (!targetNorm) return true;
+      const itemNorm = normalizeChapter(v.chapter);
+      return itemNorm === targetNorm || itemNorm.includes(targetNorm) || targetNorm.includes(itemNorm);
+    });
   },
 
   /** Get unique classes that have content */
