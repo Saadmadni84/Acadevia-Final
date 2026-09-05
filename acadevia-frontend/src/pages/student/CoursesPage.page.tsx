@@ -35,6 +35,7 @@ import { dataService } from '@/services/data.service';
 import { contentService, type AcademicSubject, type AcademicChapter } from '@/services/content.service';
 import { learningProgressService } from '@/services/learningProgress.service';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { cn } from '@/lib/utils';
 
 type View = 'subject' | 'chapters' | 'content';
 
