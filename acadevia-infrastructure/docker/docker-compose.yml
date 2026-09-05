@@ -45,10 +45,16 @@ x-spring-env: &spring-env
   JAVA_OPTS: "-Xms64m -Xmx192m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
 
 x-minio-env: &minio-env
-  SPRING_CLOUD_AWS_ENDPOINT: http://minio:9000
-  SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-  SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY: ${MINIO_SECRET_KEY}
-  SPRING_CLOUD_AWS_REGION_STATIC: us-east-1
+  STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-${MINIO_ENDPOINT:-http://minio:9000}}
+  STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-${MINIO_ACCESS_KEY:-minioadmin}}
+  STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-${MINIO_SECRET_KEY:-minioadmin}}
+  STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+  STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-${CDN_BASE_URL:-http://localhost:9000}}
+  STORAGE_PATH_STYLE_ENABLED: ${STORAGE_PATH_STYLE_ENABLED:-true}
+  SPRING_CLOUD_AWS_ENDPOINT: ${STORAGE_ENDPOINT:-${MINIO_ENDPOINT:-http://minio:9000}}
+  SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-${MINIO_ACCESS_KEY:-minioadmin}}
+  SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY: ${STORAGE_SECRET_KEY:-${MINIO_SECRET_KEY:-minioadmin}}
+  SPRING_CLOUD_AWS_REGION_STATIC: ${STORAGE_REGION:-us-east-1}
 
 x-logging: &logging
   driver: json-file
@@ -352,10 +358,14 @@ services:
     container_name: acadevia-content-service
     environment:
       <<: [*spring-env, *minio-env]
-      MINIO_BUCKET_VIDEOS: acadevia-videos
-      MINIO_BUCKET_IMAGES: acadevia-images
-      MINIO_BUCKET_DOCUMENTS: acadevia-documents
-      MINIO_PUBLIC_URL: http://localhost:9000
+      STORAGE_BUCKET_VIDEOS: ${STORAGE_BUCKET_VIDEOS:-acadevia-videos}
+      STORAGE_BUCKET_IMAGES: ${STORAGE_BUCKET_IMAGES:-acadevia-images}
+      STORAGE_BUCKET_DOCUMENTS: ${STORAGE_BUCKET_DOCUMENTS:-acadevia-documents}
+      STORAGE_BUCKET_BACKUPS: ${STORAGE_BUCKET_BACKUPS:-acadevia-backups}
+      MINIO_BUCKET_VIDEOS: ${STORAGE_BUCKET_VIDEOS:-acadevia-videos}
+      MINIO_BUCKET_IMAGES: ${STORAGE_BUCKET_IMAGES:-acadevia-images}
+      MINIO_BUCKET_DOCUMENTS: ${STORAGE_BUCKET_DOCUMENTS:-acadevia-documents}
+      MINIO_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-${CDN_BASE_URL:-http://localhost:9000}}
       SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 500MB
       SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 520MB
     depends_on:
@@ -596,7 +606,7 @@ services:
       api-gateway:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:80/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5

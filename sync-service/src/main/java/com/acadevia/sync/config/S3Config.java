@@ -25,18 +25,21 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class S3Config {
 
-    @Value("${spring.cloud.aws.credentials.access-key}")
+    @Value("${storage.access-key:${spring.cloud.aws.credentials.access-key:minioadmin}}")
     private String accessKey;
 
-    @Value("${spring.cloud.aws.credentials.secret-key}")
+    @Value("${storage.secret-key:${spring.cloud.aws.credentials.secret-key:minioadmin}}")
     private String secretKey;
 
-    @Value("${spring.cloud.aws.region.static:us-east-1}")
+    @Value("${storage.region:${spring.cloud.aws.region.static:us-east-1}}")
     private String region;
 
-    /** MinIO S3-API endpoint, e.g. http://minio:9000 (Docker) or http://localhost:9000 (host). */
-    @Value("${spring.cloud.aws.endpoint:http://minio:9000}")
+    /** S3-API endpoint, e.g. http://minio:9000 (Docker) or Cloudflare R2 / AWS S3 endpoint. */
+    @Value("${storage.endpoint:${spring.cloud.aws.endpoint:http://minio:9000}}")
     private String endpoint;
+
+    @Value("${storage.path-style-enabled:${spring.cloud.aws.s3.path-style-enabled:true}}")
+    private boolean pathStyleEnabled;
 
     @Bean
     public AmazonS3 amazonS3() {
@@ -45,7 +48,7 @@ public class S3Config {
                         new AwsClientBuilder.EndpointConfiguration(endpoint, region))
                 .withCredentials(
                         new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
-                .withPathStyleAccessEnabled(true)   // Required for MinIO
+                .withPathStyleAccessEnabled(pathStyleEnabled)
                 .build();
     }
 }

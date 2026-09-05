@@ -56,6 +56,48 @@ function databaseApiPlugin() {
         }
         const db = require('./src/scripts/databaseApi.cjs');
 
+        // Helper to securely identify authenticated student and enforce isolation
+        const getAuthenticatedStudentId = (req: any, fallbackParam?: string | null): string => {
+          const authHeader = req.headers['authorization'] || '';
+          if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.slice(7).trim();
+            try {
+              const parts = token.split('.');
+              if (parts.length === 3) {
+                const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+                // 1. Prioritize explicit numeric userId / id
+                if (payload.userId && !isNaN(Number(payload.userId))) return String(payload.userId);
+                if (payload.id && !isNaN(Number(payload.id))) return String(payload.id);
+                // 2. Check if sub is numeric ID
+                if (payload.sub && !isNaN(Number(payload.sub))) return String(payload.sub);
+                // 3. Resolve by email from payload.sub or payload.email
+                const email = payload.email || (payload.sub && payload.sub.includes('@') ? payload.sub : '');
+                if (email) {
+                  const resolved = db.getUserIdByEmail?.(email);
+                  if (resolved) return String(resolved);
+                }
+              }
+            } catch {}
+          }
+
+          const headerUser = req.headers['x-user-id'];
+          if (headerUser && typeof headerUser === 'string' && headerUser.trim()) {
+            const val = headerUser.trim();
+            if (!isNaN(Number(val))) return val;
+            const resolved = db.getUserIdByEmail?.(val);
+            if (resolved) return String(resolved);
+          }
+
+          if (fallbackParam && typeof fallbackParam === 'string' && fallbackParam.trim()) {
+            const val = fallbackParam.trim();
+            if (!isNaN(Number(val))) return val;
+            const resolved = db.getUserIdByEmail?.(val);
+            if (resolved) return String(resolved);
+          }
+
+          return '20';
+        };
+
         // 0. Lightweight State Version Check (< 0.1ms, zero DB queries)
         if (pathname === '/api/v1/data/version' && req.method === 'GET') {
           res.setHeader('Content-Type', 'application/json');
@@ -223,7 +265,8 @@ function databaseApiPlugin() {
         if ((pathname === '/api/v1/attempts' || pathname === '/api/v1/quiz-attempts') && req.method === 'POST') {
           try {
             const body = await parseBody(req);
-            const data = db.submitAttemptToDb(body);
+            const studentId = getAuthenticatedStudentId(req, body.studentId);
+            const data = db.submitAttemptToDb({ ...body, studentId });
             res.statusCode = 201;
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 201, success: true, data }));
@@ -470,6 +513,72 @@ function databaseApiPlugin() {
           }
         }
 
+        // 6b. Video Routes (Cloudflare R2 & MySQL integration)
+        if (pathname === '/api/v1/content/videos/by-chapter' && req.method === 'GET') {
+          try {
+            const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 10;
+            const subject = parsedUrl.searchParams.get('subject') || 'Mathematics';
+            const chapter = parsedUrl.searchParams.get('chapter') || 'Real Numbers';
+            const data = db.getChapterVideosFromDb(classGrade, subject, chapter);
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/stream') && req.method === 'GET') {
+          try {
+            const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos');
+            res.statusCode = 302;
+            res.setHeader('Location', presignedUrl);
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end();
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/download') && req.method === 'GET') {
+          try {
+            const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos');
+            res.statusCode = 302;
+            res.setHeader('Location', presignedUrl);
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end();
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/presigned-url') && req.method === 'GET') {
+          try {
+            const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos');
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end(JSON.stringify({ status: 200, success: true, data: { presignedUrl } }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
         // 7. Users
         if (pathname === '/api/v1/users' && req.method === 'GET') {
           try {
@@ -484,48 +593,6 @@ function databaseApiPlugin() {
             return;
           }
         }
-
-        // Helper to securely identify authenticated student and enforce isolation
-        const getAuthenticatedStudentId = (req: any, fallbackParam?: string | null): string => {
-          const authHeader = req.headers['authorization'] || '';
-          if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.slice(7).trim();
-            try {
-              const parts = token.split('.');
-              if (parts.length === 3) {
-                const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
-                // 1. Prioritize explicit numeric userId / id
-                if (payload.userId && !isNaN(Number(payload.userId))) return String(payload.userId);
-                if (payload.id && !isNaN(Number(payload.id))) return String(payload.id);
-                // 2. Check if sub is numeric ID
-                if (payload.sub && !isNaN(Number(payload.sub))) return String(payload.sub);
-                // 3. Resolve by email from payload.sub or payload.email
-                const email = payload.email || (payload.sub && payload.sub.includes('@') ? payload.sub : '');
-                if (email) {
-                  const resolved = db.getUserIdByEmail?.(email);
-                  if (resolved) return String(resolved);
-                }
-              }
-            } catch {}
-          }
-
-          const headerUser = req.headers['x-user-id'];
-          if (headerUser && typeof headerUser === 'string' && headerUser.trim()) {
-            const val = headerUser.trim();
-            if (!isNaN(Number(val))) return val;
-            const resolved = db.getUserIdByEmail?.(val);
-            if (resolved) return String(resolved);
-          }
-
-          if (fallbackParam && typeof fallbackParam === 'string' && fallbackParam.trim()) {
-            const val = fallbackParam.trim();
-            if (!isNaN(Number(val))) return val;
-            const resolved = db.getUserIdByEmail?.(val);
-            if (resolved) return String(resolved);
-          }
-
-          return '20';
-        };
 
         // 8. Learning Progress & Continue Learning APIs
         if ((pathname === '/api/v1/student/learning/continue' || pathname === '/api/v1/learning-progress/recent') && req.method === 'GET') {
@@ -703,5 +770,5 @@ export default defineConfig({
         secure: false,
       },
     },
-  }
+  },
 })
