@@ -364,14 +364,22 @@ export const CoursesPage: React.FC = () => {
       .finally(() => setLoadingBackendVideos(false));
   }, [selectedClass, selectedSubject, selectedChapter]);
 
+  // Helper: Normalize chapter title for resilient curriculum and database matching
+  const normChapter = (name?: string) =>
+    (name || '').toLowerCase().replace(/^chapter\s*\d+[\s:.-]*/i, '').trim();
+
   // Filter content items strictly by class, subject, and chapter (backend primary, local fallback)
   const chapterItems = useMemo(() => {
     if (!selectedClass || !selectedChapter || !selectedSubject) return [];
+    const targetNorm = normChapter(selectedChapter);
     const localMatches = allItems.filter(
       (v) =>
         v.classGrade === selectedClass &&
         v.subject.toLowerCase() === selectedSubject.toLowerCase() &&
-        v.chapter.toLowerCase() === selectedChapter.toLowerCase(),
+        (() => {
+          const itemNorm = normChapter(v.chapter);
+          return itemNorm === targetNorm || itemNorm.includes(targetNorm) || targetNorm.includes(itemNorm);
+        })(),
     );
     const map = new Map<string, any>();
     backendVideos.forEach((v) => map.set(v.id, v));
@@ -381,24 +389,36 @@ export const CoursesPage: React.FC = () => {
     return Array.from(map.values());
   }, [selectedClass, selectedChapter, selectedSubject, allItems, backendVideos]);
 
+  // Automatically select first item when entering chapter content view
+  useEffect(() => {
+    if (view === 'content' && !activeItem && chapterItems.length > 0) {
+      setActiveItem(chapterItems[0]);
+    }
+  }, [view, activeItem, chapterItems]);
+
   // Chapter content counts
   const chapterContentCount = useMemo(() => {
     if (!selectedClass || !selectedSubject) return {};
     const counts: Record<string, number> = {};
-    allItems
-      .filter(
-        (v) =>
-          v.classGrade === selectedClass &&
-          v.subject.toLowerCase() === selectedSubject.toLowerCase(),
-      )
-      .forEach((v) => {
-        counts[v.chapter] = (counts[v.chapter] || 0) + 1;
-      });
-    backendVideos.forEach((v) => {
-      counts[v.chapter] = (counts[v.chapter] || 0) + 1;
+    const subItems = allItems.filter(
+      (v) =>
+        v.classGrade === selectedClass &&
+        v.subject.toLowerCase() === selectedSubject.toLowerCase(),
+    );
+    const allKnown = [...subItems, ...backendVideos];
+    const uniqueById = Array.from(new Map(allKnown.map((i) => [i.id, i])).values());
+
+    chapters.forEach((ch) => {
+      const chNorm = normChapter(ch.title);
+      const count = uniqueById.filter((item) => {
+        const itemNorm = normChapter(item.chapter);
+        return itemNorm === chNorm || itemNorm.includes(chNorm) || chNorm.includes(itemNorm);
+      }).length;
+      counts[ch.title] = count;
     });
+
     return counts;
-  }, [selectedClass, selectedSubject, allItems, backendVideos]);
+  }, [selectedClass, selectedSubject, allItems, backendVideos, chapters]);
 
   const formatSize = (bytes: number): string => {
     if (!bytes) return '';

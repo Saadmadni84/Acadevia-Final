@@ -495,6 +495,72 @@ function databaseApiPlugin() {
           }
         }
 
+        // 6b. Video Routes (Cloudflare R2 & MySQL integration)
+        if (pathname === '/api/v1/content/videos/by-chapter' && req.method === 'GET') {
+          try {
+            const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 10;
+            const subject = parsedUrl.searchParams.get('subject') || 'Mathematics';
+            const chapter = parsedUrl.searchParams.get('chapter') || 'Real Numbers';
+            const data = db.getChapterVideosFromDb(classGrade, subject, chapter);
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/stream') && req.method === 'GET') {
+          try {
+            const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos');
+            res.statusCode = 302;
+            res.setHeader('Location', presignedUrl);
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end();
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/download') && req.method === 'GET') {
+          try {
+            const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos');
+            res.statusCode = 302;
+            res.setHeader('Location', presignedUrl);
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end();
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/presigned-url') && req.method === 'GET') {
+          try {
+            const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos');
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end(JSON.stringify({ status: 200, success: true, data: { presignedUrl } }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
         // 7. Users
         if (pathname === '/api/v1/users' && req.method === 'GET') {
           try {

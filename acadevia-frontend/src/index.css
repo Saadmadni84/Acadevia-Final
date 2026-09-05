@@ -1,65 +1,67 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --acadevia-bg: #F8F5EF;
+  --acadevia-bg: #F8F7F4;
   --acadevia-surface: #FFFFFF;
   --acadevia-primary: #5B2C6F;
   --acadevia-primary-dark: #3A1B47;
   --acadevia-primary-soft: #F0E8F4;
-  --acadevia-text: #1E1226;
-  --acadevia-muted: #6B5E74;
-  --acadevia-border: #E8E2D8;
+  --acadevia-text: #0F172A;
+  --acadevia-muted: #64748B;
+  --acadevia-border: #E8E5DF;
 
   --subject-math: #5B2C6F;
-  --subject-science: #159A8C;
-  --subject-english: #E85D75;
-  --subject-social: #E5A11A;
+  --subject-science: #0D9488;
+  --subject-english: #E11D48;
+  --subject-social: #D97706;
 
   --reward-gold: #D4A843;
-  --streak-orange: #F28C28;
-  --success-green: #2E9D69;
+  --streak-orange: #F97316;
+  --success-green: #10B981;
 }
 
 .dark {
-  --acadevia-bg: #140D1A;
-  --acadevia-surface: #22152B;
-  --acadevia-primary: #9C5DBB;
-  --acadevia-primary-dark: #281132;
-  --acadevia-primary-soft: #351C44;
-  --acadevia-text: #FAF6FD;
-  --acadevia-muted: #A89CB2;
-  --acadevia-border: #382447;
+  --acadevia-bg: #0F0914;
+  --acadevia-surface: #1B1124;
+  --acadevia-primary: #A855F7;
+  --acadevia-primary-dark: #2A123D;
+  --acadevia-primary-soft: #381A4F;
+  --acadevia-text: #F8FAFC;
+  --acadevia-muted: #94A3B8;
+  --acadevia-border: #2E1B3D;
 }
 
 @layer base {
   html {
     @apply scroll-smooth antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   body {
-    @apply bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 font-sans;
+    @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-sans selection:bg-purple-500/20 selection:text-purple-900;
     background-color: var(--acadevia-bg);
   }
 }
 
 @layer components {
-  .edu-card {
-    @apply bg-white dark:bg-card-dark rounded-2xl border border-[#E8E2D8]/80 dark:border-[#382447] shadow-[0_1px_4px_rgba(40,17,50,0.04)];
+  /* Apple & Linear Style Glass & Depth Surfaces */
+  .surface-card {
+    @apply bg-white dark:bg-[#1A1124] rounded-2xl border border-black/[0.07] dark:border-white/[0.08] shadow-[0_1px_3px_rgba(0,0,0,0.03),0_6px_16px_-4px_rgba(0,0,0,0.03)] transition-all duration-300;
   }
-  .edu-badge {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold;
+  .surface-card-hover {
+    @apply hover:border-black/[0.14] dark:hover:border-white/[0.16] hover:shadow-[0_4px_12px_rgba(0,0,0,0.05),0_16px_32px_-8px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 active:scale-[0.99];
   }
-  .gradient-primary {
-    @apply bg-primary text-white;
+  .surface-pill {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border backdrop-blur-md;
   }
-  .gradient-accent {
-    @apply bg-accent text-white;
-  }
-  .gradient-text {
-    @apply text-primary dark:text-purple-300 font-extrabold;
+  .btn-primary-tactile {
+    @apply bg-gradient-to-b from-[#6B3482] to-[#4A2359] text-white font-semibold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.1),0_4px_14px_rgba(91,44,111,0.3)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.12),0_8px_20px_rgba(91,44,111,0.4)] hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 cursor-pointer;
   }
 }
 

@@ -1,35 +1,44 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, ArrowRight, GraduationCap, Briefcase, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Logo } from '@/components/common/Logo';
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  Search,
+  Check,
+  Sparkles,
+  Zap,
+} from 'lucide-react';
 import { ROUTES, getDashboardRoute } from '@/config/routes.config';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { authService } from '@/services/auth.service';
 import { dataService } from '@/services/data.service';
 
 const DEMO_STUDENTS = [
-  { username: 'aarav.sharma10', password: 'Aarav@10', name: 'Aarav Sharma', sec: 'Sec A' },
-  { username: 'ananya.verma10', password: 'Ananya@10', name: 'Ananya Verma', sec: 'Sec A' },
-  { username: 'rohan.mehta10', password: 'Rohan@10', name: 'Rohan Mehta', sec: 'Sec A' },
-  { username: 'priya.singh10', password: 'Priya@10', name: 'Priya Singh', sec: 'Sec A' },
-  { username: 'arjun.patel10', password: 'Arjun@10', name: 'Arjun Patel', sec: 'Sec B' },
-  { username: 'kavya.gupta10', password: 'Kavya@10', name: 'Kavya Gupta', sec: 'Sec B' },
-  { username: 'aditya.kumar10', password: 'Aditya@10', name: 'Aditya Kumar', sec: 'Sec B' },
-  { username: 'ishita.rao10', password: 'Ishita@10', name: 'Ishita Rao', sec: 'Sec B' },
-  { username: 'vihaan.joshi10', password: 'Vihaan@10', name: 'Vihaan Joshi', sec: 'Sec C' },
-  { username: 'meera.nair10', password: 'Meera@10', name: 'Meera Nair', sec: 'Sec C' },
+  { username: 'aarav.sharma10', password: 'Aarav@10', name: 'Aarav Sharma', sec: 'Sec A', rank: '#1', xp: '720 XP' },
+  { username: 'ananya.verma10', password: 'Ananya@10', name: 'Ananya Verma', sec: 'Sec A', rank: '#2', xp: '680 XP' },
+  { username: 'rohan.mehta10', password: 'Rohan@10', name: 'Rohan Mehta', sec: 'Sec A', rank: '#3', xp: '640 XP' },
+  { username: 'priya.singh10', password: 'Priya@10', name: 'Priya Singh', sec: 'Sec A', rank: '#4', xp: '610 XP' },
+  { username: 'arjun.patel10', password: 'Arjun@10', name: 'Arjun Patel', sec: 'Sec B', rank: '#5', xp: '590 XP' },
+  { username: 'kavya.gupta10', password: 'Kavya@10', name: 'Kavya Gupta', sec: 'Sec B', rank: '#6', xp: '570 XP' },
+  { username: 'aditya.kumar10', password: 'Aditya@10', name: 'Aditya Kumar', sec: 'Sec B', rank: '#7', xp: '540 XP' },
+  { username: 'ishita.rao10', password: 'Ishita@10', name: 'Ishita Rao', sec: 'Sec B', rank: '#8', xp: '520 XP' },
+  { username: 'vihaan.joshi10', password: 'Vihaan@10', name: 'Vihaan Joshi', sec: 'Sec C', rank: '#9', xp: '490 XP' },
+  { username: 'meera.nair10', password: 'Meera@10', name: 'Meera Nair', sec: 'Sec C', rank: '#10', xp: '460 XP' },
 ];
 
 const DEMO_TEACHERS = [
-  { username: 'rahul.math', password: 'Rahul@Math10', name: 'Rahul Verma', sub: 'Mathematics' },
-  { username: 'neha.science', password: 'Neha@Sci10', name: 'Neha Gupta', sub: 'Science' },
-  { username: 'amit.english', password: 'Amit@Eng10', name: 'Amit Sharma', sub: 'English' },
-  { username: 'sunita.hindi', password: 'Sunita@Hin10', name: 'Sunita Mishra', sub: 'Hindi' },
-  { username: 'vikram.social', password: 'Vikram@SST10', name: 'Vikram Singh', sub: 'Social Science' },
-  { username: 'pooja.cs', password: 'Pooja@CS10', name: 'Pooja Patel', sub: 'Computer Science' },
+  { username: 'rahul.math', password: 'Rahul@Math10', name: 'Rahul Verma', sub: 'Mathematics', role: 'Head Faculty' },
+  { username: 'neha.science', password: 'Neha@Sci10', name: 'Neha Gupta', sub: 'Science', role: 'Faculty' },
+  { username: 'amit.english', password: 'Amit@Eng10', name: 'Amit Sharma', sub: 'English', role: 'Faculty' },
+  { username: 'sunita.hindi', password: 'Sunita@Hin10', name: 'Sunita Mishra', sub: 'Hindi', role: 'Faculty' },
+  { username: 'vikram.social', password: 'Vikram@SST10', name: 'Vikram Singh', sub: 'Social Science', role: 'Faculty' },
+  { username: 'pooja.cs', password: 'Pooja@CS10', name: 'Pooja Patel', sub: 'Computer Science', role: 'Faculty' },
 ];
 
 const LoginForm: React.FC = () => {
@@ -38,7 +47,11 @@ const LoginForm: React.FC = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [showMoreDemo, setShowMoreDemo] = useState(false);
+  const [demoTab, setDemoTab] = useState<'students' | 'teachers'>('students');
+  const [demoSearch, setDemoSearch] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
 
   const executeLogin = async (credentials: { email: string; password: string }) => {
     setError('');
@@ -78,8 +91,7 @@ const LoginForm: React.FC = () => {
         accessToken = d.accessToken;
         refreshToken = d.refreshToken;
       } catch (apiErr) {
-        console.warn('Backend API login failed, falling back to data layer:', apiErr);
-        // Fallback to data service user store
+        console.warn('Backend API login fallback:', apiErr);
         const storedUser = dataService.getUserByEmail(credentials.email) || dataService.getUserByEmail(normalizedEmail);
         if (storedUser) {
           userRecord = {
@@ -104,51 +116,19 @@ const LoginForm: React.FC = () => {
         }
       }
 
-      // Sync data layer with logged in user
-      const existingUser = dataService.getUserById(userRecord.id) || dataService.getUserByEmail(normalizedEmail);
-      if (existingUser) {
-        userRecord = {
-          ...userRecord,
-          avatarUrl: userRecord.avatarUrl || existingUser.avatarUrl,
-          phone: userRecord.phone || userRecord.phoneNumber || existingUser.phone || existingUser.phoneNumber,
-          phoneNumber: userRecord.phone || userRecord.phoneNumber || existingUser.phone || existingUser.phoneNumber,
-          schoolName: userRecord.schoolName || existingUser.schoolName,
-          stateName: userRecord.stateName || existingUser.stateName,
-          cityName: userRecord.cityName || existingUser.cityName,
-          pinCode: userRecord.pinCode || userRecord.pincode || existingUser.pinCode || existingUser.pincode,
-          pincode: userRecord.pinCode || userRecord.pincode || existingUser.pinCode || existingUser.pincode,
-          classGrade: userRecord.classGrade ?? existingUser.classGrade,
-          className: userRecord.className || (existingUser.classGrade ? `Class ${existingUser.classGrade}` : undefined),
-        };
-      } else {
-        dataService.upsertUser({
-          id: userRecord.id,
-          email: userRecord.email,
-          fullName: userRecord.fullName,
-          role: userRecord.role as any,
-          avatarUrl: userRecord.avatarUrl,
-          phone: userRecord.phone,
-          phoneNumber: userRecord.phone,
-          schoolName: userRecord.schoolName,
-          stateName: userRecord.stateName,
-          cityName: userRecord.cityName,
-          pinCode: userRecord.pinCode || userRecord.pincode,
-          pincode: userRecord.pinCode || userRecord.pincode,
-          classGrade: userRecord.classGrade ?? (userRecord.className ? parseInt(userRecord.className.replace(/\D/g, '')) || undefined : undefined),
-          joinDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-          totalXP: 0,
-          currentLevel: 1,
-          currentStreak: 0,
-          lessonsCompleted: 0,
-        });
+      if (typeof (dataService as any)?.setCurrentUser === 'function') {
+        (dataService as any).setCurrentUser(userRecord);
+      } else if (typeof (dataService as any)?.upsertUser === 'function') {
+        (dataService as any).upsertUser(userRecord);
       }
 
       setAuth(userRecord, accessToken, refreshToken);
-      // Route is determined strictly by the user's stored role
-      navigate(getDashboardRoute(userRecord.role));
+
+      const targetRoute = getDashboardRoute(userRecord.role);
+      navigate(targetRoute, { replace: true });
     } catch (err: any) {
-      console.error('Login error:', err?.response?.data ?? err);
-      setError(err?.response?.data?.message || 'Login failed. Please verify your credentials.');
+      console.error('Login process error:', err);
+      setError(err?.response?.data?.message || err?.message || 'Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -156,170 +136,341 @@ const LoginForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.email || !form.password) {
+      setError('Please enter both your email/username and password.');
+      return;
+    }
     executeLogin(form);
   };
 
+  const filteredStudents = DEMO_STUDENTS.filter(
+    (s) =>
+      s.name.toLowerCase().includes(demoSearch.toLowerCase()) ||
+      s.username.toLowerCase().includes(demoSearch.toLowerCase()) ||
+      s.sec.toLowerCase().includes(demoSearch.toLowerCase())
+  );
+
+  const filteredTeachers = DEMO_TEACHERS.filter(
+    (t) =>
+      t.name.toLowerCase().includes(demoSearch.toLowerCase()) ||
+      t.username.toLowerCase().includes(demoSearch.toLowerCase()) ||
+      t.sub.toLowerCase().includes(demoSearch.toLowerCase())
+  );
+
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md mx-auto">
-      <div className="text-center mb-8">
-        <Logo />
-        <h2 className="mt-6 text-2xl font-bold">Welcome back!</h2>
-        <p className="mt-2 text-sm text-gray-500">Sign in to continue your learning journey</p>
-      </div>
-
-      {/* Demo Accounts Quick Login Box */}
-      <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-primary/10 via-[#5B2C6F]/5 to-secondary/10 border border-primary/20 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary dark:text-[#D4A843]">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Class 10 Demo Logins</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowMoreDemo((p) => !p)}
-            className="flex items-center gap-1 text-[11px] font-medium text-primary hover:underline cursor-pointer"
-          >
-            <span>{showMoreDemo ? 'Less' : 'All Accounts (16)'}</span>
-            {showMoreDemo ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-          </button>
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      className="w-full"
+    >
+      {/* Elevated Luxury Light Cream Card */}
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-[#E7E2D6] shadow-[0_20px_50px_-16px_rgba(50,40,25,0.08),0_2px_6px_rgba(0,0,0,0.02)] p-6 sm:p-10 text-left">
+        {/* Header section */}
+        <div className="mb-7">
+          <h1 className="text-2xl sm:text-[28px] font-extrabold text-stone-900 tracking-tight leading-tight">
+            Welcome back
+          </h1>
+          <p className="mt-1.5 text-xs sm:text-sm text-stone-500 leading-relaxed">
+            Sign in to access your learning dashboard, interactive courses, and quests across Classes 1–12.
+          </p>
         </div>
 
-        {/* Primary 1-Click Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-          <button
-            type="button"
-            onClick={() => executeLogin({ email: 'aarav.sharma10', password: 'Aarav@10' })}
-            disabled={loading}
-            className="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 hover:border-primary/50 text-left transition hover:shadow-xs disabled:opacity-50 group cursor-pointer"
-          >
-            <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center shrink-0">
-              <GraduationCap className="h-4 w-4" />
+        {/* 1-Click Fast Pass Section (Dedicated to Class 10 Interactive Demo) */}
+        <div className="mb-6 rounded-2xl border border-[#E8E2D7] bg-[#FAF8F5] p-4 space-y-3.5 shadow-2xs">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#5B2C6F]/10 text-[#5B2C6F] text-[11px] font-bold border border-[#5B2C6F]/15">
+                <Sparkles className="h-3 w-3" />
+                Class 10 Demo Pass
+              </span>
+              <span className="text-[11px] text-stone-400 font-medium hidden sm:inline">
+                1-Click Instant Sign In
+              </span>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-gray-900 dark:text-white truncate group-hover:text-primary">
-                Demo Student
-              </p>
-              <p className="text-[10px] text-gray-500 truncate">Aarav (Class 10)</p>
-            </div>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => executeLogin({ email: 'rahul.math', password: 'Rahul@Math10' })}
-            disabled={loading}
-            className="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 hover:border-primary/50 text-left transition hover:shadow-xs disabled:opacity-50 group cursor-pointer"
-          >
-            <div className="h-8 w-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center shrink-0">
-              <Briefcase className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-gray-900 dark:text-white truncate group-hover:text-primary">
-                Demo Teacher
-              </p>
-              <p className="text-[10px] text-gray-500 truncate">Rahul Verma (Math)</p>
-            </div>
-          </button>
-        </div>
-
-        {/* Expandable List of All 16 Demo Accounts */}
-        <AnimatePresence>
-          {showMoreDemo && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-3 pt-2 border-t border-primary/10 overflow-hidden"
+            <button
+              type="button"
+              onClick={() => setShowMoreDemo((p) => !p)}
+              className="flex items-center gap-1 text-xs font-semibold text-[#5B2C6F] hover:text-[#4A205A] transition-colors cursor-pointer"
             >
-              <div>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                  Class 10 Subject Teachers:
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {DEMO_TEACHERS.map((t) => (
-                    <button
-                      key={t.username}
-                      type="button"
-                      onClick={() => executeLogin({ email: t.username, password: t.password })}
-                      disabled={loading}
-                      className="p-1.5 text-left rounded-lg bg-white/80 dark:bg-card-dark/80 border border-gray-200 dark:border-gray-700 hover:border-primary text-[11px] truncate cursor-pointer transition"
-                    >
-                      <span className="font-semibold block truncate text-gray-800 dark:text-gray-200">{t.name}</span>
-                      <span className="text-[10px] text-primary">{t.sub}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <span>{showMoreDemo ? 'Close directory' : 'All accounts (16)'}</span>
+              {showMoreDemo ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+          </div>
 
-              <div>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                  Class 10 Students (10 Accounts):
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {DEMO_STUDENTS.map((s) => (
-                    <button
-                      key={s.username}
-                      type="button"
-                      onClick={() => executeLogin({ email: s.username, password: s.password })}
-                      disabled={loading}
-                      className="p-1.5 text-left rounded-lg bg-white/80 dark:bg-card-dark/80 border border-gray-200 dark:border-gray-700 hover:border-primary text-[11px] truncate cursor-pointer transition"
-                    >
-                      <span className="font-semibold block truncate text-gray-800 dark:text-gray-200">{s.name}</span>
-                      <span className="text-[10px] text-gray-500">{s.sec} • {s.username}</span>
-                    </button>
-                  ))}
+          {/* Primary Quick Demo User Cards (Stacked layout so names NEVER truncate) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Aarav Sharma (Student) */}
+            <button
+              type="button"
+              onClick={() => executeLogin({ email: 'aarav.sharma10', password: 'Aarav@10' })}
+              disabled={loading}
+              className="group p-3.5 rounded-2xl border border-[#E7E2D6] bg-white hover:border-[#5B2C6F]/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left cursor-pointer disabled:opacity-50"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#6A3280] to-[#4C215E] text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition-transform">
+                  AS
                 </div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+                  <Zap className="h-2.5 w-2.5 fill-current" />
+                  720 XP
+                </span>
               </div>
+              <p className="text-sm font-bold text-stone-900 group-hover:text-[#5B2C6F] transition-colors">
+                Aarav Sharma
+              </p>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Student • Class 10-A
+              </p>
+            </button>
+
+            {/* Rahul Verma (Teacher) */}
+            <button
+              type="button"
+              onClick={() => executeLogin({ email: 'rahul.math', password: 'Rahul@Math10' })}
+              disabled={loading}
+              className="group p-3.5 rounded-2xl border border-[#E7E2D6] bg-white hover:border-[#5B2C6F]/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left cursor-pointer disabled:opacity-50"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-stone-700 to-stone-900 text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition-transform">
+                  RV
+                </div>
+                <span className="text-[10px] font-semibold text-[#5B2C6F] bg-[#F5EFF8] border border-[#5B2C6F]/20 px-2 py-0.5 rounded-full">
+                  Faculty
+                </span>
+              </div>
+              <p className="text-sm font-bold text-stone-900 group-hover:text-[#5B2C6F] transition-colors">
+                Rahul Verma
+              </p>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Mathematics Lead
+              </p>
+            </button>
+          </div>
+
+          {/* Expandable Directory */}
+          <AnimatePresence>
+            {showMoreDemo && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="pt-3 border-t border-[#EAE4D8] space-y-2.5 overflow-hidden"
+              >
+                {/* Segmented control tabs */}
+                <div className="flex items-center gap-1.5 bg-[#EFECE5] p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setDemoTab('students')}
+                    className={`flex-1 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      demoTab === 'students'
+                        ? 'bg-white text-stone-900 shadow-2xs'
+                        : 'text-stone-500 hover:text-stone-900'
+                    }`}
+                  >
+                    Students ({DEMO_STUDENTS.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDemoTab('teachers')}
+                    className={`flex-1 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      demoTab === 'teachers'
+                        ? 'bg-white text-stone-900 shadow-2xs'
+                        : 'text-stone-500 hover:text-stone-900'
+                    }`}
+                  >
+                    Faculty ({DEMO_TEACHERS.length})
+                  </button>
+                </div>
+
+                {/* Search filter input */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400" />
+                  <input
+                    type="text"
+                    placeholder={`Search ${demoTab}...`}
+                    value={demoSearch}
+                    onChange={(e) => setDemoSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-[#E0DAD0] bg-white focus:outline-hidden focus:ring-1 focus:ring-[#5B2C6F] text-stone-900 placeholder:text-stone-400"
+                  />
+                </div>
+
+                {/* Accounts list */}
+                <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                  {demoTab === 'students' ? (
+                    filteredStudents.map((s) => (
+                      <button
+                        key={s.username}
+                        type="button"
+                        onClick={() => executeLogin({ email: s.username, password: s.password })}
+                        disabled={loading}
+                        className="w-full flex items-center justify-between p-2 rounded-lg border border-[#EAE4D8] bg-white hover:border-[#5B2C6F]/40 text-left transition text-xs cursor-pointer"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="font-semibold text-stone-900 block truncate">{s.name}</span>
+                          <span className="text-[10px] text-stone-500">{s.sec} • {s.username}</span>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-[#5B2C6F]">
+                          {s.xp}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    filteredTeachers.map((t) => (
+                      <button
+                        key={t.username}
+                        type="button"
+                        onClick={() => executeLogin({ email: t.username, password: t.password })}
+                        disabled={loading}
+                        className="w-full flex items-center justify-between p-2 rounded-lg border border-[#EAE4D8] bg-white hover:border-[#5B2C6F]/40 text-left transition text-xs cursor-pointer"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="font-semibold text-stone-900 block truncate">{t.name}</span>
+                          <span className="text-[10px] text-stone-500">{t.role} • {t.username}</span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-[#5B2C6F]">
+                          {t.sub}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Subtle Divider */}
+        <div className="relative my-7">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-[#EAE4D8]" />
+          </div>
+          <div className="relative flex justify-center text-[11px] font-semibold tracking-wider uppercase">
+            <span className="bg-white px-3 text-stone-400">
+              or sign in with credentials
+            </span>
+          </div>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3 rounded-xl bg-red-50 border border-red-200/80 text-red-700 text-xs font-medium"
+            >
+              {error}
             </motion.div>
           )}
-        </AnimatePresence>
-      </div>
 
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200 dark:border-gray-700" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white dark:bg-background-dark px-2 text-gray-400">
-            Or sign in with username or email
-          </span>
+          {/* Username or Email Input */}
+          <div className="space-y-1.5 text-left">
+            <label className="block text-xs font-semibold text-stone-700">
+              Username or Email
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+              <input
+                type="text"
+                required
+                placeholder="e.g. your.username or name@school.edu"
+                value={form.email}
+                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E2DDD3] bg-[#FAF9F6] text-sm text-stone-900 placeholder:text-stone-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5B2C6F]/15 focus:border-[#5B2C6F] transition"
+              />
+            </div>
+          </div>
+
+          {/* Password Input */}
+          <div className="space-y-1.5 text-left">
+            <label className="block text-xs font-semibold text-stone-700">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                placeholder="••••••••"
+                value={form.password}
+                onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-[#E2DDD3] bg-[#FAF9F6] text-sm text-stone-900 placeholder:text-stone-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5B2C6F]/15 focus:border-[#5B2C6F] transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Options Row */}
+          <div className="flex items-center justify-between text-xs pt-1">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={rememberMe}
+                onClick={() => setRememberMe((p) => !p)}
+                className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${
+                  rememberMe
+                    ? 'bg-[#5B2C6F] border-[#5B2C6F] text-white'
+                    : 'border-[#D5CEC2] bg-white'
+                }`}
+              >
+                {rememberMe && <Check className="h-3 w-3" />}
+              </button>
+              <span className="text-stone-600">Remember this device</span>
+            </label>
+            <Link
+              to={ROUTES.FORGOT_PASSWORD}
+              className="font-medium text-[#5B2C6F] hover:underline transition"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full group flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#6A3280] to-[#4C215E] hover:from-[#58296B] hover:to-[#3E1A4E] active:scale-[0.99] transition shadow-[0_4px_14px_rgba(91,44,111,0.25)] hover:shadow-[0_6px_18px_rgba(91,44,111,0.32)] disabled:opacity-60 cursor-pointer"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Signing in...
+              </span>
+            ) : (
+              <>
+                <span>Sign In to Dashboard</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
+          </button>
+        </form>
+
+        {/* Card Footer */}
+        <div className="mt-7 pt-5 border-t border-[#EAE5DA] text-center text-xs text-stone-500 space-y-1.5">
+          <p>
+            Don't have an account yet?{' '}
+            <Link
+              to={ROUTES.REGISTER}
+              className="font-semibold text-[#5B2C6F] hover:underline"
+            >
+              Create free account
+            </Link>
+          </p>
+          <p className="text-[11px] text-stone-400">
+            CBSE & State Boards Synced • Classes 1–12 • End-to-End Encrypted
+          </p>
         </div>
       </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <div className="p-3 rounded-lg bg-accent/10 text-accent text-sm">{error}</div>}
-        <Input
-          label="Username or Email"
-          type="text"
-          placeholder="e.g. aarav.sharma10 or rahul.math"
-          leftIcon={<Mail className="h-4 w-4" />}
-          value={form.email}
-          onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-          required
-        />
-        <Input
-          label="Password"
-          type="password"
-          placeholder="••••••••"
-          leftIcon={<Lock className="h-4 w-4" />}
-          value={form.password}
-          onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-          required
-        />
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" className="rounded border-gray-300" />
-            <span className="text-gray-600 dark:text-gray-400">Remember me</span>
-          </label>
-          <Link to={ROUTES.FORGOT_PASSWORD} className="text-primary hover:underline">Forgot password?</Link>
-        </div>
-        <Button type="submit" variant="gradient" className="w-full" isLoading={loading} rightIcon={<ArrowRight className="h-4 w-4" />}>
-          Sign In
-        </Button>
-      </form>
-      <p className="mt-6 text-center text-sm text-gray-500">
-        Don't have an account?{' '}
-        <Link to={ROUTES.REGISTER} className="text-primary font-medium hover:underline">Sign Up</Link>
-      </p>
     </motion.div>
   );
 };
