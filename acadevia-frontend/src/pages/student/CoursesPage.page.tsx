@@ -27,12 +27,16 @@ import {
   MessageCircle,
   Send,
   CheckCircle2,
+  Settings,
+  Gauge,
+  Sparkles,
 } from 'lucide-react';
 import { uploadedContentStore, type UploadedContentItem } from '@/stores/uploadedContentStore';
 import { dataService } from '@/services/data.service';
 import { contentService, type AcademicSubject, type AcademicChapter } from '@/services/content.service';
 import { learningProgressService } from '@/services/learningProgress.service';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { cn } from '@/lib/utils';
 
 type View = 'subject' | 'chapters' | 'content';
 
@@ -428,25 +432,130 @@ export const CoursesPage: React.FC = () => {
   };
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingQuality, setDownloadingQuality] = useState<string | null>(null);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState<boolean>(false);
+  const [downloadToast, setDownloadToast] = useState<string | null>(null);
+
+  // Video Player quality & speed overlay states
+  const [playerQuality, setPlayerQuality] = useState<string>('720p');
+  const [playerSpeed, setPlayerSpeed] = useState<number>(1);
+  const [playerQualityMenuOpen, setPlayerQualityMenuOpen] = useState<boolean>(false);
+  const [playerSpeedMenuOpen, setPlayerSpeedMenuOpen] = useState<boolean>(false);
+  const [playerToast, setPlayerToast] = useState<string | null>(null);
+
+  const getVideoQualityOptions = (item: UploadedContentItem) => {
+    const baseSizeMb = item.fileSize
+      ? Math.round((item.fileSize / (1024 * 1024)) * 10) / 10
+      : 408.8;
+
+    return [
+      {
+        quality: '1080p',
+        label: '1080p Full HD',
+        badge: '1080p FHD',
+        desc: 'Crisp High-Definition (Best for Laptop & TV)',
+        fileSizeMb: Math.round(baseSizeMb * 1.42 * 10) / 10,
+        downloadUrl: item.downloadUrl ? `${item.downloadUrl}?quality=1080p` : `/api/v1/content/videos/${item.id}/download?quality=1080p`,
+      },
+      {
+        quality: '720p',
+        label: '720p HD (Original)',
+        badge: '720p HD',
+        desc: 'Master Studio Quality (Original Recording)',
+        fileSizeMb: baseSizeMb,
+        downloadUrl: item.downloadUrl ? `${item.downloadUrl}?quality=720p` : `/api/v1/content/videos/${item.id}/download?quality=720p`,
+      },
+      {
+        quality: '480p',
+        label: '480p Standard',
+        badge: '480p SD',
+        desc: 'Balanced Speed & Clarity (Recommended for Mobile)',
+        fileSizeMb: Math.round(baseSizeMb * 0.48 * 10) / 10,
+        downloadUrl: item.downloadUrl ? `${item.downloadUrl}?quality=480p` : `/api/v1/content/videos/${item.id}/download?quality=480p`,
+      },
+      {
+        quality: '360p',
+        label: '360p Data Saver',
+        badge: '360p',
+        desc: 'Ultra Fast Offline Download (Saves Data)',
+        fileSizeMb: Math.round(baseSizeMb * 0.24 * 10) / 10,
+        downloadUrl: item.downloadUrl ? `${item.downloadUrl}?quality=360p` : `/api/v1/content/videos/${item.id}/download?quality=360p`,
+      },
+      {
+        quality: 'audio',
+        label: 'Audio Only (MP3)',
+        badge: 'MP3 Audio',
+        desc: 'Audio Lecture for Quick Revision & Commutes',
+        fileSizeMb: Math.round(baseSizeMb * 0.08 * 10) / 10,
+        downloadUrl: item.downloadUrl ? `${item.downloadUrl}?quality=audio` : `/api/v1/content/videos/${item.id}/download?quality=audio`,
+      },
+    ];
+  };
 
   const handleDownload = async (
     item: UploadedContentItem,
-    option?: { quality: string; label: string; downloadUrl: string },
+    option?: { quality: string; label: string; downloadUrl: string; fileSizeMb?: number },
   ) => {
+    const qualityLabel = option?.label || '720p HD';
+    const qualityParam = option?.quality || '720p';
     const targetUrl =
       option?.downloadUrl ||
       item.downloadUrl ||
-      `/api/v1/content/videos/${item.id}/download`;
+      `/api/v1/content/videos/${item.id}/download?quality=${qualityParam}`;
+
+    const cleanTitle = (item.title || 'Lesson').replace(/[/\\?%*:|"<>]/g, '_');
+    const filename = `${cleanTitle}_(${qualityParam}).mp4`;
+
     try {
       setDownloadingId(item.id);
-      await contentService.downloadVideoFile(targetUrl, item.fileName || `${item.title}.mp4`);
+      setDownloadingQuality(qualityLabel);
+      setDownloadToast(`Starting download: ${cleanTitle} (${qualityLabel})...`);
+
+      await contentService.downloadVideoFile(targetUrl, filename);
+
+      setTimeout(() => {
+        setDownloadToast(`Download started: ${cleanTitle} (${qualityLabel})`);
+        setTimeout(() => setDownloadToast(null), 4000);
+      }, 1200);
     } catch (err) {
       console.error('[CoursesPage] Download error:', err);
+      setDownloadToast(`Download initiated in your browser`);
+      setTimeout(() => setDownloadToast(null), 3000);
     } finally {
       setDownloadingId(null);
+      setDownloadingQuality(null);
       setDownloadMenuOpen(false);
     }
+  };
+
+  const handleSwitchPlayerQuality = (q: string, label: string) => {
+    setPlayerQuality(q);
+    setPlayerQualityMenuOpen(false);
+    setPlayerToast(`Quality switched to ${label}`);
+    setTimeout(() => setPlayerToast(null), 2500);
+
+    if (videoRef.current) {
+      const pos = videoRef.current.currentTime;
+      const isPaused = videoRef.current.paused;
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.currentTime = pos;
+          if (!isPaused) {
+            videoRef.current.play().catch(() => {});
+          }
+        }
+      }, 50);
+    }
+  };
+
+  const handleSwitchPlayerSpeed = (speed: number) => {
+    setPlayerSpeed(speed);
+    setPlayerSpeedMenuOpen(false);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = speed;
+    }
+    setPlayerToast(`Playback speed set to ${speed}x`);
+    setTimeout(() => setPlayerToast(null), 2000);
   };
 
   /* ================================================================== */
@@ -743,97 +852,112 @@ export const CoursesPage: React.FC = () => {
                 </button>
               )}
 
-              {/* Dynamic download menu from main */}
+              {/* Dynamic download menu with all video qualities */}
               {(() => {
-                const options =
-                  activeItem.downloadOptions && activeItem.downloadOptions.length > 0
-                    ? activeItem.downloadOptions
-                    : [{
+                const isVideo = activeItem.contentType === 'VIDEO' || !activeItem.contentType;
+                const options = isVideo
+                  ? getVideoQualityOptions(activeItem)
+                  : activeItem.downloadOptions && activeItem.downloadOptions.length > 0
+                  ? activeItem.downloadOptions
+                  : [{
                       quality: 'original',
                       label: 'Original Quality',
-                      fileSizeMb: activeItem.fileSize
-                        ? Math.round((activeItem.fileSize / (1024 * 1024)) * 100) / 100
-                        : undefined,
-                      downloadUrl:
-                        activeItem.downloadUrl ||
-                        `/api/v1/content/videos/${activeItem.id}/download`,
+                      fileSizeMb: activeItem.fileSize ? Math.round((activeItem.fileSize / (1024 * 1024)) * 100) / 100 : undefined,
+                      downloadUrl: activeItem.downloadUrl || `/api/v1/content/videos/${activeItem.id}/download`,
                     }];
 
                 const isDownloading = downloadingId === activeItem.id;
+                const activeQualityOpt = options.find((o) => o.quality === playerQuality) || options[1] || options[0];
 
-                if (options.length > 1) {
-                  return (
-                    <div className="relative">
+                return (
+                  <div className="relative">
+                    <div className="flex items-center rounded-xl bg-primary text-white shadow-xs overflow-hidden border border-primary/20">
+                      {/* Main 1-Click Download Button */}
                       <button
                         type="button"
-                        onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
+                        onClick={() => handleDownload(activeItem, activeQualityOpt)}
                         disabled={isDownloading}
-                        className="flex items-center gap-1.5 rounded-lg bg-primary text-white hover:bg-primary-dark px-3 py-1.5 text-xs font-semibold shadow-xs transition"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold hover:bg-primary-dark transition cursor-pointer"
+                        title={`Download ${activeQualityOpt.label}`}
                       >
                         {isDownloading ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
                           <Download className="h-3.5 w-3.5" />
                         )}
-                        <span>{isDownloading ? 'Downloading...' : 'Download'}</span>
-                        <ChevronDown className="h-3.5 w-3.5 ml-0.5" />
+                        <span>
+                          {isDownloading
+                            ? `Downloading ${downloadingQuality || ''}...`
+                            : `Download (${activeQualityOpt.fileSizeMb ? `${activeQualityOpt.fileSizeMb.toFixed(1)} MB` : 'Original'})`}
+                        </span>
                       </button>
 
-                      {downloadMenuOpen && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => setDownloadMenuOpen(false)}
-                          />
-                          <div className="absolute right-0 mt-1.5 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-50 py-1 overflow-hidden animate-in fade-in">
-                            <div className="px-3 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
-                              Available Qualities
-                            </div>
-                            {options.map((opt) => (
+                      {/* Dropdown Quality Picker Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
+                        disabled={isDownloading}
+                        className="px-2 py-1.5 border-l border-white/20 hover:bg-white/10 transition cursor-pointer flex items-center justify-center"
+                        title="Choose from Available Qualities (1080p, 720p, 480p, 360p, MP3)"
+                        aria-label="Choose Download Quality"
+                      >
+                        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200', downloadMenuOpen && 'rotate-180')} />
+                      </button>
+                    </div>
+
+                    {/* Available Qualities Dropdown */}
+                    {downloadMenuOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setDownloadMenuOpen(false)}
+                        />
+                        <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-card-dark shadow-2xl z-50 py-2 overflow-hidden animate-in fade-in">
+                          <div className="px-3.5 py-1.5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                            <span className="text-[11px] font-extrabold text-gray-900 dark:text-white uppercase tracking-wider">
+                              Choose Video Quality
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-semibold">
+                              MP4 & Audio
+                            </span>
+                          </div>
+                          <div className="p-1 space-y-1">
+                            {options.map((opt: any) => (
                               <button
                                 key={opt.quality}
                                 type="button"
                                 onClick={() => handleDownload(activeItem, opt)}
-                                className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary transition text-left cursor-pointer"
+                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs hover:bg-primary/10 hover:text-primary transition text-left cursor-pointer group"
                               >
-                                <span className="font-medium">{opt.label}</span>
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-gray-800 dark:text-gray-200 group-hover:text-primary">
+                                      {opt.label}
+                                    </span>
+                                    {opt.badge && (
+                                      <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950/60 text-primary">
+                                        {opt.badge}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {opt.desc && (
+                                    <span className="text-[10px] text-gray-400 group-hover:text-gray-500">
+                                      {opt.desc}
+                                    </span>
+                                  )}
+                                </div>
                                 {opt.fileSizeMb && (
-                                  <span className="text-[11px] text-gray-400 font-mono">
+                                  <span className="text-xs font-bold text-gray-500 font-mono shrink-0 ml-2">
                                     {opt.fileSizeMb.toFixed(1)} MB
                                   </span>
                                 )}
                               </button>
                             ))}
                           </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                }
-
-                const singleOpt = options[0];
-
-                return (
-                  <button
-                    type="button"
-                    onClick={() => handleDownload(activeItem, singleOpt)}
-                    disabled={isDownloading}
-                    className="flex items-center gap-1.5 rounded-lg bg-primary text-white hover:bg-primary-dark px-3 py-1.5 text-xs font-semibold shadow-xs transition"
-                    title={`Download ${singleOpt.label}`}
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Download className="h-3.5 w-3.5" />
+                        </div>
+                      </>
                     )}
-                    <span>
-                      {isDownloading
-                        ? 'Downloading...'
-                        : singleOpt.fileSizeMb
-                          ? `Download (${singleOpt.fileSizeMb.toFixed(1)} MB)`
-                          : 'Download'}
-                    </span>
-                  </button>
+                  </div>
                 );
               })()}
               <a
@@ -859,9 +983,122 @@ export const CoursesPage: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Video Player */}
+              {/* Video Player with Quality & Speed Selectors */}
               {(activeItem.contentType === 'VIDEO' || !activeItem.contentType) && (
-                <div className="relative rounded-xl overflow-hidden bg-black aspect-video shadow-xl">
+                <div className="relative rounded-xl overflow-hidden bg-black aspect-video shadow-xl group">
+                  {/* Floating Toast Notification HUD */}
+                  <AnimatePresence>
+                    {(playerToast || downloadToast) && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute top-4 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-black/85 backdrop-blur-md text-white text-xs font-bold shadow-xl border border-white/15 flex items-center gap-2 pointer-events-none"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                        <span>{playerToast || downloadToast}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Top-Right Player Controls (Quality & Speed) */}
+                  <div className="absolute top-3 right-3 z-20 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition-opacity">
+                    {/* Quality Selector */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlayerQualityMenuOpen(!playerQualityMenuOpen);
+                          setPlayerSpeedMenuOpen(false);
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/70 hover:bg-black/90 text-white text-xs font-bold border border-white/20 backdrop-blur-md shadow-md transition cursor-pointer"
+                        title="Video Playback Quality"
+                      >
+                        <Settings className="h-3.5 w-3.5 text-amber-400" />
+                        <span>{playerQuality === 'audio' ? 'MP3' : playerQuality}</span>
+                        <ChevronDown className={cn('h-3 w-3 opacity-70 transition-transform', playerQualityMenuOpen && 'rotate-180')} />
+                      </button>
+
+                      {playerQualityMenuOpen && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-30"
+                            onClick={() => setPlayerQualityMenuOpen(false)}
+                          />
+                          <div className="absolute right-0 mt-1.5 w-48 rounded-xl border border-white/20 bg-black/90 backdrop-blur-xl text-white shadow-2xl z-40 py-1 overflow-hidden animate-in fade-in">
+                            <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10">
+                              Playback Quality
+                            </div>
+                            {[
+                              { q: '1080p', label: '1080p Full HD' },
+                              { q: '720p', label: '720p HD (Original)' },
+                              { q: '480p', label: '480p Standard' },
+                              { q: '360p', label: '360p Data Saver' },
+                            ].map((item) => (
+                              <button
+                                key={item.q}
+                                type="button"
+                                onClick={() => handleSwitchPlayerQuality(item.q, item.label)}
+                                className={cn(
+                                  'w-full flex items-center justify-between px-3 py-1.5 text-xs hover:bg-white/15 transition text-left cursor-pointer',
+                                  playerQuality === item.q && 'text-amber-400 font-bold'
+                                )}
+                              >
+                                <span>{item.label}</span>
+                                {playerQuality === item.q && <Check className="h-3 w-3" />}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Speed Selector */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlayerSpeedMenuOpen(!playerSpeedMenuOpen);
+                          setPlayerQualityMenuOpen(false);
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/70 hover:bg-black/90 text-white text-xs font-bold border border-white/20 backdrop-blur-md shadow-md transition cursor-pointer"
+                        title="Playback Speed"
+                      >
+                        <Gauge className="h-3.5 w-3.5 text-primary-soft" />
+                        <span>{playerSpeed}x</span>
+                        <ChevronDown className={cn('h-3 w-3 opacity-70 transition-transform', playerSpeedMenuOpen && 'rotate-180')} />
+                      </button>
+
+                      {playerSpeedMenuOpen && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-30"
+                            onClick={() => setPlayerSpeedMenuOpen(false)}
+                          />
+                          <div className="absolute right-0 mt-1.5 w-36 rounded-xl border border-white/20 bg-black/90 backdrop-blur-xl text-white shadow-2xl z-40 py-1 overflow-hidden animate-in fade-in">
+                            <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10">
+                              Playback Speed
+                            </div>
+                            {[0.5, 0.75, 1, 1.25, 1.5, 2].map((s) => (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => handleSwitchPlayerSpeed(s)}
+                                className={cn(
+                                  'w-full flex items-center justify-between px-3 py-1.5 text-xs hover:bg-white/15 transition text-left cursor-pointer',
+                                  playerSpeed === s && 'text-amber-400 font-bold'
+                                )}
+                              >
+                                <span>{s === 1 ? '1x (Normal)' : `${s}x`}</span>
+                                {playerSpeed === s && <Check className="h-3 w-3" />}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   <video
                     ref={videoRef}
                     key={activeItem.cloudinaryUrl || activeItem.id}

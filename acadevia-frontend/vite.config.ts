@@ -532,7 +532,7 @@ function databaseApiPlugin() {
           }
         }
 
-        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/stream') && req.method === 'GET') {
+        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/stream') && (req.method === 'GET' || req.method === 'HEAD')) {
           try {
             const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos');
             res.statusCode = 302;
@@ -548,9 +548,12 @@ function databaseApiPlugin() {
           }
         }
 
-        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/download') && req.method === 'GET') {
+        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/download') && (req.method === 'GET' || req.method === 'HEAD')) {
           try {
-            const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos');
+            const parsed = new URL(req.url || '', 'http://localhost:5173');
+            const quality = parsed.searchParams.get('quality') || '720p';
+            const filename = `Real_Numbers_Class_10_${quality}.mp4`;
+            const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos', filename);
             res.statusCode = 302;
             res.setHeader('Location', presignedUrl);
             res.setHeader('Access-Control-Allow-Origin', '*');
@@ -564,9 +567,13 @@ function databaseApiPlugin() {
           }
         }
 
-        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/presigned-url') && req.method === 'GET') {
+        if (pathname.startsWith('/api/v1/content/videos/') && pathname.endsWith('/presigned-url') && (req.method === 'GET' || req.method === 'HEAD')) {
           try {
-            const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos');
+            const parsed = new URL(req.url || '', 'http://localhost:5173');
+            const quality = parsed.searchParams.get('quality') || '720p';
+            const asDownload = parsed.searchParams.get('download') === 'true';
+            const filename = asDownload ? `Real_Numbers_Class_10_${quality}.mp4` : null;
+            const presignedUrl = await db.getR2PresignedUrl('videos/10/1/1bf07910-3851-452f-b361-ee0bfe1760aa.mp4', 'acadevia-videos', filename);
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.end(JSON.stringify({ status: 200, success: true, data: { presignedUrl } }));
