@@ -79,6 +79,7 @@ export interface GameDefinition {
   howToPlay: string[];
   stages: string[];
   controlsDescription?: string;
+  thumbnail?: string;
 }
 
 export const GAME_CATALOG: GameDefinition[] = [
@@ -147,6 +148,7 @@ export const GAME_CATALOG: GameDefinition[] = [
     howToPlay: ['Align the unit circle angles accurately to charge your beam.', 'Solve heights and distances to scale cliffs.', 'Defeat the Trigonometric Titan.'],
     stages: ['Ratios Ridge', 'Angle Valley', 'Unit Circle Citadel', 'Identity Keep', 'Titan Finale'],
     controlsDescription: 'Mouse drag on the interactive unit circle / On-screen angle selector.',
+    thumbnail: '/assets/thumbnails/trigonometry.jpg',
   },
   {
     id: 'fraction-forge',
@@ -407,6 +409,7 @@ export const GAME_CATALOG: GameDefinition[] = [
     howToPlay: ['Launch probes by setting initial velocity vectors.', 'Execute gravity-assist slingshots around massive planets.', 'Achieve stable geostationary orbit.'],
     stages: ['Low Earth Orbit', 'Lunar Transfer Orbit', 'Jupiter Slingshot', 'Interstellar Escape'],
     controlsDescription: 'Click and drag launch vectors, toggle trajectory prediction paths.',
+    thumbnail: '/assets/thumbnails/physics.jpg',
   },
 
   /* ======================================================================== */
@@ -759,6 +762,7 @@ export const GAME_CATALOG: GameDefinition[] = [
     howToPlay: ['Select your grade level to launch the interactive historical map.', 'Guide Xuanzang across ancient India to King Harsha’s court.', 'Excavate prehistoric artifacts.'],
     stages: ["The King's Road", "The Traveller's Path", "The Lost Settlements"],
     controlsDescription: 'Interactive map navigation, excavation grid clicking.',
+    thumbnail: '/assets/thumbnails/history.jpg',
   },
   {
     id: 'indus-valley-builder',

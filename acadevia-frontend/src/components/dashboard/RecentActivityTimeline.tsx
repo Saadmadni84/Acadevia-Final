@@ -1,43 +1,77 @@
-import React from 'react';
-import { CheckCircle2, Trophy, Star, ArrowRight, Clock } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { CheckCircle2, Trophy, Star, ArrowRight, Clock, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/config/routes.config';
+import { dataService, type ActivityRecord } from '@/services/data.service';
 
 interface RecentActivityTimelineProps {
+  studentId?: string;
   onOpenXPHistory: () => void;
 }
 
+function formatRelativeTime(isoString: string): string {
+  try {
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} min ago`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Yesterday';
+    return `${diffDays} days ago`;
+  } catch {
+    return 'Recently';
+  }
+}
+
 export const RecentActivityTimeline: React.FC<RecentActivityTimelineProps> = ({
+  studentId = '9',
   onOpenXPHistory,
 }) => {
   const navigate = useNavigate();
 
-  const activities = [
-    {
-      id: '1',
-      title: 'Completed Quadratic Equations (Part 1)',
-      type: 'lesson',
-      xp: '+50 XP',
-      time: '2 hours ago',
-      route: '/courses',
-    },
-    {
-      id: '2',
-      title: 'Passed Light & Optics Concept Quiz (8/10)',
-      type: 'quiz',
-      xp: '+80 XP',
-      time: 'Yesterday',
-      route: ROUTES.QUIZZES,
-    },
-    {
-      id: '3',
-      title: 'Achieved 5-Day Learning Streak Milestone',
-      type: 'streak',
-      xp: '+25 XP',
-      time: '2 days ago',
-      route: ROUTES.LEADERBOARD,
-    },
-  ];
+  const activities = useMemo(() => {
+    const real = dataService.getRecentActivities(studentId, 'STUDENT');
+    const mappedReal = real.map((r) => ({
+      id: r.id,
+      title: r.title,
+      type: r.type === 'QUIZ_COMPLETED' ? 'quiz' : r.type === 'LESSON_COMPLETED' ? 'lesson' : 'streak',
+      xp: r.badgeText || '+50 XP',
+      time: formatRelativeTime(r.timestamp),
+      route: r.type === 'QUIZ_COMPLETED' ? ROUTES.QUIZZES : ROUTES.COURSES,
+    }));
+
+    const fallbacks = [
+      {
+        id: 'fallback-1',
+        title: 'Completed Quadratic Equations (Part 1)',
+        type: 'lesson',
+        xp: '+50 XP',
+        time: '2 hours ago',
+        route: '/courses',
+      },
+      {
+        id: 'fallback-2',
+        title: 'Passed Light & Optics Concept Quiz (8/10)',
+        type: 'quiz',
+        xp: '+80 XP',
+        time: 'Yesterday',
+        route: ROUTES.QUIZZES,
+      },
+      {
+        id: 'fallback-3',
+        title: 'Achieved 5-Day Learning Streak Milestone',
+        type: 'streak',
+        xp: '+25 XP',
+        time: '2 days ago',
+        route: ROUTES.LEADERBOARD,
+      },
+    ];
+
+    return [...mappedReal, ...fallbacks].slice(0, 4);
+  }, [studentId]);
 
   return (
     <div className="surface-card surface-card-hover p-6 space-y-4">

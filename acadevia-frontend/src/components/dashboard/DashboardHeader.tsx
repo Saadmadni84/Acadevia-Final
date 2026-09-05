@@ -7,6 +7,10 @@ interface DashboardHeaderProps {
   schoolName?: string;
   minutesRemaining?: number;
   todayMinutes?: number;
+  streak?: number;
+  dailyGoalMinutes?: number;
+  onOpenStreak?: () => void;
+  onOpenGoal?: () => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
@@ -15,6 +19,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   schoolName = 'Acadevia Demo School',
   minutesRemaining = 10,
   todayMinutes = 20,
+  streak = 5,
+  dailyGoalMinutes = 30,
+  onOpenStreak,
+  onOpenGoal,
 }) => {
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -52,15 +60,25 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
       {/* Right Quick Badges */}
       <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/80 dark:border-orange-900/40 text-streak text-xs font-bold shadow-2xs">
-          <Flame className="h-3.5 w-3.5 fill-current" />
-          <span>5-Day Streak Active</span>
-        </div>
+        <button
+          type="button"
+          onClick={onOpenStreak}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/80 dark:border-orange-900/40 text-streak text-xs font-bold shadow-2xs hover:bg-orange-100/90 dark:hover:bg-orange-900/50 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+          title="View Streak Milestones"
+        >
+          <Flame className="h-3.5 w-3.5 fill-current animate-pulse" />
+          <span>{streak}-Day Streak Active</span>
+        </button>
 
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50/80 dark:bg-purple-950/30 border border-primary/20 text-primary dark:text-purple-300 text-xs font-bold shadow-2xs">
+        <button
+          type="button"
+          onClick={onOpenGoal}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50/80 dark:bg-purple-950/30 border border-primary/20 text-primary dark:text-purple-300 text-xs font-bold shadow-2xs hover:bg-purple-100/80 dark:hover:bg-purple-900/50 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+          title="Daily Study Focus Goal"
+        >
           <Target className="h-3.5 w-3.5" />
-          <span>20 / 30 min Focused</span>
-        </div>
+          <span>{todayMinutes} / {dailyGoalMinutes} min Focused</span>
+        </button>
 
         <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 text-xs font-semibold">
           <Calendar className="h-3.5 w-3.5 text-slate-400" />

@@ -4,9 +4,14 @@ import type { GameDefinition } from './gameCatalog';
 interface GameThumbnailProps {
   game: GameDefinition;
   className?: string;
+  preferRaster?: boolean;
 }
 
-export const GameThumbnail: React.FC<GameThumbnailProps> = ({ game, className = '' }) => {
+export const GameThumbnail: React.FC<GameThumbnailProps> = ({
+  game,
+  className = '',
+  preferRaster = false,
+}) => {
   // Render bespoke clean geometric game icon vector artwork for each game
   const renderGameIconArt = () => {
     switch (game.id) {
@@ -1379,13 +1384,24 @@ export const GameThumbnail: React.FC<GameThumbnailProps> = ({ game, className = 
     }
   };
 
+  const [imgError, setImgError] = React.useState(false);
+
   return (
     <div
       className={`relative w-full h-full overflow-hidden select-none bg-gray-950 ${className}`}
       aria-label={`${game.title} game icon`}
     >
-      {/* 100% Vector Simple Shapes Game Icon */}
-      {renderGameIconArt()}
+      {preferRaster && game.thumbnail && !imgError ? (
+        <img
+          src={game.thumbnail}
+          alt={game.title}
+          onError={() => setImgError(true)}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        renderGameIconArt()
+      )}
 
       {/* Subtle depth vignette */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 pointer-events-none" />

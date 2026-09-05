@@ -1,163 +1,204 @@
-import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   ArrowRight,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   Star,
   Users,
   BookOpen,
-  Eye,
+  Clock,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/config/routes.config';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
 /* ------------------------------------------------------------------ */
-/*  Types                                                              */
+/*  Course data                                                        */
 /* ------------------------------------------------------------------ */
 
 interface Course {
   id: string;
   name: string;
-  category: string;
-  categoryColor: string;
+  subject: string;
+  description: string;
   students: number;
   rating: number;
-  progress: number;
+  reviews: number;
+  lessons: number;
+  duration: string;
+  level: string;
 }
 
-type SortKey = 'name' | 'category' | 'students' | 'rating' | 'progress';
-type SortDir = 'asc' | 'desc';
-
-/* ------------------------------------------------------------------ */
-/*  Demo Data                                                          */
-/* ------------------------------------------------------------------ */
-
 const courses: Course[] = [
-  { id: '1', name: 'Mathematics – Algebra', category: 'Mathematics', categoryColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', students: 24500, rating: 4.8, progress: 78 },
-  { id: '2', name: 'Science – Physics Basics', category: 'Science', categoryColor: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300', students: 18300, rating: 4.7, progress: 65 },
-  { id: '3', name: 'English Grammar Mastery', category: 'Language', categoryColor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300', students: 32100, rating: 4.9, progress: 82 },
-  { id: '4', name: 'Hindi Literature', category: 'Language', categoryColor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300', students: 15600, rating: 4.5, progress: 54 },
-  { id: '5', name: 'Computer Science – Python', category: 'Technology', categoryColor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', students: 28700, rating: 4.9, progress: 71 },
-  { id: '6', name: 'History – Modern India', category: 'Social Studies', categoryColor: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300', students: 12400, rating: 4.6, progress: 60 },
+  {
+    id: '1',
+    name: 'Algebra & Equations',
+    subject: 'Mathematics',
+    description: 'Master linear equations, quadratic expressions and polynomial factoring with step-by-step visual proofs.',
+    students: 24500,
+    rating: 4.8,
+    reviews: 1240,
+    lessons: 42,
+    duration: '18h 30m',
+    level: 'Class 9–10',
+  },
+  {
+    id: '2',
+    name: 'Physics Fundamentals',
+    subject: 'Science',
+    description: 'Build intuition for motion, forces and energy through interactive simulations and real-world problems.',
+    students: 18300,
+    rating: 4.7,
+    reviews: 980,
+    lessons: 38,
+    duration: '22h 15m',
+    level: 'Class 9–10',
+  },
+  {
+    id: '3',
+    name: 'English Grammar Mastery',
+    subject: 'English',
+    description: 'Gain confidence in tenses, voice, narration and advanced writing through contextual practice exercises.',
+    students: 32100,
+    rating: 4.9,
+    reviews: 2100,
+    lessons: 56,
+    duration: '14h 45m',
+    level: 'Class 6–12',
+  },
+  {
+    id: '4',
+    name: 'Python Programming',
+    subject: 'Computer Science',
+    description: 'Learn to code from scratch with project-based modules covering fundamentals through data structures.',
+    students: 28700,
+    rating: 4.9,
+    reviews: 1870,
+    lessons: 64,
+    duration: '32h',
+    level: 'Class 8–12',
+  },
+  {
+    id: '5',
+    name: 'Modern Indian History',
+    subject: 'Social Studies',
+    description: 'Understand the freedom movement, constitutional development and post-independence India with timeline maps.',
+    students: 12400,
+    rating: 4.6,
+    reviews: 640,
+    lessons: 34,
+    duration: '16h 20m',
+    level: 'Class 8–10',
+  },
+  {
+    id: '6',
+    name: 'Hindi Sahitya & Vyakaran',
+    subject: 'Hindi',
+    description: 'Strengthen comprehension, grammar and literary analysis with NCERT-aligned content and practice sets.',
+    students: 15600,
+    rating: 4.5,
+    reviews: 520,
+    lessons: 30,
+    duration: '12h 10m',
+    level: 'Class 6–10',
+  },
 ];
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-const fmtStudents = (n: number): string =>
-  n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
-
-const ratingStars = (rating: number) =>
-  Array.from({ length: 5 }, (_, i) => (
-    <Star
-      key={i}
-      className={`h-3.5 w-3.5 ${
-        i < Math.round(rating)
-          ? 'text-warning fill-warning'
-          : 'text-gray-300 dark:text-gray-600'
-      }`}
-      aria-hidden="true"
-    />
-  ));
-
-/* ------------------------------------------------------------------ */
-/*  Sub-components                                                     */
-/* ------------------------------------------------------------------ */
-
-interface SortHeaderProps {
-  label: string;
-  sortKey: SortKey;
-  current: SortKey;
-  dir: SortDir;
-  onSort: (k: SortKey) => void;
-}
-
-const SortHeader: React.FC<SortHeaderProps> = ({ label, sortKey, current, dir, onSort }) => {
-  const active = current === sortKey;
-  const Icon = active ? (dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSort(sortKey)}
-      className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
-      aria-label={`Sort by ${label}`}
-    >
-      {label}
-      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-    </button>
-  );
+const fmtCount = (n: number): string => {
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+  return String(n);
 };
 
-const ProgressBar: React.FC<{ value: number }> = ({ value }) => (
-  <div
-    className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"
-    role="progressbar"
-    aria-valuenow={value}
-    aria-valuemin={0}
-    aria-valuemax={100}
-    aria-label={`${value}% complete`}
-  >
-    <motion.div
-      className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
-      initial={{ width: 0 }}
-      whileInView={{ width: `${value}%` }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.8, ease: 'easeOut' }}
-    />
-  </div>
-);
+/* ------------------------------------------------------------------ */
+/*  Course Card                                                        */
+/* ------------------------------------------------------------------ */
 
-/* Card view for very small screens */
-const CourseCard: React.FC<{ course: Course; index: number }> = ({ course, index }) => {
-  const { t } = useTranslation();
+const CourseCard: React.FC<{ course: Course; index: number; visible: boolean }> = ({
+  course,
+  index,
+  visible,
+}) => {
+  const navigate = useNavigate();
 
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.05 }}
-      className="glass-card p-4 space-y-3"
+      animate={visible ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.4, delay: index * 0.07 }}
+      onClick={() => navigate(ROUTES.COURSES)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigate(ROUTES.COURSES);
+        }
+      }}
+      role="link"
+      tabIndex={0}
+      className="group relative flex flex-col bg-white dark:bg-[#1C1226] rounded-2xl border border-[#E8E5DF] dark:border-[#2E1B3D] hover:border-[#5B2C6F]/30 dark:hover:border-[#A855F7]/30 hover:shadow-[0_12px_40px_-12px_rgba(91,44,111,0.12)] transition-all duration-300 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B2C6F] focus-visible:ring-offset-2 overflow-hidden"
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-semibold leading-tight">{course.name}</h3>
-        <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${course.categoryColor}`}>
-          {course.category}
+      {/* ---- Top: Subject & Level ---- */}
+      <div className="px-6 pt-5 pb-0 flex items-center justify-between">
+        <span className="text-[11px] font-semibold tracking-wide uppercase text-[#64748B] dark:text-[#94A3B8]">
+          {course.subject}
+        </span>
+        <span className="text-[11px] font-medium text-[#64748B] dark:text-[#94A3B8]">
+          {course.level}
         </span>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-        <span className="inline-flex items-center gap-1">
-          <Users className="h-3.5 w-3.5" aria-hidden="true" />
-          {fmtStudents(course.students)} {t('popularCourses.students', 'students')}
-        </span>
-        <span className="inline-flex items-center gap-0.5">
-          {ratingStars(course.rating)}
-          <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{course.rating}</span>
-        </span>
-      </div>
+      {/* ---- Body ---- */}
+      <div className="flex-1 px-6 pt-3 pb-5 flex flex-col">
+        <h3 className="text-[17px] font-semibold text-[#0F172A] dark:text-[#F8FAFC] leading-snug mb-2 group-hover:text-[#5B2C6F] dark:group-hover:text-[#C084FC] transition-colors">
+          {course.name}
+        </h3>
 
-      <div>
-        <div className="flex items-center justify-between mb-1 text-xs text-gray-500 dark:text-gray-400">
-          <span>{t('popularCourses.progress', 'Progress')}</span>
-          <span className="font-medium">{course.progress}%</span>
+        <p className="text-[13px] leading-[1.6] text-[#64748B] dark:text-[#94A3B8] mb-5 line-clamp-2">
+          {course.description}
+        </p>
+
+        {/* Meta row */}
+        <div className="flex items-center gap-4 text-[12px] text-[#64748B] dark:text-[#94A3B8] mb-5">
+          <span className="inline-flex items-center gap-1">
+            <BookOpen className="h-3.5 w-3.5" />
+            {course.lessons} lessons
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            {course.duration}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Users className="h-3.5 w-3.5" />
+            {fmtCount(course.students)}
+          </span>
         </div>
-        <ProgressBar value={course.progress} />
-      </div>
 
-      <Link to={ROUTES.COURSES} className="block">
-        <Button variant="outline" size="sm" className="w-full" rightIcon={<Eye className="h-3.5 w-3.5" />}>
-          {t('popularCourses.view', 'View')}
-        </Button>
-      </Link>
-    </motion.div>
+        <div className="flex-1" />
+
+        {/* ---- Footer ---- */}
+        <div className="flex items-center justify-between pt-4 border-t border-[#E8E5DF] dark:border-[#2E1B3D]">
+          {/* Rating */}
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-0.5">
+              <Star className="h-3.5 w-3.5 text-[#D4A843] fill-[#D4A843]" />
+              <span className="text-[13px] font-semibold text-[#0F172A] dark:text-[#F8FAFC] tabular-nums">
+                {course.rating}
+              </span>
+            </div>
+            <span className="text-[11px] text-[#94A3B8]">
+              ({fmtCount(course.reviews)} reviews)
+            </span>
+          </div>
+
+          {/* Arrow */}
+          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#F8F5EF] dark:bg-[#2E1B3D] group-hover:bg-[#5B2C6F] group-hover:text-white text-[#5B2C6F] dark:text-[#C084FC] transition-all duration-200">
+            <ArrowRight className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" />
+          </span>
+        </div>
+      </div>
+    </motion.article>
   );
 };
 
@@ -166,177 +207,58 @@ const CourseCard: React.FC<{ course: Course; index: number }> = ({ course, index
 /* ------------------------------------------------------------------ */
 
 const PopularCourses: React.FC = () => {
-  const { t } = useTranslation();
-  const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.1 });
-
-  const [sortKey, setSortKey] = useState<SortKey>('students');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
-
-  const handleSort = (key: SortKey) => {
-    if (key === sortKey) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey(key);
-      setSortDir('desc');
-    }
-  };
-
-  const sorted = useMemo(() => {
-    const copy = [...courses];
-    copy.sort((a, b) => {
-      const valA = a[sortKey];
-      const valB = b[sortKey];
-      const cmp = typeof valA === 'string' ? valA.localeCompare(valB as string) : (valA as number) - (valB as number);
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
-    return copy;
-  }, [sortKey, sortDir]);
+  const navigate = useNavigate();
+  const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.08 });
 
   return (
     <section
       id="courses"
-      className="py-20 bg-white dark:bg-card-dark/30"
+      className="py-24 bg-[#F8F5EF] dark:bg-[#0F0914] transition-colors duration-300"
       aria-labelledby="popular-courses-heading"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Heading */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* ---- Header ---- */}
+        <div className="max-w-2xl mb-14">
+          <p className="text-[13px] font-semibold tracking-wide uppercase text-[#5B2C6F] dark:text-[#C084FC] mb-3">
+            Courses
+          </p>
           <h2
             id="popular-courses-heading"
-            className="text-3xl sm:text-4xl font-bold"
+            className="text-[32px] sm:text-[38px] font-bold text-[#0F172A] dark:text-[#F8FAFC] leading-[1.15] tracking-tight"
           >
-            {t('popularCourses.heading', 'Popular')}{' '}
-            <span className="gradient-text">
-              {t('popularCourses.headingHighlight', 'Courses')}
-            </span>
+            Popular courses loved by students
           </h2>
-          <p className="mt-3 text-gray-500 max-w-2xl mx-auto">
-            {t(
-              'popularCourses.subheading',
-              'Explore the courses loved by thousands of students across the country.',
-            )}
+          <p className="mt-4 text-[15px] leading-[1.7] text-[#64748B] dark:text-[#94A3B8]">
+            Board-aligned curriculum across Mathematics, Science, Languages and more.
+            Each course is structured for deep understanding — not rote memorisation.
           </p>
-        </motion.div>
-
-        {/* ---- Card view (very small screens) ---- */}
-        <div ref={ref} className="sm:hidden grid gap-4">
-          <AnimatePresence>
-            {sorted.map((c, i) => (
-              <CourseCard key={c.id} course={c} index={i} />
-            ))}
-          </AnimatePresence>
         </div>
 
-        {/* ---- Table view (sm+) ---- */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isIntersecting ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5 }}
-          className="hidden sm:block overflow-x-auto rounded-2xl glass-card"
-        >
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="px-5 py-4">
-                  <SortHeader label={t('popularCourses.colCourse', 'Course')} sortKey="name" current={sortKey} dir={sortDir} onSort={handleSort} />
-                </th>
-                <th className="px-5 py-4">
-                  <SortHeader label={t('popularCourses.colCategory', 'Category')} sortKey="category" current={sortKey} dir={sortDir} onSort={handleSort} />
-                </th>
-                <th className="px-5 py-4 text-right">
-                  <SortHeader label={t('popularCourses.colStudents', 'Students')} sortKey="students" current={sortKey} dir={sortDir} onSort={handleSort} />
-                </th>
-                <th className="px-5 py-4">
-                  <SortHeader label={t('popularCourses.colRating', 'Rating')} sortKey="rating" current={sortKey} dir={sortDir} onSort={handleSort} />
-                </th>
-                <th className="px-5 py-4 min-w-[140px]">
-                  <SortHeader label={t('popularCourses.colProgress', 'Progress')} sortKey="progress" current={sortKey} dir={sortDir} onSort={handleSort} />
-                </th>
-                <th className="px-5 py-4">
-                  <span className="sr-only">{t('popularCourses.actions', 'Actions')}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <AnimatePresence>
-                {sorted.map((course, i) => (
-                  <motion.tr
-                    key={course.id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className={`border-b border-gray-100 dark:border-gray-800 transition-colors hover:bg-primary/5 dark:hover:bg-primary/10 ${
-                      i % 2 === 0
-                        ? 'bg-white dark:bg-transparent'
-                        : 'bg-gray-50/60 dark:bg-white/[0.02]'
-                    }`}
-                  >
-                    <td className="px-5 py-4 font-medium flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
-                      {course.name}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${course.categoryColor}`}>
-                        {course.category}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right tabular-nums">
-                      <span className="inline-flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <Users className="h-3.5 w-3.5" aria-hidden="true" />
-                        {fmtStudents(course.students)}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center gap-1">
-                        {ratingStars(course.rating)}
-                        <span className="ml-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {course.rating}
-                        </span>
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <ProgressBar value={course.progress} />
-                        <span className="text-xs font-medium text-gray-500 w-9 text-right tabular-nums">
-                          {course.progress}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <Link to={ROUTES.COURSES}>
-                        <Button variant="ghost" size="sm" rightIcon={<Eye className="h-3.5 w-3.5" />}>
-                          {t('popularCourses.view', 'View')}
-                        </Button>
-                      </Link>
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            </tbody>
-          </table>
-        </motion.div>
+        {/* ---- Grid ---- */}
+        <div ref={ref} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {courses.map((course, i) => (
+            <CourseCard
+              key={course.id}
+              course={course}
+              index={i}
+              visible={isIntersecting}
+            />
+          ))}
+        </div>
 
-        {/* Footer CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-          className="mt-8 text-center"
-        >
-          <Link to={ROUTES.COURSES}>
-            <Button variant="gradient" size="lg" rightIcon={<ArrowRight className="h-5 w-5" />}>
-              {t('popularCourses.viewAll', 'View All Courses')}
-            </Button>
+        {/* ---- Footer ---- */}
+        <div className="mt-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <p className="text-[14px] text-[#64748B] dark:text-[#94A3B8]">
+            Showing 6 of 200+ courses across all subjects and grade levels.
+          </p>
+          <Link
+            to={ROUTES.COURSES}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#5B2C6F] hover:bg-[#4A2359] text-white text-[14px] font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            View all courses
+            <ArrowRight className="w-4 h-4" />
           </Link>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

@@ -64,7 +64,7 @@ export const GameBriefingView: React.FC<GameBriefingViewProps> = ({
           {/* Visual Preview Side */}
           <div className="lg:col-span-5 relative overflow-hidden bg-gradient-to-br from-primary/30 via-accent/20 to-purple-900/30 flex items-center justify-center p-8 border-b lg:border-b-0 lg:border-r border-gray-800/80">
             <div className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-video relative group">
-              <GameThumbnail game={game} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
+              <GameThumbnail game={game} preferRaster={true} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-4">
                 <div className="flex items-center gap-2 text-xs font-medium text-white/90">
                   <Gamepad2 className="w-4 h-4 text-primary" />

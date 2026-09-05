@@ -1,25 +1,83 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Trophy, Swords, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/config/routes.config';
+import { dataService, type LeaderboardEntry } from '@/services/data.service';
 
 interface LeaderboardPreviewProps {
   currentXP?: number;
+  userId?: string;
+  userName?: string;
+  userAvatar?: string;
   userRank?: number;
 }
 
 export const LeaderboardPreview: React.FC<LeaderboardPreviewProps> = ({
   currentXP = 720,
-  userRank = 4,
+  userId,
+  userName = 'Aarav',
+  userAvatar,
+  userRank = 1,
 }) => {
   const navigate = useNavigate();
 
-  const leaders = [
-    { rank: 1, name: 'Priya Patel', xp: 1250, badge: '🥇', avatar: '👩‍🎓' },
-    { rank: 2, name: 'Rohan Verma', xp: 980, badge: '🥈', avatar: '👨‍🎓' },
-    { rank: 3, name: 'Ananya Sen', xp: 860, badge: '🥉', avatar: '👩‍💻' },
-    { rank: userRank, name: 'Aarav (You)', xp: currentXP, isCurrentUser: true, avatar: '⚡' },
-  ];
+  const leaders = useMemo(() => {
+    const raw = dataService.getLeaderboard('weekly');
+    const sorted = raw.length > 0 ? raw : dataService.getLeaderboard('alltime');
+
+    // Default fallback if no users in dataService yet
+    if (!sorted || sorted.length === 0) {
+      return [
+        { rank: 1, name: 'Priya Patel', xp: 1250, badge: '🥇', avatar: '👩‍🎓', isCurrentUser: false },
+        { rank: 2, name: 'Rohan Verma', xp: 980, badge: '🥈', avatar: '👨‍🎓', isCurrentUser: false },
+        { rank: 3, name: 'Ananya Sen', xp: 860, badge: '🥉', avatar: '👩‍💻', isCurrentUser: false },
+        { rank: userRank, name: `${userName} (You)`, xp: currentXP, isCurrentUser: true, badge: `#${userRank}`, avatar: userAvatar || '⚡' },
+      ];
+    }
+
+    // Assign badges
+    const getBadge = (r: number) => {
+      if (r === 1) return '🥇';
+      if (r === 2) return '🥈';
+      if (r === 3) return '🥉';
+      return `#${r}`;
+    };
+
+    // Find current user's actual index
+    const userIndex = sorted.findIndex((u) => (userId && String(u.userId) === String(userId)) || u.name.toLowerCase().includes(userName.toLowerCase()));
+    
+    const top3 = sorted.slice(0, 3).map((u, i) => ({
+      rank: i + 1,
+      name: userIndex === i ? `${u.name} (You)` : u.name,
+      xp: userIndex === i ? Math.max(u.xp, currentXP) : u.xp,
+      badge: getBadge(i + 1),
+      avatar: (userIndex === i && userAvatar) ? userAvatar : (u.avatar || '🎓'),
+      isCurrentUser: userIndex === i,
+    }));
+
+    if (userIndex >= 3) {
+      const u = sorted[userIndex];
+      top3.push({
+        rank: userIndex + 1,
+        name: `${u.name} (You)`,
+        xp: Math.max(u.xp, currentXP),
+        badge: getBadge(userIndex + 1),
+        avatar: userAvatar || u.avatar || '⚡',
+        isCurrentUser: true,
+      });
+    } else if (top3.length < 4 && sorted[3]) {
+      top3.push({
+        rank: 4,
+        name: sorted[3].name,
+        xp: sorted[3].xp,
+        badge: getBadge(4),
+        avatar: sorted[3].avatar || '👨‍🎓',
+        isCurrentUser: userIndex === 3,
+      });
+    }
+
+    return top3;
+  }, [userId, userName, currentXP, userRank, userAvatar]);
 
   return (
     <div className="surface-card surface-card-hover p-6 space-y-4">
@@ -61,7 +119,30 @@ export const LeaderboardPreview: React.FC<LeaderboardPreviewProps> = ({
               <span className="w-6 text-center font-bold text-sm">
                 {student.badge || `#${student.rank}`}
               </span>
-              <span className="text-base">{student.avatar}</span>
+              
+              {/* Avatar: image or emoji */}
+              <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10">
+                {student.avatar && (student.avatar.startsWith('http') || student.avatar.startsWith('/') || student.avatar.startsWith('data:')) ? (
+                  <img
+                    src={student.avatar}
+                    alt={student.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <span
+                  className={`w-full h-full flex items-center justify-center text-xs ${
+                    student.avatar && (student.avatar.startsWith('http') || student.avatar.startsWith('/') || student.avatar.startsWith('data:')) ? 'hidden' : ''
+                  }`}
+                >
+                  {student.avatar && !student.avatar.startsWith('http') && !student.avatar.startsWith('/') ? student.avatar : '🎓'}
+                </span>
+              </div>
+
               <span className="truncate font-bold text-slate-800 dark:text-slate-100">{student.name}</span>
             </div>
             <span className="font-extrabold text-slate-900 dark:text-white tabular-nums">
