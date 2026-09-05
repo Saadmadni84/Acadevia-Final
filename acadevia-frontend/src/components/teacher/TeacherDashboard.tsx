@@ -1,187 +1,319 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Users, BookOpen, Brain, TrendingUp, Upload, BarChart3, CheckCircle2 } from 'lucide-react';
-import { StatsCard } from '@/components/common/StatsCard';
-import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/config/routes.config';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { dataService } from '@/services/data.service';
-import { executeClass10Simulation } from '@/services/class10Simulation.service';
+import { contentService, type ContentItemRecord } from '@/services/content.service';
 
-const TeacherDashboard: React.FC = () => {
+// Modular High-Fidelity Teacher Dashboard Subcomponents
+import { TeacherDashboardHeader } from './dashboard/TeacherDashboardHeader';
+import { TeacherStatsGrid } from './dashboard/TeacherStatsGrid';
+import { TeacherClassPerformanceHub } from './dashboard/TeacherClassPerformanceHub';
+import { TeacherRecentSubmissions } from './dashboard/TeacherRecentSubmissions';
+import { TeacherDoubtsInbox } from './dashboard/TeacherDoubtsInbox';
+import { TeacherPublishedContentGrid } from './dashboard/TeacherPublishedContentGrid';
+import { TeacherQuickActions } from './dashboard/TeacherQuickActions';
+import { TeacherSubmissionModal } from './dashboard/TeacherSubmissionModal';
+import { TeacherVideoModal } from './dashboard/TeacherVideoModal';
+import type { QuizResultRecord } from '@/services/data.service';
+
+export const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const teacherId = user?.id || '10';
-  const [, setUpdated] = useState(0);
+  const teacherId = user?.id ? String(user.id) : '10';
 
-  useEffect(() => {
-    let mounted = true;
-    dataService.syncFromBackend().then(() => {
-      if (mounted) setUpdated((v) => v + 1);
-    });
-    return () => {
-      mounted = false;
-    };
+  const [dataVersion, setDataVersion] = useState(0);
+  const [publishedContent, setPublishedContent] = useState<ContentItemRecord[]>([]);
+  const [commentsInbox, setCommentsInbox] = useState<any[]>([]);
+
+  // Modals state for rich interaction
+  const [activeSubmission, setActiveSubmission] = useState<QuizResultRecord | null>(null);
+  const [activeVideo, setActiveVideo] = useState<ContentItemRecord | null>(null);
+
+  // 1. Resolve Teacher Metadata from Persistent Data Service
+  const teacherRecord = useMemo(() => {
+    return dataService.getUserById(teacherId) || user;
+  }, [teacherId, user, dataVersion]);
+
+  const teacherName = teacherRecord?.fullName || user?.fullName || 'Rahul Verma';
+  const designation = teacherRecord?.designation || 'Department Head • Mathematics';
+  const schoolName = teacherRecord?.schoolName || 'Acadevia Demo School';
+  const avatarUrl = teacherRecord?.avatarUrl || user?.avatarUrl;
+
+  const classesTaught = useMemo(() => {
+    if (teacherRecord?.classesTaught && teacherRecord.classesTaught.length > 0) {
+      return teacherRecord.classesTaught;
+    }
+    return [8, 9, 10, 11, 12];
+  }, [teacherRecord]);
+
+  const subjectsTaught = useMemo(() => {
+    if (teacherRecord?.subjectsTaught && teacherRecord.subjectsTaught.length > 0) {
+      return teacherRecord.subjectsTaught;
+    }
+    if (teacherRecord?.subject) {
+      return [teacherRecord.subject];
+    }
+    return ['Mathematics', 'Science'];
+  }, [teacherRecord]);
+
+  // 2. Class & Subject Filter State
+  const [selectedClass, setSelectedClass] = useState<number>(() => {
+    return classesTaught.includes(10) ? 10 : classesTaught[0] || 10;
+  });
+  const [selectedSubject, setSelectedSubject] = useState<string>('All');
+
+  // 3. Live Backend Sync & Event Listeners
+  const loadRemoteData = useCallback(async () => {
+    try {
+      await dataService.syncFromBackend(true);
+    } catch {
+      // Offline fallback
+    }
+
+    try {
+      const [videos, comments] = await Promise.all([
+        contentService.getTeacherPublishedContent(),
+        contentService.getTeacherCommentsInbox(),
+      ]);
+      setPublishedContent(videos);
+      setCommentsInbox(comments);
+    } catch {
+      // Silent error fallback
+    }
   }, []);
 
-  // Calculate real metrics from persistent data layer
-  const teacherMetrics = dataService.getTeacherMetrics(teacherId);
+  useEffect(() => {
+    loadRemoteData();
+    const handleUpdate = () => {
+      setDataVersion((v) => v + 1);
+    };
+    window.addEventListener('acadevia_data_updated', handleUpdate);
+    return () => window.removeEventListener('acadevia_data_updated', handleUpdate);
+  }, [loadRemoteData]);
+
+  // 4. Dynamic Analytics & Metrics Calculation (ZERO HARDCODING)
+  const teacherMetrics = useMemo(() => {
+    return dataService.getTeacherMetrics(teacherId);
+  }, [teacherId, dataVersion]);
+
+  const classAnalytics = useMemo(() => {
+    return dataService.getClassAnalytics({
+      teacherId,
+      classGrade: selectedClass,
+      subject: selectedSubject,
+    });
+  }, [teacherId, selectedClass, selectedSubject, dataVersion]);
+
+  // All student results filtered for teacher
+  const allTeacherResults = useMemo(() => {
+    return dataService.getTeacherQuizResults(teacherId);
+  }, [teacherId, dataVersion]);
+
+  const filteredResults = useMemo(() => {
+    return allTeacherResults.filter((r) => {
+      const matchClass = !selectedClass || Number(r.classGrade) === Number(selectedClass);
+      const matchSubject =
+        selectedSubject === 'All' ||
+        r.subject?.toLowerCase() === selectedSubject.toLowerCase();
+      return matchClass && matchSubject;
+    });
+  }, [allTeacherResults, selectedClass, selectedSubject]);
+
+  // Dynamic KPI Aggregations
+  const totalStudents = classAnalytics.totalStudents || teacherMetrics.totalStudents || 0;
+  const activeCoursesCount = useMemo(() => {
+    // Count distinct published videos plus distinct chapters for this teacher
+    const videosForClass = publishedContent.filter(
+      (c) => !selectedClass || Number(c.classNumber) === Number(selectedClass)
+    );
+    const uniqueChapters = new Set(videosForClass.map((c) => c.chapterName).filter(Boolean));
+    return Math.max(videosForClass.length, uniqueChapters.size, 1);
+  }, [publishedContent, selectedClass]);
+
+  const totalQuizzesCount = classAnalytics.quizScores.length || teacherMetrics.quizzesCreated || 0;
+  const totalSubmissionsCount = filteredResults.length;
+
+  const averageScore = useMemo(() => {
+    if (filteredResults.length > 0) {
+      return Math.round(
+        filteredResults.reduce((sum, r) => sum + r.percentage, 0) / filteredResults.length
+      );
+    }
+    return classAnalytics.averageScore || teacherMetrics.averagePerformance || 0;
+  }, [filteredResults, classAnalytics.averageScore, teacherMetrics.averagePerformance]);
+
+  // Dynamic Performance Tiers
+  const performanceTiers = useMemo(() => {
+    const total = filteredResults.length;
+    if (total === 0) {
+      return [
+        { label: '90–100% Mastery', count: 0, percentage: 0, color: 'text-emerald-500', bgColor: 'bg-emerald-500' },
+        { label: '75–89% Proficient', count: 0, percentage: 0, color: 'text-blue-500', bgColor: 'bg-blue-500' },
+        { label: '50–74% Developing', count: 0, percentage: 0, color: 'text-amber-500', bgColor: 'bg-amber-500' },
+        { label: '<50% Needs Support', count: 0, percentage: 0, color: 'text-rose-500', bgColor: 'bg-rose-500' },
+      ];
+    }
+
+    const c90 = filteredResults.filter((r) => r.percentage >= 90).length;
+    const c75 = filteredResults.filter((r) => r.percentage >= 75 && r.percentage < 90).length;
+    const c50 = filteredResults.filter((r) => r.percentage >= 50 && r.percentage < 75).length;
+    const cLess = filteredResults.filter((r) => r.percentage < 50).length;
+
+    return [
+      { label: '90–100% Mastery', count: c90, percentage: Math.round((c90 / total) * 100), color: 'text-emerald-500', bgColor: 'bg-emerald-500' },
+      { label: '75–89% Proficient', count: c75, percentage: Math.round((c75 / total) * 100), color: 'text-blue-500', bgColor: 'bg-blue-500' },
+      { label: '50–74% Developing', count: c50, percentage: Math.round((c50 / total) * 100), color: 'text-amber-500', bgColor: 'bg-amber-500' },
+      { label: '<50% Needs Support', count: cLess, percentage: Math.round((cLess / total) * 100), color: 'text-rose-500', bgColor: 'bg-rose-500' },
+    ];
+  }, [filteredResults]);
+
+  // Dynamic Top Performers
+  const topPerformers = useMemo(() => {
+    if (classAnalytics.topPerformers && classAnalytics.topPerformers.length > 0) {
+      return classAnalytics.topPerformers.map((p) => ({
+        id: p.id,
+        name: p.name,
+        score: p.score,
+        quizzesTaken: p.quizzesTaken || 1,
+      }));
+    }
+
+    const studentMap = new Map<string, { name: string; scores: number[] }>();
+    filteredResults.forEach((r) => {
+      const existing = studentMap.get(r.studentId) || { name: r.studentName, scores: [] };
+      existing.scores.push(r.percentage);
+      studentMap.set(r.studentId, existing);
+    });
+
+    return Array.from(studentMap.entries())
+      .map(([id, data]) => ({
+        id,
+        name: data.name,
+        score: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length),
+        quizzesTaken: data.scores.length,
+      }))
+      .filter((s) => s.score >= 75)
+      .sort((a, b) => b.score - a.score);
+  }, [classAnalytics.topPerformers, filteredResults]);
+
+  // Dynamic At-Risk Students
+  const atRiskStudents = useMemo(() => {
+    if (classAnalytics.atRiskStudents && classAnalytics.atRiskStudents.length > 0) {
+      return classAnalytics.atRiskStudents.map((s) => ({
+        id: s.id,
+        name: s.name,
+        score: s.score,
+        weakTopics: s.weakTopics || [],
+      }));
+    }
+
+    const studentMap = new Map<string, { name: string; scores: number[]; quizzes: string[] }>();
+    filteredResults.forEach((r) => {
+      const existing = studentMap.get(r.studentId) || { name: r.studentName, scores: [], quizzes: [] };
+      existing.scores.push(r.percentage);
+      if (r.percentage < 60) existing.quizzes.push(r.quizTitle);
+      studentMap.set(r.studentId, existing);
+    });
+
+    return Array.from(studentMap.entries())
+      .map(([id, data]) => ({
+        id,
+        name: data.name,
+        score: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length),
+        weakTopics: data.quizzes.slice(0, 2),
+      }))
+      .filter((s) => s.score < 60)
+      .sort((a, b) => a.score - b.score);
+  }, [classAnalytics.atRiskStudents, filteredResults]);
 
   return (
-    <div className="space-y-6 p-1">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Teacher Dashboard
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Welcome back, {user?.fullName || 'Teacher'} &bull; Manage your courses and track student performance
-          </p>
+    <div className="space-y-7 pb-16 animate-fade-in max-w-7xl mx-auto">
+      {/* 1. EDITORIAL TEACHER HEADER */}
+      <TeacherDashboardHeader
+        teacherName={teacherName}
+        designation={designation}
+        schoolName={schoolName}
+        avatarUrl={avatarUrl}
+        classesTaught={classesTaught}
+        selectedClass={selectedClass}
+        onSelectClass={(c) => setSelectedClass(c)}
+        subjectsTaught={subjectsTaught}
+        selectedSubject={selectedSubject}
+        onSelectSubject={(s) => setSelectedSubject(s)}
+        onRefresh={() => {
+          loadRemoteData();
+          setDataVersion((v) => v + 1);
+        }}
+      />
+
+      {/* 2. EXECUTIVE STATS METRIC GRID */}
+      <TeacherStatsGrid
+        totalStudents={totalStudents}
+        activeCourses={activeCoursesCount}
+        quizzesCreated={totalQuizzesCount}
+        averageScore={averageScore}
+        totalSubmissions={totalSubmissionsCount}
+        classLabel={`Class ${selectedClass}`}
+        onViewStudents={() => navigate(`${ROUTES.TEACHER_STUDENTS}?classGrade=${selectedClass}`)}
+        onViewCourses={() => navigate(ROUTES.TEACHER_CONTENT_UPLOAD)}
+        onViewQuizzes={() => navigate(ROUTES.TEACHER_QUIZ_CREATE)}
+        onViewAnalytics={() => navigate(`${ROUTES.TEACHER_ANALYTICS}?classGrade=${selectedClass}&subject=${encodeURIComponent(selectedSubject)}`)}
+      />
+
+      {/* 3. CLASS PERFORMANCE & MASTERY HUB */}
+      <TeacherClassPerformanceHub
+        totalSubmissions={totalSubmissionsCount}
+        averageScore={averageScore}
+        tiers={performanceTiers}
+        topPerformers={topPerformers}
+        atRiskStudents={atRiskStudents}
+        selectedClass={selectedClass}
+        selectedSubject={selectedSubject}
+      />
+
+      {/* 4. TWO-COLUMN WORKSPACE: SUBMISSIONS & DOUBTS INBOX */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-7">
+          <TeacherRecentSubmissions
+            submissions={filteredResults}
+            selectedClass={selectedClass}
+            onSelectSubmission={(sub) => setActiveSubmission(sub)}
+          />
         </div>
-        <div className="flex items-center gap-2">
-          {import.meta.env.DEV && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                executeClass10Simulation();
-                window.location.reload();
-              }}
-              className="border-dashed border-primary/40 text-primary text-xs"
-            >
-              ⚡ Run Class 10 Simulation
-            </Button>
-          )}
-          <Button
-            variant="gradient"
-            leftIcon={<Upload className="h-4 w-4" />}
-            onClick={() => navigate(ROUTES.TEACHER_CONTENT_UPLOAD)}
-          >
-            Upload Content
-          </Button>
+
+        <div className="lg:col-span-5">
+          <TeacherDoubtsInbox
+            initialDoubts={commentsInbox}
+            onDoubtReplied={() => loadRemoteData()}
+          />
         </div>
       </div>
 
-      {/* Real Statistics from Data Layer */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard
-          label="Total Students"
-          value={teacherMetrics.totalStudents}
-          icon={<Users className="h-5 w-5" />}
-          trend={10}
-        />
-        <StatsCard
-          label="Active Courses"
-          value={8}
-          icon={<BookOpen className="h-5 w-5" />}
-          trend={2}
-        />
-        <StatsCard
-          label="Quizzes Created"
-          value={teacherMetrics.quizzesCreated}
-          icon={<Brain className="h-5 w-5" />}
-        />
-        <StatsCard
-          label="Avg Performance"
-          value={teacherMetrics.averagePerformance}
-          suffix="%"
-          icon={<TrendingUp className="h-5 w-5" />}
-          trend={4}
-        />
-      </div>
+      {/* 5. PUBLISHED CURRICULUM & LECTURES GRID */}
+      <TeacherPublishedContentGrid
+        content={publishedContent}
+        selectedClass={selectedClass}
+        selectedSubject={selectedSubject}
+        onSelectVideo={(video) => setActiveVideo(video)}
+      />
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Real Student Submissions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-card-dark"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              Recent Student Submissions
-            </h3>
-            <span className="text-xs text-primary font-semibold cursor-pointer hover:underline" onClick={() => navigate(ROUTES.TEACHER_STUDENTS)}>
-              View All
-            </span>
-          </div>
+      {/* 6. TEACHER COMMAND ACTIONS */}
+      <TeacherQuickActions />
 
-          <div className="space-y-3">
-            {teacherMetrics.recentSubmissions.length > 0 ? (
-              teacherMetrics.recentSubmissions.map((sub) => (
-                <div
-                  key={sub.id}
-                  className="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800"
-                >
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">
-                      {sub.studentName}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {sub.quizTitle} &bull; Class {sub.classGrade}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
-                      {sub.percentage}% ({sub.score}/{sub.totalPoints})
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(ROUTES.TEACHER_STUDENTS)}
-                    >
-                      Review
-                    </Button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-gray-400 italic py-4 text-center">
-                No recent submissions recorded yet.
-              </p>
-            )}
-          </div>
-        </motion.div>
+      {/* 7. INTERACTIVE MODALS */}
+      <TeacherSubmissionModal
+        submission={activeSubmission}
+        onClose={() => setActiveSubmission(null)}
+      />
 
-        {/* Quick Actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass-card p-5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-card-dark"
-        >
-          <h3 className="text-base font-semibold mb-4 text-gray-900 dark:text-white">
-            Quick Actions
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: 'Create Quiz', icon: Brain, color: 'from-[#5B2C6F] to-[#7B3F95]', route: ROUTES.TEACHER_QUIZ_CREATE },
-              { label: 'Upload Content', icon: Upload, color: 'from-[#3A1B47] to-[#5B2C6F]', route: ROUTES.TEACHER_CONTENT_UPLOAD },
-              { label: 'View Analytics', icon: BarChart3, color: 'from-[#D4A843] to-[#B08B2E]', route: ROUTES.TEACHER_ANALYTICS },
-              { label: 'Manage Students', icon: Users, color: 'from-[#E74C3C] to-[#C0392B]', route: ROUTES.TEACHER_STUDENTS },
-            ].map((a, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => navigate(a.route)}
-                className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 hover:border-primary/40 hover:shadow-xs text-left transition group"
-              >
-                <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${a.color} text-white flex items-center justify-center mb-3 shadow-sm group-hover:scale-105 transition-transform`}>
-                  <a.icon className="h-5 w-5" />
-                </div>
-                <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                  {a.label}
-                </p>
-              </button>
-            ))}
-          </div>
-        </motion.div>
-      </div>
+      <TeacherVideoModal
+        video={activeVideo}
+        onClose={() => setActiveVideo(null)}
+        onCommentReplied={() => loadRemoteData()}
+      />
     </div>
   );
 };
 
-export { TeacherDashboard };
 export default TeacherDashboard;
