@@ -1,17 +1,21 @@
 const { execSync } = require('child_process');
-const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-
-// Cloudflare R2 S3 Client
-const r2Client = new S3Client({
-  region: 'auto',
-  endpoint: process.env.STORAGE_ENDPOINT || 'https://c82b5cf783a510eb20c956cc368a0f7f.r2.cloudflarestorage.com',
-  credentials: {
-    accessKeyId: process.env.STORAGE_ACCESS_KEY || 'dc9bbee3c9bba2b9e94b6aec99625f63',
-    secretAccessKey: process.env.STORAGE_SECRET_KEY || '2444f51c4d817af529368d1e40854a234839822712a07d3a0cdb4fd6079f324c',
-  },
-  forcePathStyle: true,
-});
+let S3Client, GetObjectCommand, getSignedUrl, r2Client;
+try {
+  ({ S3Client, GetObjectCommand } = require('@aws-sdk/client-s3'));
+  ({ getSignedUrl } = require('@aws-sdk/s3-request-presigner'));
+  r2Client = new S3Client({
+    region: 'auto',
+    endpoint: process.env.STORAGE_ENDPOINT || 'https://c82b5cf783a510eb20c956cc368a0f7f.r2.cloudflarestorage.com',
+    credentials: {
+      accessKeyId: process.env.STORAGE_ACCESS_KEY || 'dc9bbee3c9bba2b9e94b6aec99625f63',
+      secretAccessKey: process.env.STORAGE_SECRET_KEY || '2444f51c4d817af529368d1e40854a234839822712a07d3a0cdb4fd6079f324c',
+    },
+    forcePathStyle: true,
+  });
+} catch {
+  // Graceful fallback if AWS SDK is not installed
+  r2Client = null;
+}
 
 let presignedUrlCache = {};
 
@@ -20,6 +24,9 @@ async function getR2PresignedUrl(key = 'videos/10/1/1bf07910-3851-452f-b361-ee0b
   const cached = presignedUrlCache[cacheKey];
   if (cached && cached.expiresAt > Date.now() + 60000) {
     return cached.url;
+  }
+  if (!r2Client || !GetObjectCommand || !getSignedUrl) {
+    return `https://c82b5cf783a510eb20c956cc368a0f7f.r2.cloudflarestorage.com/${bucket}/${key}`;
   }
   try {
     const params = { Bucket: bucket, Key: key };
@@ -40,10 +47,10 @@ function execSql(query) {
   try {
     let output;
     try {
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password -B';
+      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot -B';
       output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
     } catch {
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot -B';
+      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password -B';
       output = execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
     }
     const lines = output.trim().split('\n');
@@ -69,10 +76,10 @@ function execSql(query) {
 function execSqlMutation(query) {
   try {
     try {
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password';
+      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
       execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
     } catch {
-      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot';
+      const cmd = 'docker exec -i acadevia-mysql mysql -uroot -proot_password';
       execSync(cmd, { input: query, stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 4000 });
     }
     return true;
@@ -86,6 +93,7 @@ function execSqlMutation(query) {
 // Ensure database tables exist across MySQL container restarts
 function ensureSchema() {
   const initSql = `
+    CREATE DATABASE IF NOT EXISTS acadevia_content;
     CREATE TABLE IF NOT EXISTS acadevia_content.content_items (
       id INT AUTO_INCREMENT PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
@@ -393,11 +401,16 @@ function getTeacherStudentsFromDb(classGrade = 10) {
     const streak = Number(st.streak) || 0;
     const quizzesCompleted = studentAttempts.length;
 
+    const rawAvatar = st.avatarUrl && st.avatarUrl !== 'NULL' && st.avatarUrl !== 'null' && String(st.avatarUrl).trim() !== ''
+      ? String(st.avatarUrl).trim()
+      : null;
+
     return {
       id: String(st.id),
       name: st.name,
       email: st.email,
-      avatar: st.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(st.name)}`,
+      avatar: rawAvatar,
+      avatarUrl: rawAvatar,
       className: `Class ${st.classGrade || 10}`,
       section: 'A',
       totalXP,
@@ -433,6 +446,22 @@ function getTeacherStudentsFromDb(classGrade = 10) {
 
   serverCache.teacherStudents.set(cacheKey, { data: result, timestamp: Date.now() });
   return result;
+}
+
+function updateStudentAvatarInDb(userId, avatarUrl) {
+  if (!userId || !avatarUrl) return false;
+  const safeUserId = String(userId).replace(/[^0-9]/g, '');
+  if (!safeUserId) return false;
+  const escapedUrl = String(avatarUrl).replace(/'/g, "\\'");
+  try {
+    execSqlMutation(`UPDATE acadevia_auth_db.users SET avatar_url = '${escapedUrl}' WHERE id = ${safeUserId};`);
+    execSqlMutation(`UPDATE acadevia_user_db.user_profiles SET avatar_url = '${escapedUrl}' WHERE user_id = ${safeUserId};`);
+    invalidateServerCache();
+    return true;
+  } catch (err) {
+    console.error('Failed to update student avatar in DB:', err);
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -638,7 +667,8 @@ function getUsersFromDb() {
       email: r.email,
       fullName: r.fullName.trim(),
       role: r.role,
-      avatarUrl: r.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(r.fullName)}`,
+      avatarUrl: (r.avatarUrl && r.avatarUrl !== 'NULL' && r.avatarUrl !== 'null' && String(r.avatarUrl).trim() !== '') ? String(r.avatarUrl).trim() : null,
+      avatar: (r.avatarUrl && r.avatarUrl !== 'NULL' && r.avatarUrl !== 'null' && String(r.avatarUrl).trim() !== '') ? String(r.avatarUrl).trim() : null,
       schoolName: r.schoolName || 'Acadevia Demo School',
       classGrade: r.classGrade ? Number(r.classGrade) : undefined,
       section: r.section || 'A',
@@ -1856,5 +1886,6 @@ module.exports = {
   getUserIdByEmail,
   getNcertAvailableChapters,
   generateNcertQuiz,
+  updateStudentAvatarInDb,
 };
 

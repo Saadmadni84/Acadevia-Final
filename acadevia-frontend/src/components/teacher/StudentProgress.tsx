@@ -16,11 +16,13 @@ import {
 import { useAuthStore } from '@/stores/useAuthStore';
 import { dataService, type QuizResultRecord, type ActivityRecord } from '@/services/data.service';
 import { Progress } from '@/components/ui/Progress';
+import { Avatar } from '@/components/ui/Avatar';
 
 interface StudentViewItem {
   id: string;
   name: string;
-  avatar: string;
+  avatar?: string | null;
+  avatarUrl?: string | null;
   className: string;
   section: string;
   totalXP: number;
@@ -66,32 +68,51 @@ const StudentProgress: React.FC = () => {
     };
   }, []);
 
+  // Helper to sanitize avatar string against literal 'NULL', 'null', whitespace
+  const sanitizeAvatar = (url?: string | null): string | undefined => {
+    if (!url || typeof url !== 'string') return undefined;
+    const trimmed = url.trim();
+    if (!trimmed || trimmed === 'NULL' || trimmed === 'null' || trimmed === 'undefined') return undefined;
+    return trimmed;
+  };
+
   // Retrieve actual students from live API or persistent data layer
   const students: StudentViewItem[] = useMemo(() => {
-    if (apiStudents && apiStudents.length > 0) {
-      return apiStudents;
-    }
-    const rawStudents = dataService.getTeacherStudents(teacherId);
+    const rawList = (apiStudents && apiStudents.length > 0)
+      ? apiStudents
+      : dataService.getTeacherStudents(teacherId);
 
     // If no students assigned yet, ensure demo student Aarav is included
-    const studentList = rawStudents.length > 0 ? rawStudents : [dataService.getUserById('9')!].filter(Boolean);
+    const studentList = rawList.length > 0 ? rawList : [dataService.getUserById('9')!].filter(Boolean);
 
-    return studentList.map((st) => {
-      const metrics = dataService.getStudentMetrics(st.id);
-      const results = dataService.getStudentQuizResults(st.id);
-      const activities = dataService.getRecentActivities(st.id, 'STUDENT');
+    return studentList.map((st: any) => {
+      const sId = String(st.id);
+      const metrics = dataService.getStudentMetrics(sId);
+      const results = st.results || dataService.getStudentQuizResults(sId);
+      const activities = st.activities || dataService.getRecentActivities(sId, 'STUDENT');
+      const localUser = dataService.getUserById(sId);
+
+      // Resolve avatar in canonical priority: API avatarUrl -> API avatar -> local user avatarUrl
+      const resolvedAvatar =
+        sanitizeAvatar(st.avatarUrl) ||
+        sanitizeAvatar(st.avatar) ||
+        sanitizeAvatar(localUser?.avatarUrl) ||
+        undefined;
+
+      const studentName = st.name || st.fullName || localUser?.fullName || 'Student';
 
       return {
-        id: st.id,
-        name: st.fullName,
-        avatar: st.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(st.fullName)}`,
-        className: `Class ${st.classGrade || 10}`,
-        section: st.section || 'A',
-        totalXP: metrics.totalXP,
-        quizzesCompleted: metrics.quizzesCompleted,
-        avgScore: metrics.averageScore,
-        streak: metrics.streak,
-        progress: metrics.overallProgress,
+        id: sId,
+        name: studentName,
+        avatar: resolvedAvatar,
+        avatarUrl: resolvedAvatar,
+        className: st.className || `Class ${st.classGrade || localUser?.classGrade || 10}`,
+        section: st.section || localUser?.section || 'A',
+        totalXP: typeof st.totalXP === 'number' ? st.totalXP : metrics.totalXP,
+        quizzesCompleted: typeof st.quizzesCompleted === 'number' ? st.quizzesCompleted : metrics.quizzesCompleted,
+        avgScore: typeof st.avgScore === 'number' ? st.avgScore : metrics.averageScore,
+        streak: typeof st.streak === 'number' ? st.streak : metrics.streak,
+        progress: typeof st.progress === 'number' ? st.progress : metrics.overallProgress,
         results,
         activities,
       };
@@ -265,10 +286,11 @@ const StudentProgress: React.FC = () => {
               >
                 <td className="py-3.5 px-4">
                   <div className="flex items-center gap-3">
-                    <img
-                      src={student.avatar}
-                      alt=""
-                      className="h-10 w-10 rounded-full object-cover ring-2 ring-primary/20"
+                    <Avatar
+                      src={student.avatarUrl || student.avatar}
+                      name={student.name}
+                      size="md"
+                      className="ring-2 ring-primary/20 rounded-full"
                     />
                     <div>
                       <p className="font-bold text-gray-900 dark:text-white">
@@ -358,10 +380,11 @@ const StudentProgress: React.FC = () => {
 
               {/* Student Identity Card */}
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-[#5B2C6F]/5 to-secondary/10 border border-primary/20">
-                <img
-                  src={selectedStudent.avatar}
-                  alt=""
-                  className="h-16 w-16 rounded-full object-cover ring-4 ring-white dark:ring-card-dark shadow"
+                <Avatar
+                  src={selectedStudent.avatarUrl || selectedStudent.avatar}
+                  name={selectedStudent.name}
+                  size="xl"
+                  className="h-16 w-16 text-lg ring-4 ring-white dark:ring-card-dark shadow rounded-full"
                 />
                 <div>
                   <h4 className="text-xl font-bold text-gray-900 dark:text-white">
