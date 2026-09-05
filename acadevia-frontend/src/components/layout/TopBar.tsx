@@ -10,6 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { ROUTES } from '@/config/routes.config';
 import { GlobalSearchModal } from '@/components/dashboard/GlobalSearchModal';
 import { XPHistoryModal } from '@/components/dashboard/XPHistoryModal';
+import { LanguageSelector } from '@/components/common/LanguageSelector';
 import {
   Search, Bell, Sun, Moon, Menu, LogOut, User, Settings, Wifi, WifiOff, Zap, Flame
 } from 'lucide-react';
@@ -69,6 +70,9 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
               {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
               <span className="hidden md:inline">{status === 'SYNCING' ? 'Syncing...' : isOnline ? 'Online' : 'Offline'}</span>
             </div>
+
+            {/* Language Selector (Google Translate) */}
+            <LanguageSelector variant="minimal" />
 
             {/* Theme Toggle */}
             <button
