@@ -401,11 +401,16 @@ function getTeacherStudentsFromDb(classGrade = 10) {
     const streak = Number(st.streak) || 0;
     const quizzesCompleted = studentAttempts.length;
 
+    const rawAvatar = st.avatarUrl && st.avatarUrl !== 'NULL' && st.avatarUrl !== 'null' && String(st.avatarUrl).trim() !== ''
+      ? String(st.avatarUrl).trim()
+      : null;
+
     return {
       id: String(st.id),
       name: st.name,
       email: st.email,
-      avatar: st.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(st.name)}`,
+      avatar: rawAvatar,
+      avatarUrl: rawAvatar,
       className: `Class ${st.classGrade || 10}`,
       section: 'A',
       totalXP,
@@ -441,6 +446,22 @@ function getTeacherStudentsFromDb(classGrade = 10) {
 
   serverCache.teacherStudents.set(cacheKey, { data: result, timestamp: Date.now() });
   return result;
+}
+
+function updateStudentAvatarInDb(userId, avatarUrl) {
+  if (!userId || !avatarUrl) return false;
+  const safeUserId = String(userId).replace(/[^0-9]/g, '');
+  if (!safeUserId) return false;
+  const escapedUrl = String(avatarUrl).replace(/'/g, "\\'");
+  try {
+    execSqlMutation(`UPDATE acadevia_auth_db.users SET avatar_url = '${escapedUrl}' WHERE id = ${safeUserId};`);
+    execSqlMutation(`UPDATE acadevia_user_db.user_profiles SET avatar_url = '${escapedUrl}' WHERE user_id = ${safeUserId};`);
+    invalidateServerCache();
+    return true;
+  } catch (err) {
+    console.error('Failed to update student avatar in DB:', err);
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -646,7 +667,8 @@ function getUsersFromDb() {
       email: r.email,
       fullName: r.fullName.trim(),
       role: r.role,
-      avatarUrl: r.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(r.fullName)}`,
+      avatarUrl: (r.avatarUrl && r.avatarUrl !== 'NULL' && r.avatarUrl !== 'null' && String(r.avatarUrl).trim() !== '') ? String(r.avatarUrl).trim() : null,
+      avatar: (r.avatarUrl && r.avatarUrl !== 'NULL' && r.avatarUrl !== 'null' && String(r.avatarUrl).trim() !== '') ? String(r.avatarUrl).trim() : null,
       schoolName: r.schoolName || 'Acadevia Demo School',
       classGrade: r.classGrade ? Number(r.classGrade) : undefined,
       section: r.section || 'A',
@@ -1864,5 +1886,6 @@ module.exports = {
   getUserIdByEmail,
   getNcertAvailableChapters,
   generateNcertQuiz,
+  updateStudentAvatarInDb,
 };
 

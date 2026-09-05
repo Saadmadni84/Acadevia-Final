@@ -49,6 +49,10 @@ function databaseApiPlugin() {
         if (!fs.existsSync(UPLOADS_DIR)) {
           fs.mkdirSync(UPLOADS_DIR, { recursive: true });
         }
+        const UPLOADS_AVATARS_DIR = path.resolve(__dirname, 'uploads', 'avatars');
+        if (!fs.existsSync(UPLOADS_AVATARS_DIR)) {
+          fs.mkdirSync(UPLOADS_AVATARS_DIR, { recursive: true });
+        }
         const mtime = fs.statSync(dbModulePath).mtimeMs;
         if ((global as any).__dbMtime !== mtime) {
           delete require.cache[dbModulePath];
@@ -458,6 +462,127 @@ function databaseApiPlugin() {
               });
               fs.createReadStream(filePath).pipe(res);
             }
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 5.7 Avatar Upload (Multipart / Binary Stream Support with MySQL persistence)
+        if (pathname === '/api/v1/users/me/avatar' && req.method === 'POST') {
+          try {
+            const studentId = getAuthenticatedStudentId(req) || '20';
+            const contentTypeHeader = req.headers['content-type'] || '';
+            const isMultipart = contentTypeHeader.includes('multipart/form-data');
+
+            let fileBuffer: Buffer | null = null;
+            let ext = '.jpg';
+
+            if (isMultipart) {
+              const boundaryMatch = contentTypeHeader.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
+              const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
+              if (!boundary) throw new Error('Missing boundary in multipart/form-data');
+
+              const chunks: Buffer[] = [];
+              req.on('data', (c: Buffer) => chunks.push(c));
+              await new Promise((resolve, reject) => {
+                req.on('end', resolve);
+                req.on('error', reject);
+              });
+              const buffer = Buffer.concat(chunks);
+              const boundaryBuffer = Buffer.from(`--${boundary}`);
+              const headerEndBuffer = Buffer.from('\r\n\r\n');
+
+              const firstBoundary = buffer.indexOf(boundaryBuffer);
+              const headerStart = firstBoundary + boundaryBuffer.length;
+              const headerEnd = buffer.indexOf(headerEndBuffer, headerStart);
+              if (headerEnd !== -1) {
+                const headerStr = buffer.subarray(headerStart, headerEnd).toString('utf8').toLowerCase();
+                if (headerStr.includes('.png') || headerStr.includes('image/png')) ext = '.png';
+                else if (headerStr.includes('.webp') || headerStr.includes('image/webp')) ext = '.webp';
+
+                const fileContentStart = headerEnd + headerEndBuffer.length;
+                const nextBoundary = buffer.indexOf(boundaryBuffer, fileContentStart);
+                const fileContentEnd = nextBoundary !== -1 ? nextBoundary - 2 : buffer.length;
+                fileBuffer = buffer.subarray(fileContentStart, fileContentEnd);
+              }
+            } else {
+              const body = await parseBody(req);
+              if (body && body.avatar && typeof body.avatar === 'string' && body.avatar.startsWith('data:')) {
+                const matches = body.avatar.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+                if (matches && matches.length === 3) {
+                  if (matches[1].includes('png')) ext = '.png';
+                  else if (matches[1].includes('webp')) ext = '.webp';
+                  fileBuffer = Buffer.from(matches[2], 'base64');
+                }
+              }
+            }
+
+            if (!fileBuffer || fileBuffer.length === 0) {
+              throw new Error('No valid image data received');
+            }
+
+            const fileName = `avatar_${studentId}_${Date.now()}${ext}`;
+            const targetPath = path.join(UPLOADS_AVATARS_DIR, fileName);
+            fs.writeFileSync(targetPath, fileBuffer);
+
+            const avatarUrl = `/uploads/avatars/${fileName}`;
+            if (typeof db.updateStudentAvatarInDb === 'function') {
+              db.updateStudentAvatarInDb(studentId, avatarUrl);
+            }
+
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({
+              status: 200,
+              success: true,
+              data: { avatarUrl },
+              message: 'Profile photo updated and saved to database successfully',
+            }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // 5.8 Avatar File Serving
+        if ((pathname.startsWith('/uploads/avatars/') || pathname.startsWith('/api/v1/users/avatar/')) && req.method === 'GET') {
+          try {
+            const rawReq = pathname.startsWith('/uploads/avatars/')
+              ? pathname.replace('/uploads/avatars/', '')
+              : pathname.replace('/api/v1/users/avatar/', '');
+            const reqFile = path.basename(decodeURIComponent(rawReq));
+
+            if (!reqFile || reqFile.includes('..') || reqFile.includes('/') || reqFile.includes('\\')) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ status: 400, error: 'Invalid file path' }));
+              return;
+            }
+
+            const fullPath = path.join(UPLOADS_AVATARS_DIR, reqFile);
+            if (!fs.existsSync(fullPath)) {
+              res.statusCode = 404;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ status: 404, error: 'Avatar not found' }));
+              return;
+            }
+
+            let mime = 'image/jpeg';
+            const lower = reqFile.toLowerCase();
+            if (lower.endsWith('.png')) mime = 'image/png';
+            else if (lower.endsWith('.webp')) mime = 'image/webp';
+
+            res.writeHead(200, {
+              'Content-Type': mime,
+              'Cache-Control': 'public, max-age=86400',
+            });
+            fs.createReadStream(fullPath).pipe(res);
             return;
           } catch (err: any) {
             res.statusCode = 500;
