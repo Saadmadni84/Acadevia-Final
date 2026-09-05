@@ -1835,6 +1835,22 @@ export const dataService = {
       .slice(0, 8);
   },
 
+  /** Add a new activity record */
+  addActivity(record: Omit<ActivityRecord, 'id' | 'timestamp'> & { timestamp?: string }): ActivityRecord {
+    const state = loadState();
+    const newAct: ActivityRecord = {
+      ...record,
+      id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: record.timestamp || new Date().toISOString(),
+    };
+    state.activities.unshift(newAct);
+    saveState(state);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('acadevia_data_updated'));
+    }
+    return newAct;
+  },
+
   /** Get all academic classes (Classes 1 through 12) */
   getAcademicClasses(): number[] {
     return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];

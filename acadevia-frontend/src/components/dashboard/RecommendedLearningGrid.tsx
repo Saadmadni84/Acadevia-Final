@@ -113,7 +113,11 @@ export const RecommendedLearningGrid: React.FC = () => {
               </span>
               <button
                 type="button"
-                className="text-primary dark:text-purple-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform font-bold"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(rec.route);
+                }}
+                className="text-primary dark:text-purple-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform font-bold cursor-pointer"
               >
                 <span>Start Lesson →</span>
               </button>

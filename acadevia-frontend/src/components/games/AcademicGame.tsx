@@ -57,7 +57,7 @@ export const AcademicGame: React.FC<{ game: GameDefinition }> = ({ game }) => {
   if (state === 'intro') return <div className="mx-auto max-w-5xl space-y-5 p-2 sm:p-4">
     <button onClick={() => navigate(ROUTES.GAMES)} className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-primary"><ArrowLeft className="h-4 w-4" />Back to Games</button>
     <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-card-dark md:grid md:grid-cols-2">
-      <GameThumbnail game={game} className="min-h-52 md:min-h-full" />
+      <GameThumbnail game={game} preferRaster={true} className="min-h-52 md:min-h-full" />
       <div className="space-y-5 p-6 sm:p-8">
         <div><p className="text-xs font-bold uppercase tracking-widest text-primary">{game.subject} · Interactive game</p><h1 className="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">{game.title}</h1><p className="mt-3 text-sm leading-6 text-gray-600 dark:text-gray-300">{game.description}</p></div>
         <div className="flex flex-wrap gap-2 text-xs font-bold"><span className="rounded-full bg-primary/10 px-3 py-1.5 text-primary">🎓 Designed for Classes {game.classes}</span><span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-800">⭐ {game.difficulty}</span><span className="rounded-full bg-violet-100 px-3 py-1.5 text-violet-800">⚡ +{game.xpReward} XP</span><span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-700">⏱ {game.estimatedTime}</span></div>

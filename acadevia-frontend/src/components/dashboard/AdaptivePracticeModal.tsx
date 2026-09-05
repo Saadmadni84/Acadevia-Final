@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle2, AlertCircle, Zap, ArrowRight, RotateCcw } from 'lucide-react';
 import { useGamificationStore } from '@/stores/useGamificationStore';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { dataService } from '@/services/data.service';
 
 interface AdaptivePracticeModalProps {
   isOpen: boolean;
@@ -174,6 +176,16 @@ export const AdaptivePracticeModal: React.FC<AdaptivePracticeModalProps> = ({
       // Completed practice
       setIsCompleted(true);
       addXP(50, `Adaptive Practice: ${topicTitle}`);
+      const currentUser = useAuthStore.getState().user;
+      const userId = currentUser?.id ? String(currentUser.id) : '9';
+      dataService.addActivity({
+        userId,
+        userRole: 'STUDENT',
+        type: 'XP_EARNED',
+        title: `Adaptive Practice: ${topicTitle}`,
+        description: `Scored ${score + 1}/${questions.length} in diagnostic assessment`,
+        badgeText: '+50 XP',
+      });
     }
   };
 

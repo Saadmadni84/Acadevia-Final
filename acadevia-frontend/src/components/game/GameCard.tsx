@@ -66,6 +66,7 @@ export const GameCard: React.FC<GameCardProps> = ({
           {game ? (
             <GameThumbnail
               game={game}
+              preferRaster={true}
               className="h-full w-full transform group-hover:scale-105 transition-transform duration-500 ease-out"
             />
           ) : (

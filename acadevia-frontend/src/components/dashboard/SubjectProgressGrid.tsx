@@ -142,9 +142,13 @@ export const SubjectProgressGrid: React.FC<SubjectProgressGridProps> = ({
             Syllabus progress & interactive chapter breakdown
           </p>
         </div>
-        <span className="text-xs font-semibold text-primary dark:text-purple-300 cursor-pointer hover:underline">
+        <button
+          type="button"
+          onClick={() => onSelectSubject(defaultSubjectsData[0])}
+          className="text-xs font-semibold text-primary dark:text-purple-300 cursor-pointer hover:underline"
+        >
           Click card to view syllabus →
-        </span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4.5">
@@ -205,7 +209,7 @@ export const SubjectProgressGrid: React.FC<SubjectProgressGridProps> = ({
 
               {/* Bottom Link Action */}
               <div className="pt-2.5 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-primary dark:group-hover:text-purple-300 transition-colors">
-                <span>View 12 Chapters</span>
+                <span>View {sub.totalChapters} Chapters</span>
                 <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
