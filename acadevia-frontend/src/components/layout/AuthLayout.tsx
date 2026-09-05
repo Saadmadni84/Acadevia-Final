@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { ShieldCheck, BookOpen, Sparkles } from 'lucide-react';
+import { LanguageSelector } from '@/components/common/LanguageSelector';
 
 const AuthLayout: React.FC = () => {
   return (
@@ -38,6 +39,7 @@ const AuthLayout: React.FC = () => {
         </Link>
 
         <div className="flex items-center gap-3">
+          <LanguageSelector />
           <Link
             to="/courses"
             className="text-xs font-semibold text-stone-600 hover:text-[#5B2C6F] transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 hover:bg-white border border-[#E8E2D7] shadow-2xs"

@@ -2,7 +2,9 @@ import React, { useEffect, useMemo } from 'react';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import i18n from '@/config/i18n.config';
 
-const RTL_LANGUAGES = ['ur', 'ar', 'he', 'fa'];
+import { googleTranslateService } from '@/services/googleTranslate.service';
+
+const RTL_LANGUAGES = ['ur', 'ar', 'he', 'fa', 'sd'];
 
 const LanguageDirectionManager: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { i18n: instance } = useTranslation();
@@ -20,8 +22,10 @@ const LanguageDirectionManager: React.FC<{ children: React.ReactNode }> = ({ chi
 };
 
 const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Detect and set initial language
+  // Initialize Google Translate & detect initial language
   useEffect(() => {
+    googleTranslateService.init();
+
     const stored = localStorage.getItem('i18nextLng');
     if (!stored) {
       const browserLang = navigator.language?.split('-')[0] ?? 'en';
