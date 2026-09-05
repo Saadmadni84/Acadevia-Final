@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   Settings,
   Gauge,
+  Sparkles,
 } from 'lucide-react';
 import { uploadedContentStore, type UploadedContentItem } from '@/stores/uploadedContentStore';
 import { dataService } from '@/services/data.service';
