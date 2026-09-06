@@ -15,7 +15,7 @@ import { ROUTES } from '@/config/routes.config';
 import { Award, Lock, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import { dataService } from '@/services/data.service';
+import { dataService, calculateLevelAndProgress } from '@/services/data.service';
 
 // Standard Acadevia badge catalog for available and unlockable achievements
 const acadeviaBadgeCatalog = [
@@ -112,7 +112,15 @@ const ProfilePage: React.FC = () => {
       }
     : (userProfile ?? user);
 
-  const studentId = queryStudentId || (user?.id ? String(user.id) : '20');
+  const studentId = queryStudentId || (user?.id ? String(user.id) : '');
+
+  // 5. Real Student Progress from persistent backend / database
+  const { data: studentProgress } = useQuery({
+    queryKey: ['student-progress', studentId],
+    queryFn: async () => (studentId ? dataService.fetchStudentProgress(studentId) : null),
+    enabled: Boolean(studentId),
+  });
+
   const studentName =
     (isViewingOther && targetStudent?.fullName) ||
     user?.fullName ||
@@ -135,10 +143,12 @@ const ProfilePage: React.FC = () => {
     timestamp: a.timestamp,
   }));
 
-  const level = gamification?.level ?? metrics.level ?? 1;
-  const totalXP = gamification?.totalXP ?? gamification?.xp ?? metrics.totalXP ?? 0;
-  const streak = gamification?.streakDays ?? gamification?.streak ?? metrics.streak ?? 0;
-  const requiredXP = Math.max(100, Math.ceil((totalXP + 1) / 100) * 100);
+  const totalXP = studentProgress?.totalXP ?? gamification?.xp ?? metrics.totalXP ?? 0;
+  const levelInfo = calculateLevelAndProgress(totalXP);
+  const level = levelInfo.level;
+  const levelTitle = levelInfo.levelTitle;
+  const streak = studentProgress?.streak ?? gamification?.streak ?? metrics.streak ?? 0;
+  const requiredXP = levelInfo.nextThreshold;
 
   // Real criteria-driven badge evaluation
   const liveBadges = gamification?.badges ?? [];
@@ -234,10 +244,11 @@ const ProfilePage: React.FC = () => {
   const languageVal = (profile as any)?.languagePreference || user?.languagePreference || 'English';
 
   // Purely data-driven statistics without fake fallbacks
-  const coursesCompleted = metrics.coursesCompleted;
-  const quizzesTaken = metrics.quizzesCompleted;
-  const hoursLearned = metrics.hoursLearned;
-  const averageScore = metrics.averageScore;
+  const coursesCompleted = studentProgress?.coursesCompleted ?? metrics.coursesCompleted;
+  const quizzesTaken = studentProgress?.quizzesCompleted ?? metrics.quizzesCompleted;
+  const hoursLearned = studentProgress?.hoursLearned ?? metrics.hoursLearned;
+  const studyMinutes = studentProgress?.studyMinutes ?? metrics.studyMinutes;
+  const averageScore = studentProgress?.averageScore ?? metrics.averageScore;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4">
@@ -278,7 +289,7 @@ const ProfilePage: React.FC = () => {
           currentXP={totalXP}
           requiredXP={requiredXP}
           level={level}
-          levelName={`Level ${level}`}
+          levelName={levelTitle}
           size="md"
         />
       </div>
@@ -289,7 +300,7 @@ const ProfilePage: React.FC = () => {
         coursesCompletedCount={coursesCompleted}
         quizzesTakenCount={quizzesTaken}
         hoursLearnedCount={hoursLearned}
-        studyMinutesCount={metrics.studyMinutes}
+        studyMinutesCount={studyMinutes}
         averageQuizScore={averageScore}
         weeklyActivity={studentAnalytics?.weeklyActivity || realWeeklyActivity}
         recentActivities={realRecentActivities}

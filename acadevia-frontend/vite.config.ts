@@ -99,8 +99,54 @@ function databaseApiPlugin() {
             if (resolved) return String(resolved);
           }
 
-          return '20';
+          return '';
         };
+
+        // 0. Authentication Login & Token Refresh
+        if (pathname === '/api/v1/auth/login' && req.method === 'POST') {
+          try {
+            const body = await parseBody(req);
+            const authResult = db.authenticateUser(body.email || body.username, body.password);
+            if (!authResult) {
+              res.statusCode = 401;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ status: 401, error: 'Invalid email or password' }));
+              return;
+            }
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data: authResult }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        if (pathname === '/api/v1/auth/refresh-token' && req.method === 'POST') {
+          try {
+            const body = await parseBody(req);
+            const rawToken = body.refreshToken || '';
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({
+              status: 200,
+              success: true,
+              data: {
+                accessToken: rawToken.replace(/^refresh-/, ''),
+                refreshToken: rawToken,
+              }
+            }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
 
         // 0. Lightweight State Version Check (< 0.1ms, zero DB queries)
         if (pathname === '/api/v1/data/version' && req.method === 'GET') {
@@ -117,6 +163,96 @@ function databaseApiPlugin() {
             const data = db.getLeaderboardFromDb(period);
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // Student Progress & Real Calculated Statistics
+        if ((pathname === '/api/v1/student/progress' || pathname === '/api/v1/profile/progress') && req.method === 'GET') {
+          try {
+            const paramId = parsedUrl.searchParams.get('studentId') || parsedUrl.searchParams.get('userId');
+            const studentId = getAuthenticatedStudentId(req, paramId);
+            const data = db.getStudentProgressFromDb(studentId);
+            if (!data) {
+              res.statusCode = 404;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ status: 404, error: 'Student progress not found' }));
+              return;
+            }
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // Gamification XP History (Real DB Transactions)
+        if (pathname === '/api/v1/gamification/xp-history' && req.method === 'GET') {
+          try {
+            const paramId = parsedUrl.searchParams.get('studentId') || parsedUrl.searchParams.get('userId');
+            const studentId = getAuthenticatedStudentId(req, paramId);
+            const history = db.getXpHistoryFromDb(studentId);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({
+              status: 200,
+              success: true,
+              data: {
+                content: history,
+                totalElements: history.length,
+                totalPages: 1,
+                size: history.length,
+                number: 0,
+              }
+            }));
+            return;
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 500, error: err.message }));
+            return;
+          }
+        }
+
+        // Gamification Profile
+        if (pathname === '/api/v1/gamification/profile' && req.method === 'GET') {
+          try {
+            const paramId = parsedUrl.searchParams.get('studentId') || parsedUrl.searchParams.get('userId');
+            const studentId = getAuthenticatedStudentId(req, paramId);
+            const progress = db.getStudentProgressFromDb(studentId);
+            const totalXP = progress ? progress.totalXp : 0;
+            const level = progress ? progress.currentLevel : 1;
+            const streak = progress ? progress.streak : 0;
+            const levelTitle = progress ? progress.levelTitle : 'Newcomer';
+            const xpNeeded = progress ? progress.xpNeeded : 100;
+            const nextThreshold = progress ? progress.nextLevelXp : 100;
+
+            const gamificationProfile = {
+              xp: totalXP,
+              totalXP,
+              level,
+              levelTitle,
+              streak,
+              streakDays: streak,
+              longestStreak: progress ? progress.longestStreak : 0,
+              badges: [],
+              dailyGoal: 45,
+              dailyProgress: progress ? progress.learningTimeMinutes : 0,
+              xpNeeded,
+              nextLevelXP: nextThreshold,
+              rank: 1,
+            };
+
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 200, success: true, data: gamificationProfile }));
             return;
           } catch (err: any) {
             res.statusCode = 500;
@@ -162,7 +298,8 @@ function databaseApiPlugin() {
           try {
             const classGrade = Number(parsedUrl.searchParams.get('classGrade')) || 10;
             const subject = parsedUrl.searchParams.get('subject') || 'All';
-            const data = db.getTeacherAnalyticsFromDb(classGrade, subject);
+            const period = parsedUrl.searchParams.get('period') || '30';
+            const data = db.getTeacherAnalyticsFromDb(classGrade, subject, period);
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ status: 200, success: true, data }));
             return;
@@ -897,7 +1034,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://127.0.0.1:8080',
         changeOrigin: true,
         secure: false,
       },
