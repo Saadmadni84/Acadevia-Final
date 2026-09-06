@@ -49,24 +49,30 @@ const StudentProgress: React.FC = () => {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filterClass, setFilterClass] = useState('');
   const [filterSection, setFilterSection] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState<StudentViewItem | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [apiStudents, setApiStudents] = useState<StudentViewItem[] | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    fetch('/api/v1/teacher/students?classGrade=10')
+  const fetchStudents = React.useCallback(() => {
+    const gradeParam = filterClass ? filterClass.replace(/[^0-9]/g, '') : '10';
+    fetch(`/api/v1/teacher/students?classGrade=${gradeParam || '10'}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        if (mounted && json?.success && Array.isArray(json.data) && json.data.length > 0) {
+        if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
           setApiStudents(json.data);
           dataService.syncStudentsFromApi(json.data);
         }
       })
       .catch(() => {});
-    return () => {
-      mounted = false;
+  }, [filterClass]);
+
+  useEffect(() => {
+    fetchStudents();
+    const handleUpdate = () => {
+      fetchStudents();
     };
-  }, []);
+    window.addEventListener('acadevia_data_updated', handleUpdate);
+    return () => window.removeEventListener('acadevia_data_updated', handleUpdate);
+  }, [fetchStudents]);
 
   // Helper to sanitize avatar string against literal 'NULL', 'null', whitespace
   const sanitizeAvatar = (url?: string | null): string | undefined => {
@@ -124,10 +130,15 @@ const StudentProgress: React.FC = () => {
     if (targetStudentId && students.length > 0) {
       const match = students.find((s) => String(s.id) === String(targetStudentId));
       if (match) {
-        setSelectedStudent(match);
+        setSelectedStudentId(match.id);
       }
     }
   }, [targetStudentId, students]);
+
+  const selectedStudent = useMemo(() => {
+    if (!selectedStudentId) return null;
+    return students.find((s) => s.id === selectedStudentId) || null;
+  }, [students, selectedStudentId]);
 
   const classes = useMemo(() => [...new Set(students.map((s) => s.className))].sort(), [students]);
   const sections = useMemo(() => [...new Set(students.map((s) => s.section))].sort(), [students]);
@@ -281,7 +292,7 @@ const StudentProgress: React.FC = () => {
             {filtered.map((student) => (
               <tr
                 key={student.id}
-                onClick={() => setSelectedStudent(student)}
+                onClick={() => setSelectedStudentId(student.id)}
                 className="hover:bg-primary/5 dark:hover:bg-primary/10 cursor-pointer transition-colors"
               >
                 <td className="py-3.5 px-4">
@@ -371,7 +382,7 @@ const StudentProgress: React.FC = () => {
                 </h3>
                 <button
                   type="button"
-                  onClick={() => setSelectedStudent(null)}
+                  onClick={() => setSelectedStudentId(null)}
                   className="rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition"
                 >
                   <X className="h-5 w-5" />

@@ -177,15 +177,17 @@ export const AdaptivePracticeModal: React.FC<AdaptivePracticeModalProps> = ({
       setIsCompleted(true);
       addXP(50, `Adaptive Practice: ${topicTitle}`);
       const currentUser = useAuthStore.getState().user;
-      const userId = currentUser?.id ? String(currentUser.id) : '9';
-      dataService.addActivity({
-        userId,
-        userRole: 'STUDENT',
-        type: 'XP_EARNED',
-        title: `Adaptive Practice: ${topicTitle}`,
-        description: `Scored ${score + 1}/${questions.length} in diagnostic assessment`,
-        badgeText: '+50 XP',
-      });
+      const userId = currentUser?.id ? String(currentUser.id) : '';
+      if (userId) {
+        dataService.addActivity({
+          userId,
+          userRole: 'STUDENT',
+          type: 'XP_EARNED',
+          title: `Adaptive Practice: ${topicTitle}`,
+          description: `Scored ${score + 1}/${questions.length} in diagnostic assessment`,
+          badgeText: '+50 XP',
+        });
+      }
     }
   };
 

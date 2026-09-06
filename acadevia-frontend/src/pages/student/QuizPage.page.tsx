@@ -31,7 +31,7 @@ const QuizPage: React.FC = () => {
   const queryQuizId = searchParams.get('id');
 
   const user = useAuthStore((s) => s.user);
-  const studentId = user?.id || '9';
+  const studentId = user?.id ? String(user.id) : '';
 
   // Get student from data layer for guaranteed classGrade and teacher relationship
   const dbUser = dataService.getUserById(studentId);
@@ -57,6 +57,13 @@ const QuizPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    dataService.syncFromBackend(true).then(() => {
+      loadData();
+    }).catch(() => {});
+    const unsub = dataService.subscribe(() => {
+      loadData();
+    });
+    return () => unsub();
   }, [studentId, studentClass]);
 
   // Determine target active quiz from route parameter or query

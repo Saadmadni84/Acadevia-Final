@@ -11,6 +11,7 @@ import { ROUTES } from '@/config/routes.config';
 import { GlobalSearchModal } from '@/components/dashboard/GlobalSearchModal';
 import { XPHistoryModal } from '@/components/dashboard/XPHistoryModal';
 import { LanguageSelector } from '@/components/common/LanguageSelector';
+import { dataService, calculateLevelAndProgress } from '@/services/data.service';
 import {
   Search, Bell, Sun, Moon, Menu, LogOut, User, Settings, Wifi, WifiOff, Zap, Flame
 } from 'lucide-react';
@@ -21,7 +22,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const { xp, level, streak } = useGamificationStore();
+  const { xp, streak } = useGamificationStore();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const { isOnline, status } = useSyncStore();
   const { isDark, toggle } = useThemeStore();
@@ -30,9 +31,17 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showXPModal, setShowXPModal] = useState(false);
 
-  const resolvedXP = xp > 0 ? xp : 720;
-  const resolvedLevel = level > 1 ? level : 4;
-  const resolvedStreak = streak > 0 ? streak : 5;
+  const studentId = user?.id ? String(user.id) : '';
+  const studentMetrics = studentId ? dataService.getStudentMetrics(studentId) : null;
+
+  const rawXP = xp > 0 ? xp : (studentMetrics?.totalXP ?? (user as any)?.totalXP ?? (user as any)?.xp ?? 0);
+  const rawStreak = streak > 0 ? streak : (studentMetrics?.streak ?? (user as any)?.currentStreak ?? (user as any)?.streak ?? 0);
+
+  const levelInfo = calculateLevelAndProgress(rawXP);
+  const resolvedXP = levelInfo.totalXp;
+  const resolvedLevel = levelInfo.level;
+  const resolvedTitle = levelInfo.levelTitle;
+  const resolvedStreak = rawStreak;
 
   return (
     <>
@@ -166,9 +175,10 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
       <XPHistoryModal
         isOpen={showXPModal}
         onClose={() => setShowXPModal(false)}
+        studentId={studentId}
         currentXP={resolvedXP}
         level={resolvedLevel}
-        levelTitle="Explorer"
+        levelTitle={resolvedTitle}
       />
     </>
   );
