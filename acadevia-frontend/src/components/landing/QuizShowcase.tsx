@@ -76,7 +76,7 @@ const QuizShowcase: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={isIntersecting ? { opacity: 1 } : {}}
                 transition={{ delay: 0.4 + qi * 0.15 }}
-                className={`p-4 rounded-xl border transition-all ${qi === 0 ? 'border-primary/30 bg-primary/5' : 'border-gray-200 dark:border-gray-700'}`}
+                className={`p-4 rounded-xl border transition-all ${qi === 0 ? 'border-primary/30 bg-primary/5 dark:bg-[#0A0A0A]' : 'border-gray-200 dark:border-[#242424] dark:bg-[#050505]'}`}
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
@@ -92,8 +92,8 @@ const QuizShowcase: React.FC = () => {
                       key={oi}
                       className={`text-xs py-1.5 px-3 rounded-lg border text-center transition-all ${
                         oi === q.correct
-                          ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-600'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                          ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700'
+                          : 'border-gray-200 dark:border-[#242424] text-gray-600 dark:text-[#A1A1AA] dark:bg-[#0A0A0A]'
                       }`}
                     >
                       {oi === q.correct && <CheckCircle className="inline h-3 w-3 mr-1" />}

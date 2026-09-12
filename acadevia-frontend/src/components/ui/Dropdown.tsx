@@ -112,8 +112,8 @@ const Dropdown: React.FC<DropdownProps> = ({ trigger, items, align = 'left', cla
             exit={{ opacity: 0, y: -6, scale: 0.95 }}
             transition={{ duration: 0.12 }}
             className={cn(
-              'absolute z-50 mt-1 min-w-[180px] rounded-xl border border-gray-200 dark:border-gray-700',
-              'bg-white dark:bg-gray-800 shadow-xl overflow-hidden py-1',
+              'absolute z-50 mt-1 min-w-[180px] rounded-xl border border-gray-200 dark:border-[#242424]',
+              'bg-white dark:bg-[#050505] shadow-xl overflow-hidden py-1',
               align === 'right' ? 'right-0' : 'left-0',
             )}
           >
@@ -121,7 +121,7 @@ const Dropdown: React.FC<DropdownProps> = ({ trigger, items, align = 'left', cla
               actionableIdx = 0;
               return items.map((item, idx) => {
                 if (item.divider) {
-                  return <div key={`divider-${idx}`} className="my-1 h-px bg-gray-200 dark:bg-gray-700" />;
+                  return <div key={`divider-${idx}`} className="my-1 h-px bg-gray-200 dark:bg-[#242424]" />;
                 }
 
                 const currentActionIdx = actionableIdx++;
@@ -134,10 +134,10 @@ const Dropdown: React.FC<DropdownProps> = ({ trigger, items, align = 'left', cla
                     disabled={item.disabled}
                     className={cn(
                       'flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors',
-                      isHighlighted && 'bg-gray-100 dark:bg-gray-700/50',
+                      isHighlighted && 'bg-gray-100 dark:bg-[#111111]',
                       item.danger
-                        ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
-                        : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50',
+                        ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30'
+                        : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#111111]',
                       item.disabled && 'opacity-40 pointer-events-none',
                     )}
                     onClick={() => {

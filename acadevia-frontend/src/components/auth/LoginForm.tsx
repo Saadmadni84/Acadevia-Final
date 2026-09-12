@@ -164,23 +164,23 @@ const LoginForm: React.FC = () => {
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="w-full"
     >
-      {/* Elevated Luxury Light Cream Card */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-[#E7E2D6] shadow-[0_20px_50px_-16px_rgba(50,40,25,0.08),0_2px_6px_rgba(0,0,0,0.02)] p-6 sm:p-10 text-left">
+      {/* Elevated Luxury Light Cream Card / OLED Dark Card */}
+      <div className="bg-white/95 dark:bg-[#050505] backdrop-blur-xl rounded-3xl border border-[#E7E2D6] dark:border-[#242424] shadow-[0_20px_50px_-16px_rgba(50,40,25,0.08),0_2px_6px_rgba(0,0,0,0.02)] p-6 sm:p-10 text-left">
         {/* Header section */}
         <div className="mb-7">
-          <h1 className="text-2xl sm:text-[28px] font-extrabold text-stone-900 tracking-tight leading-tight">
+          <h1 className="text-2xl sm:text-[28px] font-extrabold text-stone-900 dark:text-white tracking-tight leading-tight">
             Welcome back
           </h1>
-          <p className="mt-1.5 text-xs sm:text-sm text-stone-500 leading-relaxed">
+          <p className="mt-1.5 text-xs sm:text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
             Sign in to access your learning dashboard, interactive courses, and quests across Classes 1–12.
           </p>
         </div>
 
         {/* 1-Click Fast Pass Section (Dedicated to Class 10 Interactive Demo) */}
-        <div className="mb-6 rounded-2xl border border-[#E8E2D7] bg-[#FAF8F5] p-4 space-y-3.5 shadow-2xs">
+        <div className="mb-6 rounded-2xl border border-[#E8E2D7] dark:border-[#242424] bg-[#FAF8F5] dark:bg-black/60 p-4 space-y-3.5 shadow-2xs">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#5B2C6F]/10 text-[#5B2C6F] text-[11px] font-bold border border-[#5B2C6F]/15">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#5B2C6F]/10 dark:bg-purple-950/40 text-[#5B2C6F] dark:text-purple-300 text-[11px] font-bold border border-[#5B2C6F]/15 dark:border-purple-800/40">
                 <Sparkles className="h-3 w-3" />
                 Class 10 Demo Pass
               </span>
@@ -192,7 +192,7 @@ const LoginForm: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowMoreDemo((p) => !p)}
-              className="flex items-center gap-1 text-xs font-semibold text-[#5B2C6F] hover:text-[#4A205A] transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-xs font-semibold text-[#5B2C6F] dark:text-purple-400 hover:text-[#4A205A] dark:hover:text-purple-300 transition-colors cursor-pointer"
             >
               <span>{showMoreDemo ? 'Close directory' : 'All accounts (16)'}</span>
               {showMoreDemo ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -206,21 +206,21 @@ const LoginForm: React.FC = () => {
               type="button"
               onClick={() => executeLogin({ email: 'aarav.sharma10', password: 'Aarav@10' })}
               disabled={loading}
-              className="group p-3.5 rounded-2xl border border-[#E7E2D6] bg-white hover:border-[#5B2C6F]/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left cursor-pointer disabled:opacity-50"
+              className="group p-3.5 rounded-2xl border border-[#E7E2D6] dark:border-[#242424] bg-white dark:bg-[#0A0A0A] hover:border-[#5B2C6F]/50 dark:hover:border-purple-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left cursor-pointer disabled:opacity-50"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#6A3280] to-[#4C215E] text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition-transform">
                   AS
                 </div>
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/40 px-2 py-0.5 rounded-full">
                   <Zap className="h-2.5 w-2.5 fill-current" />
                   720 XP
                 </span>
               </div>
-              <p className="text-sm font-bold text-stone-900 group-hover:text-[#5B2C6F] transition-colors">
+              <p className="text-sm font-bold text-stone-900 dark:text-[#F5F5F5] group-hover:text-[#5B2C6F] dark:group-hover:text-purple-300 transition-colors">
                 Aarav Sharma
               </p>
-              <p className="text-xs text-stone-500 mt-0.5">
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                 Student • Class 10-A
               </p>
             </button>
@@ -230,20 +230,20 @@ const LoginForm: React.FC = () => {
               type="button"
               onClick={() => executeLogin({ email: 'rahul.math', password: 'Rahul@Math10' })}
               disabled={loading}
-              className="group p-3.5 rounded-2xl border border-[#E7E2D6] bg-white hover:border-[#5B2C6F]/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left cursor-pointer disabled:opacity-50"
+              className="group p-3.5 rounded-2xl border border-[#E7E2D6] dark:border-[#242424] bg-white dark:bg-[#0A0A0A] hover:border-[#5B2C6F]/50 dark:hover:border-purple-500/50 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left cursor-pointer disabled:opacity-50"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-stone-700 to-stone-900 text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition-transform">
                   RV
                 </div>
-                <span className="text-[10px] font-semibold text-[#5B2C6F] bg-[#F5EFF8] border border-[#5B2C6F]/20 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-semibold text-[#5B2C6F] dark:text-purple-300 bg-[#F5EFF8] dark:bg-purple-950/40 border border-[#5B2C6F]/20 dark:border-purple-800/40 px-2 py-0.5 rounded-full">
                   Faculty
                 </span>
               </div>
-              <p className="text-sm font-bold text-stone-900 group-hover:text-[#5B2C6F] transition-colors">
+              <p className="text-sm font-bold text-stone-900 dark:text-[#F5F5F5] group-hover:text-[#5B2C6F] dark:group-hover:text-purple-300 transition-colors">
                 Rahul Verma
               </p>
-              <p className="text-xs text-stone-500 mt-0.5">
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                 Mathematics Lead
               </p>
             </button>
@@ -348,7 +348,7 @@ const LoginForm: React.FC = () => {
             <div className="w-full border-t border-[#EAE4D8]" />
           </div>
           <div className="relative flex justify-center text-[11px] font-semibold tracking-wider uppercase">
-            <span className="bg-white px-3 text-stone-400">
+            <span className="bg-white dark:bg-[#050505] px-3 text-stone-400 dark:text-stone-500">
               or sign in with credentials
             </span>
           </div>
@@ -360,7 +360,7 @@ const LoginForm: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-3 rounded-xl bg-red-50 border border-red-200/80 text-red-700 text-xs font-medium"
+              className="p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 text-red-700 dark:text-red-300 text-xs font-medium"
             >
               {error}
             </motion.div>
@@ -368,41 +368,41 @@ const LoginForm: React.FC = () => {
 
           {/* Username or Email Input */}
           <div className="space-y-1.5 text-left">
-            <label className="block text-xs font-semibold text-stone-700">
+            <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
               Username or Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 dark:text-stone-500" />
               <input
                 type="text"
                 required
                 placeholder="e.g. your.username or name@school.edu"
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E2DDD3] bg-[#FAF9F6] text-sm text-stone-900 placeholder:text-stone-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5B2C6F]/15 focus:border-[#5B2C6F] transition"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E2DDD3] dark:border-[#242424] bg-[#FAF9F6] dark:bg-[#0A0A0A] text-sm text-stone-900 dark:text-[#F5F5F5] placeholder:text-stone-400 dark:placeholder:text-[#71717A] focus:bg-white dark:focus:bg-[#111111] focus:outline-hidden focus:ring-2 focus:ring-[#5B2C6F]/15 focus:border-[#5B2C6F] transition"
               />
             </div>
           </div>
 
           {/* Password Input */}
           <div className="space-y-1.5 text-left">
-            <label className="block text-xs font-semibold text-stone-700">
+            <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
               Password
             </label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 dark:text-stone-500" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
                 placeholder="••••••••"
                 value={form.password}
                 onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-[#E2DDD3] bg-[#FAF9F6] text-sm text-stone-900 placeholder:text-stone-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5B2C6F]/15 focus:border-[#5B2C6F] transition"
+                className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-[#E2DDD3] dark:border-[#242424] bg-[#FAF9F6] dark:bg-[#0A0A0A] text-sm text-stone-900 dark:text-[#F5F5F5] placeholder:text-stone-400 dark:placeholder:text-[#71717A] focus:bg-white dark:focus:bg-[#111111] focus:outline-hidden focus:ring-2 focus:ring-[#5B2C6F]/15 focus:border-[#5B2C6F] transition"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((p) => !p)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors cursor-pointer"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -420,16 +420,16 @@ const LoginForm: React.FC = () => {
                 className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${
                   rememberMe
                     ? 'bg-[#5B2C6F] border-[#5B2C6F] text-white'
-                    : 'border-[#D5CEC2] bg-white'
+                    : 'border-[#D5CEC2] dark:border-[#242424] bg-white dark:bg-[#0A0A0A]'
                 }`}
               >
                 {rememberMe && <Check className="h-3 w-3" />}
               </button>
-              <span className="text-stone-600">Remember this device</span>
+              <span className="text-stone-600 dark:text-stone-400">Remember this device</span>
             </label>
             <Link
               to={ROUTES.FORGOT_PASSWORD}
-              className="font-medium text-[#5B2C6F] hover:underline transition"
+              className="font-medium text-[#5B2C6F] dark:text-purple-400 hover:underline transition"
             >
               Forgot password?
             </Link>

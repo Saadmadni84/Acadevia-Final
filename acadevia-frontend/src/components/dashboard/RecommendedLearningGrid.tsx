@@ -65,7 +65,7 @@ export const RecommendedLearningGrid: React.FC = () => {
           <div
             key={rec.id}
             onClick={() => navigate(rec.route)}
-            className="group rounded-2xl bg-white dark:bg-card-dark border border-[#E8E2D8] dark:border-[#382447] p-5 shadow-xs hover:border-primary/50 hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 active:scale-[0.98]"
+            className="group rounded-2xl bg-white dark:bg-card-dark border border-[#E8E2D8] dark:border-[#242424] p-5 shadow-xs hover:border-primary/50 hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 active:scale-[0.98]"
           >
             <div className="space-y-3">
               {/* Tag & XP Reward */}

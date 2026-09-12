@@ -24,12 +24,12 @@ const ForgotPasswordForm: React.FC = () => {
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="w-full"
     >
-      <div className="bg-white/95 backdrop-blur-md rounded-3xl border border-[#E8E3D8] shadow-[0_8px_32px_-8px_rgba(40,30,20,0.06),0_1px_3px_rgba(0,0,0,0.02)] p-6 sm:p-9 text-left">
+      <div className="bg-white/95 dark:bg-[#050505] backdrop-blur-md rounded-3xl border border-[#E8E3D8] dark:border-[#242424] shadow-[0_8px_32px_-8px_rgba(40,30,20,0.06),0_1px_3px_rgba(0,0,0,0.02)] p-6 sm:p-9 text-left">
         <div className="mb-6">
-          <h1 className="text-2xl sm:text-[28px] font-extrabold text-stone-900 tracking-tight leading-tight">
+          <h1 className="text-2xl sm:text-[28px] font-extrabold text-stone-900 dark:text-white tracking-tight leading-tight">
             {sent ? 'Check your email' : 'Reset your password'}
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-stone-500">
+          <p className="mt-1 text-xs sm:text-sm text-stone-500 dark:text-stone-400">
             {sent
               ? `We have sent password reset instructions to ${email}`
               : "Enter the email associated with your account and we'll send you a recovery link."}
@@ -38,10 +38,10 @@ const ForgotPasswordForm: React.FC = () => {
 
         {sent ? (
           <div className="space-y-6 pt-2">
-            <div className="p-4 rounded-2xl bg-[#F4EFF7] border border-[#5B2C6F]/15 flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-[#5B2C6F] shrink-0 mt-0.5" />
-              <div className="text-xs text-stone-700 leading-relaxed">
-                If an account exists for <span className="font-semibold text-stone-900">{email}</span>, you will receive a password reset email shortly. Please also check your spam folder.
+            <div className="p-4 rounded-2xl bg-[#F4EFF7] dark:bg-purple-950/20 border border-[#5B2C6F]/15 dark:border-purple-800/30 flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-[#5B2C6F] dark:text-purple-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed">
+                If an account exists for <span className="font-semibold text-stone-900 dark:text-white">{email}</span>, you will receive a password reset email shortly. Please also check your spam folder.
               </div>
             </div>
 
@@ -56,18 +56,18 @@ const ForgotPasswordForm: React.FC = () => {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-stone-700">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400 dark:text-stone-500" />
                 <input
                   type="email"
                   required
                   placeholder="e.g. aarav.sharma10@demo.acadevia.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E2DDD3] bg-[#FAF9F6] text-sm text-stone-900 placeholder:text-stone-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#5B2C6F]/15 focus:border-[#5B2C6F] transition"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E2DDD3] dark:border-[#242424] bg-[#FAF9F6] dark:bg-[#0A0A0A] text-sm text-stone-900 dark:text-[#F5F5F5] placeholder:text-stone-400 dark:placeholder:text-[#71717A] focus:bg-white dark:focus:bg-[#111111] focus:outline-hidden focus:ring-2 focus:ring-[#5B2C6F]/15 focus:border-[#5B2C6F] transition"
                 />
               </div>
             </div>

@@ -21,7 +21,7 @@ export const TeacherSubmissionModal: React.FC<TeacherSubmissionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-      <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-[#1A1222] border border-gray-200 dark:border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-[#050505] border border-gray-200 dark:border-[#242424] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -50,7 +50,7 @@ export const TeacherSubmissionModal: React.FC<TeacherSubmissionModalProps> = ({
         {/* Body Content */}
         <div className="p-6 space-y-5 overflow-y-auto">
           {/* Assessment Title & Performance Pill */}
-          <div className="p-4 rounded-2xl bg-[#F8F5EF] dark:bg-[#150D1C] border border-[#E8E4DA] dark:border-[#2D1B36] flex items-center justify-between">
+          <div className="p-4 rounded-2xl bg-[#F8F5EF] dark:bg-[#0A0A0A] border border-[#E8E4DA] dark:border-[#242424] flex items-center justify-between">
             <div>
               <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block">
                 Quiz Title

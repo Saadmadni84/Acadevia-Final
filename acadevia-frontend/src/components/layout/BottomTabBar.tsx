@@ -14,7 +14,7 @@ const BottomTabBar: React.FC = () => {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#FDFCF9] dark:bg-card-dark border-t border-[#E8E2D8] dark:border-[#382447] safe-area-pb">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#FDFCF9] dark:bg-black border-t border-[#E8E2D8] dark:border-[#242424] safe-area-pb">
       <div className="flex items-center justify-around h-16">
         {tabs.map((tab) => (
           <NavLink

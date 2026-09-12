@@ -99,7 +99,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className, variant 
             ? 'bg-primary/10 border-primary text-primary dark:bg-primary/20'
             : currentCode !== 'en'
             ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
-            : 'bg-white/80 dark:bg-card-dark/80 hover:bg-white dark:hover:bg-card-dark border-[#E8E2D8] dark:border-[#382447] text-gray-700 dark:text-gray-200'
+            : 'bg-white/80 dark:bg-[#050505]/80 hover:bg-white dark:hover:bg-[#0A0A0A] border-[#E8E2D8] dark:border-[#242424] text-gray-700 dark:text-gray-200'
         )}
         title="Translate website with Google Translate"
         aria-label="Select Language"
@@ -122,10 +122,10 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className, variant 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-[#1B1124] rounded-2xl shadow-2xl border border-[#E8E2D8] dark:border-[#382447] z-50 overflow-hidden flex flex-col max-h-[460px]"
+            className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-[#050505] rounded-2xl shadow-2xl border border-[#E8E2D8] dark:border-[#242424] z-50 overflow-hidden flex flex-col max-h-[460px]"
           >
             {/* Header: Title + Google Translate Badge */}
-            <div className="p-3.5 border-b border-gray-100 dark:border-gray-800 bg-[#FAF7F2]/80 dark:bg-[#251833]/80">
+            <div className="p-3.5 border-b border-gray-100 dark:border-[#242424] bg-[#FAF7F2]/80 dark:bg-[#0A0A0A]/80">
               <div className="flex items-center justify-between gap-2 mb-2.5">
                 <div className="flex items-center gap-1.5">
                   <Globe className="h-4 w-4 text-primary" />
@@ -237,7 +237,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className, variant 
             </div>
 
             {/* Footer with Reset to English & Quick Status */}
-            <div className="p-2.5 border-t border-gray-100 dark:border-gray-800 bg-[#FAF7F2]/80 dark:bg-[#251833]/80 flex items-center justify-between">
+            <div className="p-2.5 border-t border-gray-100 dark:border-[#242424] bg-[#FAF7F2]/80 dark:bg-[#0A0A0A]/80 flex items-center justify-between">
               <span className="text-[10px] text-gray-500">
                 Translates all pages & content dynamically
               </span>

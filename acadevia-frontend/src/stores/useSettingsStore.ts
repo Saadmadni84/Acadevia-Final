@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { userService } from '@/services/user.service';
 import type { UserProfile } from '@/types/user.types';
+import { useThemeStore } from './useThemeStore';
 
 export interface StudentSettings {
   // Learning
@@ -105,6 +106,7 @@ export const useSettingsStore = create<SettingsState>()(
             (value === 'system' &&
               window.matchMedia('(prefers-color-scheme: dark)').matches);
           document.documentElement.classList.toggle('dark', isDark);
+          useThemeStore.getState().setDark(isDark);
         }
 
         if (key === 'soundEffects') {

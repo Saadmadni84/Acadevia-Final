@@ -50,10 +50,10 @@ export const TeacherRecentSubmissions: React.FC<TeacherRecentSubmissionsProps> =
   const gradebookUrl = `${ROUTES.TEACHER_STUDENTS}${selectedClass ? `?classGrade=${selectedClass}` : ''}`;
 
   return (
-    <div className="rounded-3xl bg-white dark:bg-[#1A1222] border border-[#E8E4DA] dark:border-[#2D1B36] p-6 sm:p-7 shadow-xs flex flex-col justify-between h-full">
+    <div className="rounded-3xl bg-white dark:bg-[#050505] border border-[#E8E4DA] dark:border-[#242424] p-6 sm:p-7 shadow-xs flex flex-col justify-between h-full">
       <div>
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E8E4DA]/80 dark:border-[#2D1B36]">
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E8E4DA]/80 dark:border-[#242424]">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
@@ -86,7 +86,7 @@ export const TeacherRecentSubmissions: React.FC<TeacherRecentSubmissionsProps> =
                     navigate(`${ROUTES.TEACHER_STUDENTS}?studentId=${sub.studentId}`);
                   }
                 }}
-                className="group p-3.5 rounded-2xl bg-gray-50/80 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 hover:border-[#5B2C6F]/40 dark:hover:border-[#C084FC]/40 hover:bg-white dark:hover:bg-[#20152B] transition-all duration-200 cursor-pointer flex items-center justify-between gap-3"
+                className="group p-3.5 rounded-2xl bg-gray-50/80 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 hover:border-[#5B2C6F]/40 dark:hover:border-[#C084FC]/40 hover:bg-white dark:hover:bg-[#111111] transition-all duration-200 cursor-pointer flex items-center justify-between gap-3"
               >
                 <div className="min-w-0 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#5B2C6F]/20 to-[#8E44AD]/20 text-[#5B2C6F] dark:text-[#C084FC] font-bold text-xs flex items-center justify-center shrink-0">

@@ -79,10 +79,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   return (
     <motion.aside
         animate={{ width: collapsed ? 72 : 260 }}
-        className="hidden lg:flex flex-col h-screen bg-[#FDFCF9] dark:bg-card-dark border-r border-[#E7E1D8] dark:border-[#382447] fixed left-0 top-0 z-30"
+        className="hidden lg:flex flex-col h-screen bg-[#FDFCF9] dark:bg-black border-r border-[#E7E1D8] dark:border-[#242424] fixed left-0 top-0 z-30"
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#E7E1D8] dark:border-[#382447]">
+        <div className="flex items-center justify-between p-4 border-b border-[#E7E1D8] dark:border-[#242424]">
           <AnimatePresence>
             {!collapsed && (
               <motion.div

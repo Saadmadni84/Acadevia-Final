@@ -22,7 +22,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             type={isPassword && showPassword ? 'text' : type}
             className={cn(
-              'w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-card-dark px-4 py-2.5 text-sm placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all',
+              'w-full rounded-xl border border-gray-300 dark:border-[#242424] bg-white dark:bg-[#050505] text-gray-900 dark:text-[#F5F5F5] px-4 py-2.5 text-sm placeholder:text-gray-400 dark:placeholder:text-[#71717A] focus:border-primary dark:focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all',
               leftIcon && 'pl-10',
               isPassword && 'pr-10',
               error && 'border-accent focus:border-accent focus:ring-accent/20',

@@ -44,7 +44,7 @@ export const TeacherDashboardHeader: React.FC<TeacherDashboardHeaderProps> = ({
   };
 
   return (
-    <header className="relative rounded-3xl bg-[#F8F5EF] dark:bg-[#150D1C] border border-[#E8E4DA] dark:border-[#2D1B36] p-6 sm:p-8 shadow-xs overflow-hidden transition-colors duration-300">
+    <header className="relative rounded-3xl bg-[#F8F5EF] dark:bg-[#050505] border border-[#E8E4DA] dark:border-[#242424] p-6 sm:p-8 shadow-xs overflow-hidden transition-colors duration-300">
       {/* Subtle brand glow background */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#5B2C6F]/10 via-amber-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
 
@@ -130,7 +130,7 @@ export const TeacherDashboardHeader: React.FC<TeacherDashboardHeaderProps> = ({
       </div>
 
       {/* Class & Subject Filter Ribbon */}
-      <div className="mt-6 pt-5 border-t border-[#E8E4DA]/80 dark:border-[#2D1B36] flex flex-wrap items-center justify-between gap-4">
+      <div className="mt-6 pt-5 border-t border-[#E8E4DA]/80 dark:border-[#242424] flex flex-wrap items-center justify-between gap-4">
         {/* Class switcher */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1 mr-1">

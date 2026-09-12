@@ -38,8 +38,8 @@ export const TeacherQuickActions: React.FC = () => {
   ];
 
   return (
-    <div className="rounded-3xl bg-white dark:bg-[#1A1222] border border-[#E8E4DA] dark:border-[#2D1B36] p-6 sm:p-7 shadow-xs space-y-5">
-      <div className="flex items-center justify-between pb-3 border-b border-[#E8E4DA]/80 dark:border-[#2D1B36]">
+    <div className="rounded-3xl bg-white dark:bg-[#050505] border border-[#E8E4DA] dark:border-[#242424] p-6 sm:p-7 shadow-xs space-y-5">
+      <div className="flex items-center justify-between pb-3 border-b border-[#E8E4DA]/80 dark:border-[#242424]">
         <h3 className="text-base font-bold text-gray-900 dark:text-white">
           Teacher Command Actions
         </h3>
@@ -51,7 +51,7 @@ export const TeacherQuickActions: React.FC = () => {
           <div
             key={act.title}
             onClick={() => navigate(act.route)}
-            className="group p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 hover:border-[#5B2C6F]/40 dark:hover:border-[#C084FC]/40 hover:bg-white dark:hover:bg-[#20152B] transition-all duration-200 cursor-pointer flex flex-col justify-between"
+            className="group p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 hover:border-[#5B2C6F]/40 dark:hover:border-[#C084FC]/40 hover:bg-white dark:hover:bg-[#111111] transition-all duration-200 cursor-pointer flex flex-col justify-between"
           >
             <div className="space-y-2.5">
               <div

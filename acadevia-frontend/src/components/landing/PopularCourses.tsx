@@ -137,7 +137,7 @@ const CourseCard: React.FC<{ course: Course; index: number; visible: boolean }> 
       }}
       role="link"
       tabIndex={0}
-      className="group relative flex flex-col bg-white dark:bg-[#1C1226] rounded-2xl border border-[#E8E5DF] dark:border-[#2E1B3D] hover:border-[#5B2C6F]/30 dark:hover:border-[#A855F7]/30 hover:shadow-[0_12px_40px_-12px_rgba(91,44,111,0.12)] transition-all duration-300 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B2C6F] focus-visible:ring-offset-2 overflow-hidden"
+      className="group relative flex flex-col bg-white dark:bg-[#050505] rounded-2xl border border-[#E8E5DF] dark:border-[#242424] hover:border-[#5B2C6F]/30 dark:hover:border-[#A855F7]/30 hover:shadow-[0_12px_40px_-12px_rgba(91,44,111,0.12)] transition-all duration-300 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B2C6F] focus-visible:ring-offset-2 overflow-hidden"
     >
       {/* ---- Top: Subject & Level ---- */}
       <div className="px-6 pt-5 pb-0 flex items-center justify-between">
@@ -178,7 +178,7 @@ const CourseCard: React.FC<{ course: Course; index: number; visible: boolean }> 
         <div className="flex-1" />
 
         {/* ---- Footer ---- */}
-        <div className="flex items-center justify-between pt-4 border-t border-[#E8E5DF] dark:border-[#2E1B3D]">
+        <div className="flex items-center justify-between pt-4 border-t border-[#E8E5DF] dark:border-[#242424]">
           {/* Rating */}
           <div className="flex items-center gap-1.5">
             <div className="flex items-center gap-0.5">
@@ -193,7 +193,7 @@ const CourseCard: React.FC<{ course: Course; index: number; visible: boolean }> 
           </div>
 
           {/* Arrow */}
-          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#F8F5EF] dark:bg-[#2E1B3D] group-hover:bg-[#5B2C6F] group-hover:text-white text-[#5B2C6F] dark:text-[#C084FC] transition-all duration-200">
+          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#F8F5EF] dark:bg-[#111111] group-hover:bg-[#5B2C6F] group-hover:text-white text-[#5B2C6F] dark:text-[#C084FC] transition-all duration-200">
             <ArrowRight className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" />
           </span>
         </div>
@@ -213,7 +213,7 @@ const PopularCourses: React.FC = () => {
   return (
     <section
       id="courses"
-      className="py-24 bg-[#F8F5EF] dark:bg-[#0F0914] transition-colors duration-300"
+      className="py-24 bg-[#F8F5EF] dark:bg-black transition-colors duration-300"
       aria-labelledby="popular-courses-heading"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

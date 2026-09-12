@@ -59,7 +59,7 @@ const Step1: React.FC<StepProps> = ({ form, setField }) => (
       </label>
 
       <select
-        className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary"
+        className="w-full rounded-xl border border-gray-300 dark:border-[#242424] bg-white dark:bg-[#0A0A0A] text-stone-900 dark:text-[#F5F5F5] px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary"
         value={form.role || 'STUDENT'}
         onChange={(e) => setField('role', e.target.value)}
       >
@@ -70,12 +70,12 @@ const Step1: React.FC<StepProps> = ({ form, setField }) => (
 
     {form.role === 'STUDENT' && (
       <div>
-        <label className="block text-sm font-medium mb-1.5">
+        <label className="block text-sm font-medium mb-1.5 text-stone-700 dark:text-stone-300">
           Class
         </label>
 
         <select
-          className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary"
+          className="w-full rounded-xl border border-gray-300 dark:border-[#242424] bg-white dark:bg-[#0A0A0A] text-stone-900 dark:text-[#F5F5F5] px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary"
           value={form.grade || ''}
           onChange={(e) => setField('grade', e.target.value)}
         >
@@ -113,13 +113,13 @@ const Step2: React.FC<StepProps> = ({ form, setField }) => {
     <div className="space-y-4">
       {/* STATE */}
       <div>
-        <label className="block text-sm font-medium mb-1.5">
+        <label className="block text-sm font-medium mb-1.5 text-stone-700 dark:text-stone-300">
           State <span className="text-red-500">*</span>
         </label>
 
         <div className="relative">
           <select
-            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+            className="w-full rounded-xl border border-gray-300 dark:border-[#242424] bg-white dark:bg-[#0A0A0A] text-stone-900 dark:text-[#F5F5F5] px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
             value={selectedState}
             onChange={(e) => handleStateChange(e.target.value)}
             required
@@ -147,7 +147,7 @@ const Step2: React.FC<StepProps> = ({ form, setField }) => {
 
         <div className="relative">
           <select
-            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary appearance-none cursor-pointer disabled:bg-gray-100 dark:disabled:bg-gray-800/40 disabled:cursor-not-allowed disabled:text-gray-400"
+            className="w-full rounded-xl border border-gray-300 dark:border-[#242424] bg-white dark:bg-[#0A0A0A] text-stone-900 dark:text-[#F5F5F5] px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary appearance-none cursor-pointer disabled:bg-gray-100 dark:disabled:bg-[#111111] disabled:cursor-not-allowed disabled:text-gray-400"
             value={form.city || ''}
             onChange={(e) => setField('city', e.target.value)}
             disabled={!selectedState}
@@ -477,13 +477,13 @@ const RegisterForm: React.FC = () => {
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="w-full"
     >
-      <div className="bg-white/95 backdrop-blur-md rounded-3xl border border-[#E8E3D8] shadow-[0_8px_32px_-8px_rgba(40,30,20,0.06),0_1px_3px_rgba(0,0,0,0.02)] p-6 sm:p-9 text-left">
+      <div className="bg-white/95 dark:bg-[#050505] backdrop-blur-md rounded-3xl border border-[#E8E3D8] dark:border-[#242424] shadow-[0_8px_32px_-8px_rgba(40,30,20,0.06),0_1px_3px_rgba(0,0,0,0.02)] p-6 sm:p-9 text-left">
         {/* HEADER */}
         <div className="mb-6">
-          <h1 className="text-2xl sm:text-[28px] font-extrabold text-stone-900 tracking-tight leading-tight">
+          <h1 className="text-2xl sm:text-[28px] font-extrabold text-stone-900 dark:text-white tracking-tight leading-tight">
             Create your account
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-stone-500">
+          <p className="mt-1 text-xs sm:text-sm text-stone-500 dark:text-stone-400">
             Step {step + 1} of 4: {steps[step]}
           </p>
         </div>

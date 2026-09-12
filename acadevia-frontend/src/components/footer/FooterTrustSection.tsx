@@ -4,7 +4,7 @@ import { Mail, Phone, MapPin, Clock } from 'lucide-react';
 
 export const FooterTrustSection: React.FC = () => {
   return (
-    <div className="rounded-2xl bg-gradient-to-r from-primary-50/60 via-purple-50/40 to-primary-50/60 dark:from-primary-950/20 dark:via-purple-950/10 dark:to-primary-950/20 p-6 sm:p-8 border border-primary-100/70 dark:border-primary-900/30">
+    <div className="rounded-2xl bg-gradient-to-r from-primary-50/60 via-purple-50/40 to-primary-50/60 dark:from-[#050505] dark:via-[#0A0A0A] dark:to-[#050505] p-6 sm:p-8 border border-primary-100/70 dark:border-[#242424]">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Support Email */}
         <div className="flex items-start gap-3.5">

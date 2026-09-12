@@ -58,10 +58,10 @@ export const SubjectDetailModal: React.FC<SubjectDetailModalProps> = ({
           initial={{ opacity: 0, scale: 0.96, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 15 }}
-          className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white dark:bg-card-dark border border-[#E8E2D8] dark:border-[#382447] shadow-2xl z-10 flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white dark:bg-[#050505] border border-[#E8E2D8] dark:border-[#242424] shadow-2xl z-10 flex flex-col max-h-[90vh]"
         >
           {/* Modal Header */}
-          <div className="p-6 border-b border-[#E8E2D8] dark:border-[#382447] bg-[#FDFCF9] dark:bg-[#1E1226]">
+          <div className="p-6 border-b border-[#E8E2D8] dark:border-[#242424] bg-[#FDFCF9] dark:bg-[#0A0A0A]">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-950/60 flex items-center justify-center text-2xl shadow-xs">
@@ -211,7 +211,7 @@ export const SubjectDetailModal: React.FC<SubjectDetailModalProps> = ({
           </div>
 
           {/* Modal Footer */}
-          <div className="p-4 border-t border-[#E8E2D8] dark:border-[#382447] bg-[#FDFCF9] dark:bg-[#1E1226] flex items-center justify-between">
+          <div className="p-4 border-t border-[#E8E2D8] dark:border-[#242424] bg-[#FDFCF9] dark:bg-[#0A0A0A] flex items-center justify-between">
             <button
               onClick={() => {
                 onClose();

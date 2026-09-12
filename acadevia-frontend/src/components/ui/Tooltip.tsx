@@ -18,7 +18,7 @@ const Tooltip: React.FC<TooltipProps> = ({ content, children, position = 'top', 
       {children}
       <AnimatePresence>
         {show && (
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className={cn('absolute z-50 px-2 py-1 text-xs font-medium text-white bg-gray-900 dark:bg-gray-700 rounded-lg whitespace-nowrap pointer-events-none', posMap[position])}>
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className={cn('absolute z-50 px-2.5 py-1 text-xs font-medium text-white bg-gray-900 dark:bg-[#0A0A0A] dark:text-[#F5F5F5] border border-transparent dark:border-[#242424] shadow-lg rounded-lg whitespace-nowrap pointer-events-none', posMap[position])}>
             {content}
           </motion.div>
         )}

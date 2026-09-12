@@ -36,7 +36,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-20 bg-[#FDFCF9]/90 dark:bg-card-dark/90 backdrop-blur-xl border-b border-[#E8E2D8] dark:border-[#382447]">
+      <header className="sticky top-0 z-20 bg-[#FDFCF9]/90 dark:bg-black/90 backdrop-blur-xl border-b border-[#E8E2D8] dark:border-[#242424]">
         <div className="flex items-center justify-between h-16 px-4 lg:px-6">
           {/* Left: Mobile Menu & Global Search Bar */}
           <div className="flex items-center gap-3">
@@ -51,13 +51,13 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
             {/* Clickable Search Input opening Command Palette */}
             <div
               onClick={() => setShowSearchModal(true)}
-              className="hidden md:flex items-center bg-white dark:bg-card-dark border border-[#E8E2D8] dark:border-[#382447] rounded-xl px-3 py-2 w-64 lg:w-80 shadow-2xs hover:border-primary/50 cursor-pointer transition-colors"
+              className="hidden md:flex items-center bg-white dark:bg-[#050505] border border-[#E8E2D8] dark:border-[#242424] rounded-xl px-3 py-2 w-64 lg:w-80 shadow-2xs hover:border-primary/50 cursor-pointer transition-colors"
             >
               <Search className="h-4 w-4 text-[#647084] mr-2" />
               <span className="text-xs font-medium text-[#647084] flex-1">
                 Search courses, quizzes, quests...
               </span>
-              <kbd className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">
+              <kbd className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-[#111111] px-1.5 py-0.5 rounded border border-gray-200 dark:border-[#242424]">
                 ⌘K
               </kbd>
             </div>
@@ -129,20 +129,20 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
               </button>
 
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-card-dark rounded-xl shadow-lg border border-[#E8E2D8] dark:border-[#382447] py-1 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#050505] rounded-xl shadow-lg border border-[#E8E2D8] dark:border-[#242424] py-1 z-50">
                   <button
                     onClick={() => { navigate(ROUTES.PROFILE); setShowUserMenu(false); }}
-                    className="flex items-center gap-2 w-full px-4 py-2 text-xs hover:bg-[#F8F5EF] dark:hover:bg-white/5 text-[#172033] dark:text-gray-200 font-bold cursor-pointer"
+                    className="flex items-center gap-2 w-full px-4 py-2 text-xs hover:bg-[#F8F5EF] dark:hover:bg-[#111111] text-[#172033] dark:text-gray-200 font-bold cursor-pointer"
                   >
                     <User className="h-4 w-4 text-primary" /> Profile & Progress
                   </button>
                   <button
                     onClick={() => { navigate(ROUTES.SETTINGS); setShowUserMenu(false); }}
-                    className="flex items-center gap-2 w-full px-4 py-2 text-xs hover:bg-[#F8F5EF] dark:hover:bg-white/5 text-[#172033] dark:text-gray-200 font-bold cursor-pointer"
+                    className="flex items-center gap-2 w-full px-4 py-2 text-xs hover:bg-[#F8F5EF] dark:hover:bg-[#111111] text-[#172033] dark:text-gray-200 font-bold cursor-pointer"
                   >
                     <Settings className="h-4 w-4 text-primary" /> Settings
                   </button>
-                  <hr className="border-[#E8E2D8] dark:border-[#382447] my-1" />
+                  <hr className="border-[#E8E2D8] dark:border-[#242424] my-1" />
                   <button
                     onClick={() => { logout(); setShowUserMenu(false); }}
                     className="flex items-center gap-2 w-full px-4 py-2 text-xs text-accent hover:bg-accent/10 font-bold cursor-pointer"

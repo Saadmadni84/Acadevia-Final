@@ -20,14 +20,14 @@ const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange, className }) => 
   };
 
   return (
-    <div className={cn('flex gap-1 border-b border-gray-200 dark:border-gray-700', className)}>
+    <div className={cn('flex gap-1 border-b border-gray-200 dark:border-[#242424]', className)}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => handleClick(tab.id)}
           className={cn(
             'relative px-4 py-2.5 text-sm font-medium transition-colors',
-            active === tab.id ? 'text-primary' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            active === tab.id ? 'text-primary dark:text-purple-400 font-semibold' : 'text-gray-500 dark:text-[#A1A1AA] hover:text-gray-700 dark:hover:text-[#F5F5F5]'
           )}
         >
           {tab.label}

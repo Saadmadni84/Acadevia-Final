@@ -217,10 +217,10 @@ export const AdaptivePracticeModal: React.FC<AdaptivePracticeModalProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative w-full max-w-xl overflow-hidden rounded-2xl bg-white dark:bg-card-dark border border-[#E8E2D8] dark:border-[#382447] shadow-2xl z-10 flex flex-col"
+          className="relative w-full max-w-xl overflow-hidden rounded-2xl bg-white dark:bg-[#050505] border border-[#E8E2D8] dark:border-[#242424] shadow-2xl z-10 flex flex-col"
         >
           {/* Header */}
-          <div className="p-5 border-b border-[#E8E2D8] dark:border-[#382447] bg-[#FDFCF9] dark:bg-[#1E1226] flex items-center justify-between">
+          <div className="p-5 border-b border-[#E8E2D8] dark:border-[#242424] bg-[#FDFCF9] dark:bg-[#0A0A0A] flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">

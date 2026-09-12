@@ -60,11 +60,28 @@ export default {
         },
         background: {
           light: '#F8F5EF', // Warm Cream / Ivory Background (Reference B)
-          dark: '#140D1A',  // Midnight Dark Mode
+          dark: '#000000',  // OLED Pure Black
         },
         card: {
           light: '#FFFFFF', // Clean White Cards Contrasting with Cream
-          dark: '#22152B',
+          dark: '#050505',  // Neutral OLED Surface
+          elevated: '#0A0A0A',
+          hover: '#111111',
+        },
+        surface: {
+          DEFAULT: '#050505',
+          elevated: '#0A0A0A',
+          hover: '#111111',
+        },
+        oled: {
+          bg: '#000000',
+          surface: '#050505',
+          elevated: '#0A0A0A',
+          hover: '#111111',
+          border: '#242424',
+          'border-subtle': '#181818',
+          text: '#F5F5F5',
+          muted: '#A1A1AA',
         },
       },
       fontFamily: {

@@ -52,7 +52,7 @@ export const TeacherVideoModal: React.FC<TeacherVideoModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-fade-in">
-      <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-[#1A1222] border border-gray-200 dark:border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-[#050505] border border-gray-200 dark:border-[#242424] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">

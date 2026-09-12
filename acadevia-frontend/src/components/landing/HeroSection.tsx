@@ -18,9 +18,9 @@ const StatItem: React.FC<{ value: number; suffix: string; label: string }> = ({ 
 
 const HeroSection: React.FC = () => (
   <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
-    <div className="absolute inset-0 bg-primary/5" />
-    <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float" />
-    <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+    <div className="absolute inset-0 bg-primary/5 dark:bg-black" />
+    <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 dark:bg-purple-900/10 rounded-full blur-3xl animate-float" />
+    <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 dark:bg-teal-900/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
 
     <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
       <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -51,7 +51,7 @@ const HeroSection: React.FC = () => (
         </motion.div>
 
         <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="hidden lg:flex justify-center">
-          <div className="relative w-80 h-[500px] bg-primary/10 rounded-3xl flex items-center justify-center text-6xl shadow-2xl">
+          <div className="relative w-80 h-[500px] bg-primary/10 dark:bg-[#050505] border border-transparent dark:border-[#242424] rounded-3xl flex items-center justify-center text-6xl shadow-2xl">
             🎓
           </div>
         </motion.div>

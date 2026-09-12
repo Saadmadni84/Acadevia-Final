@@ -101,7 +101,7 @@ export const TeacherStatsGrid: React.FC<TeacherStatsGridProps> = ({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: idx * 0.05 }}
           onClick={card.onClick}
-          className="group relative rounded-2xl bg-white dark:bg-[#1A1222] border border-[#E8E4DA] dark:border-[#2D1B36] p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-[#5B2C6F]/40 dark:hover:border-[#C084FC]/40 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          className="group relative rounded-2xl bg-white dark:bg-[#050505] border border-[#E8E4DA] dark:border-[#242424] p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-[#5B2C6F]/40 dark:hover:border-[#C084FC]/40 transition-all duration-300 cursor-pointer flex flex-col justify-between"
         >
           {/* Card Header: Icon + Badge + Arrow */}
           <div className="flex items-center justify-between mb-4">

@@ -22,7 +22,7 @@ const LandingNavbar: React.FC = () => {
   return (
     <motion.header initial={{ y: -100 }} animate={{ y: 0 }} className={cn(
       'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-      scrolled ? 'bg-white/90 dark:bg-card-dark/90 backdrop-blur-xl shadow-sm' : 'bg-transparent'
+      scrolled ? 'bg-white/90 dark:bg-black/90 border-b border-transparent dark:border-[#242424] backdrop-blur-xl shadow-sm' : 'bg-transparent'
     )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -40,13 +40,13 @@ const LandingNavbar: React.FC = () => {
             <Link to={ROUTES.LOGIN}><Button variant="ghost" size="sm">Login</Button></Link>
             <Link to={ROUTES.REGISTER}><Button variant="gradient" size="sm">Get Started</Button></Link>
           </div>
-          <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">
+          <button className="md:hidden p-2 text-gray-700 dark:text-gray-300" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">
             {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
       </div>
       {mobileOpen && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="md:hidden bg-white dark:bg-card-dark border-t border-gray-200 dark:border-gray-800 px-4 py-4 space-y-3">
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="md:hidden bg-white dark:bg-[#050505] border-t border-gray-200 dark:border-[#242424] px-4 py-4 space-y-3">
           <a href="#features" className="block py-2 text-sm">Features</a>
           <a href="#courses" className="block py-2 text-sm">Courses</a>
           <a href="#quiz" className="block py-2 text-sm">Quiz</a>

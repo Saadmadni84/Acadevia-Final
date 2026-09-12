@@ -61,10 +61,10 @@ export const XPHistoryModal: React.FC<XPHistoryModalProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white dark:bg-card-dark border border-[#E8E2D8] dark:border-[#382447] shadow-2xl z-10 flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white dark:bg-[#050505] border border-[#E8E2D8] dark:border-[#242424] shadow-2xl z-10 flex flex-col max-h-[90vh]"
         >
           {/* Modal Header */}
-          <div className="flex items-center justify-between p-5 border-b border-[#E8E2D8] dark:border-[#382447] bg-[#FDFCF9] dark:bg-[#1E1226]">
+          <div className="flex items-center justify-between p-5 border-b border-[#E8E2D8] dark:border-[#242424] bg-[#FDFCF9] dark:bg-[#0A0A0A]">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-primary dark:text-purple-300 flex items-center justify-center font-bold">
                 <Zap className="h-5 w-5 fill-current" />
@@ -83,7 +83,7 @@ export const XPHistoryModal: React.FC<XPHistoryModalProps> = ({
           </div>
 
           {/* Level Progress Banner */}
-          <div className="p-6 bg-gradient-to-br from-[#FAF8F5] to-white dark:from-[#251830] dark:to-card-dark border-b border-[#E8E2D8] dark:border-[#382447] space-y-3">
+          <div className="p-6 bg-gradient-to-br from-[#FAF8F5] to-white dark:from-[#0A0A0A] dark:to-[#050505] border-b border-[#E8E2D8] dark:border-[#242424] space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-black tracking-wider uppercase text-primary dark:text-purple-300">
@@ -101,7 +101,7 @@ export const XPHistoryModal: React.FC<XPHistoryModalProps> = ({
               </div>
             </div>
 
-            <div className="w-full h-3 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+            <div className="w-full h-3 rounded-full bg-gray-100 dark:bg-[#111111] overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-primary to-purple-500 transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
@@ -119,7 +119,7 @@ export const XPHistoryModal: React.FC<XPHistoryModalProps> = ({
             {mockHistory.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:border-primary/30 transition-colors"
+                className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 dark:border-[#242424] bg-white dark:bg-[#0A0A0A] hover:border-primary/30 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-purple-50 dark:bg-purple-950/40 text-primary dark:text-purple-300">
@@ -143,7 +143,7 @@ export const XPHistoryModal: React.FC<XPHistoryModalProps> = ({
           </div>
 
           {/* Modal Footer */}
-          <div className="p-4 border-t border-[#E8E2D8] dark:border-[#382447] bg-[#FDFCF9] dark:bg-[#1E1226] flex items-center justify-between">
+          <div className="p-4 border-t border-[#E8E2D8] dark:border-[#242424] bg-[#FDFCF9] dark:bg-[#0A0A0A] flex items-center justify-between">
             <button
               onClick={() => {
                 onClose();

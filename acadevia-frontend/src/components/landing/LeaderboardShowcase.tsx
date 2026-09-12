@@ -26,7 +26,7 @@ const LeaderboardShowcase: React.FC = () => {
   const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.1 });
 
   return (
-    <section id="leaderboard" className="py-20 bg-white dark:bg-card-dark/30">
+    <section id="leaderboard" className="py-20 bg-white dark:bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -76,13 +76,13 @@ const LeaderboardShowcase: React.FC = () => {
             transition={{ delay: 0.2, duration: 0.6 }}
             className="lg:col-span-3 glass-card overflow-hidden"
           >
-            <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-gray-200 dark:border-[#242424] flex items-center justify-between">
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-primary" /> Weekly Top 5
               </h3>
               <span className="text-xs text-gray-500">Updated live</span>
             </div>
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="divide-y divide-gray-100 dark:divide-[#242424]">
               {leaderboardData.map((player, i) => {
                 const RankIcon = rankIcons[i] || Star;
                 return (
@@ -91,8 +91,8 @@ const LeaderboardShowcase: React.FC = () => {
                     initial={{ opacity: 0, x: 20 }}
                     animate={isIntersecting ? { opacity: 1, x: 0 } : {}}
                     transition={{ delay: 0.3 + i * 0.08 }}
-                    className={`px-5 py-3.5 flex items-center gap-4 transition-colors hover:bg-primary/5 ${
-                      i === 0 ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''
+                    className={`px-5 py-3.5 flex items-center gap-4 transition-colors hover:bg-primary/5 dark:hover:bg-[#111111] ${
+                      i === 0 ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''
                     }`}
                   >
                     <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${

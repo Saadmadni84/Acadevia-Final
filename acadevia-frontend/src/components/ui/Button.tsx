@@ -11,9 +11,9 @@ const buttonVariants = cva(
       variant: {
         primary: 'bg-primary text-white hover:bg-primary-dark shadow-md hover:shadow-lg',
         secondary: 'bg-secondary text-white hover:bg-secondary-dark',
-        ghost: 'hover:bg-gray-100 dark:hover:bg-gray-800',
+        ghost: 'hover:bg-gray-100 dark:hover:bg-[#111111] dark:text-[#F5F5F5]',
         danger: 'bg-accent text-white hover:bg-accent-dark',
-        outline: 'border-2 border-primary text-primary hover:bg-primary hover:text-white',
+        outline: 'border border-primary text-primary dark:text-purple-300 hover:bg-primary hover:text-white',
         gradient: 'bg-primary text-white shadow-md hover:shadow-lg hover:bg-primary-dark',
       },
       size: {
