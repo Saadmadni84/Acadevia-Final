@@ -82,14 +82,6 @@ const StudentProgress: React.FC = () => {
     return trimmed;
   };
 
-  // Helper to sanitize avatar string against literal 'NULL', 'null', whitespace
-  const sanitizeAvatar = (url?: string | null): string | undefined => {
-    if (!url || typeof url !== 'string') return undefined;
-    const trimmed = url.trim();
-    if (!trimmed || trimmed === 'NULL' || trimmed === 'null' || trimmed === 'undefined') return undefined;
-    return trimmed;
-  };
-
   // Retrieve actual students from live API or persistent data layer
   const students: StudentViewItem[] = useMemo(() => {
     const rawList = (apiStudents && apiStudents.length > 0)
