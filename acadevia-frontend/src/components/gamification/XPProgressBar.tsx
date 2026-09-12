@@ -2,10 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
+import { LEVEL_THRESHOLDS, calculateLevelAndProgress } from '@/services/data.service';
+
 interface XPProgressBarProps {
   currentXP: number;
-  requiredXP: number;
-  level: number;
+  requiredXP?: number;
+  level?: number;
   levelName?: string;
   showLabel?: boolean;
   size?: 'sm' | 'md' | 'lg';
@@ -13,12 +15,8 @@ interface XPProgressBarProps {
 }
 
 function getDefaultLevelTitle(level: number): string {
-  if (level >= 50) return 'Grandmaster';
-  if (level >= 25) return 'Master Scholar';
-  if (level >= 10) return 'Rising Scholar';
-  if (level >= 5) return 'Knowledge Explorer';
-  if (level >= 2) return 'Dedicated Learner';
-  return 'Beginner';
+  const matched = LEVEL_THRESHOLDS.find((t) => t.level === level);
+  return matched ? matched.name : 'Newcomer';
 }
 
 const XPProgressBar: React.FC<XPProgressBarProps> = ({
@@ -30,26 +28,42 @@ const XPProgressBar: React.FC<XPProgressBarProps> = ({
   size = 'md',
   className,
 }) => {
-  const safeRequiredXP = Math.max(requiredXP, 1);
-  const pct = Math.min(Math.max((currentXP / safeRequiredXP) * 100, 0), 100);
-  const heights = { sm: 'h-2', md: 'h-2.5', lg: 'h-3.5' };
+  const levelInfo = calculateLevelAndProgress(currentXP);
+  const displayLevel = level !== undefined && level > 0 ? level : levelInfo.level;
+  const displayTitle =
+    levelName && !levelName.toLowerCase().startsWith('level')
+      ? levelName
+      : levelInfo.levelTitle || getDefaultLevelTitle(displayLevel);
 
-  const displayTitle = levelName && !levelName.toLowerCase().startsWith('level')
-    ? levelName
-    : getDefaultLevelTitle(level);
+  const displayNextXP = requiredXP !== undefined && requiredXP > 0 ? requiredXP : levelInfo.nextThreshold;
+  const pct = levelInfo.progressPercent;
+  const heights = { sm: 'h-2', md: 'h-2.5', lg: 'h-3.5' };
 
   return (
     <div className={cn('w-full', className)}>
       {showLabel && (
         <div className="flex items-center justify-between mb-2 text-xs sm:text-sm">
           <div className="flex items-center gap-1.5 font-medium text-gray-700 dark:text-gray-300">
-            <span className="font-bold text-gray-900 dark:text-white">Level {level}</span>
+            <span className="font-bold text-gray-900 dark:text-white">
+              Level {displayLevel < 10 ? `0${displayLevel}` : displayLevel}
+            </span>
             <span className="text-gray-400">·</span>
             <span className="text-gray-500 dark:text-gray-400">{displayTitle}</span>
           </div>
-          <span className="font-semibold text-gray-600 dark:text-gray-400 text-xs">
-            {currentXP.toLocaleString()} / {safeRequiredXP.toLocaleString()} XP
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-600 dark:text-gray-400 text-xs">
+              {currentXP.toLocaleString()} / {displayNextXP.toLocaleString()} XP
+            </span>
+            {!levelInfo.isMaxLevel && levelInfo.xpNeeded > 0 ? (
+              <span className="text-[11px] text-primary dark:text-purple-300 font-semibold hidden sm:inline">
+                ({levelInfo.xpNeeded.toLocaleString()} XP to Level {displayLevel + 1})
+              </span>
+            ) : (
+              <span className="text-[11px] text-success font-semibold hidden sm:inline">
+                (Max Level)
+              </span>
+            )}
+          </div>
         </div>
       )}
       <div className={cn('w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden', heights[size])}>
@@ -65,3 +79,4 @@ const XPProgressBar: React.FC<XPProgressBarProps> = ({
 };
 
 export { XPProgressBar };
+export default XPProgressBar;

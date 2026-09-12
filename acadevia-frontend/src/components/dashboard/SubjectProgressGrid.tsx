@@ -4,6 +4,15 @@ import type { SubjectData } from './SubjectDetailModal';
 
 interface SubjectProgressGridProps {
   onSelectSubject: (subject: SubjectData) => void;
+  subjectProgress?: Array<{
+    id?: string;
+    title?: string;
+    subject: string;
+    progress: number;
+    lessonsCount: number;
+    completedLessons: number;
+    icon?: string;
+  }>;
 }
 
 interface SubjectCardConfig {
@@ -130,7 +139,44 @@ export const defaultSubjectsData: SubjectCardConfig[] = [
 
 export const SubjectProgressGrid: React.FC<SubjectProgressGridProps> = ({
   onSelectSubject,
+  subjectProgress,
 }) => {
+  const cardsData = React.useMemo(() => {
+    if (!subjectProgress) {
+      return defaultSubjectsData;
+    }
+    return defaultSubjectsData.map((sub) => {
+      const match = subjectProgress.find(
+        (sp) => sp.subject.toLowerCase() === sub.name.toLowerCase()
+      );
+      if (!match) return { ...sub, completedChapters: 0, progressPercent: 0 };
+
+      const completedCount = match.completedLessons || 0;
+      const totalCount = sub.totalChapters;
+      const progressPercent = match.progress || 0;
+
+      const updatedChapters = sub.chapters.map((ch, idx) => {
+        if (idx < completedCount) {
+          return { ...ch, status: 'completed' as const };
+        } else if (idx === completedCount) {
+          return { ...ch, status: 'in_progress' as const };
+        } else {
+          return { ...ch, status: 'locked' as const };
+        }
+      });
+
+      const nextChapterObj = updatedChapters.find((ch) => ch.status !== 'completed') || updatedChapters[0];
+
+      return {
+        ...sub,
+        completedChapters: Math.min(completedCount, totalCount),
+        progressPercent,
+        nextChapter: nextChapterObj ? nextChapterObj.title : 'All Chapters Completed',
+        chapters: updatedChapters,
+      };
+    });
+  }, [subjectProgress]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -144,7 +190,7 @@ export const SubjectProgressGrid: React.FC<SubjectProgressGridProps> = ({
         </div>
         <button
           type="button"
-          onClick={() => onSelectSubject(defaultSubjectsData[0])}
+          onClick={() => onSelectSubject(cardsData[0])}
           className="text-xs font-semibold text-primary dark:text-purple-300 cursor-pointer hover:underline"
         >
           Click card to view syllabus →
@@ -152,7 +198,7 @@ export const SubjectProgressGrid: React.FC<SubjectProgressGridProps> = ({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4.5">
-        {defaultSubjectsData.map((sub) => {
+        {cardsData.map((sub) => {
           // Generate an array of segments for the chapter tracker
           const segments = Array.from({ length: sub.totalChapters }, (_, i) => i < sub.completedChapters);
 

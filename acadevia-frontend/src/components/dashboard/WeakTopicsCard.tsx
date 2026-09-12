@@ -1,26 +1,55 @@
 import React from 'react';
 import { AlertCircle, ArrowRight, Brain, Clock, Zap, Sparkles } from 'lucide-react';
 
+export interface WeakTopicItem {
+  title: string;
+  subject: string;
+  mastery: number;
+  recommendation?: string;
+  estTime?: string;
+  reward?: string;
+  status?: string;
+}
+
 interface WeakTopicsCardProps {
   onPracticeTopic: (topicTitle: string, mastery: number) => void;
+  topics?: WeakTopicItem[];
 }
 
 export const WeakTopicsCard: React.FC<WeakTopicsCardProps> = ({
   onPracticeTopic,
+  topics,
 }) => {
-  const primaryTopic = {
-    title: 'Trigonometric Ratios',
-    subject: 'Mathematics',
-    mastery: 42,
-    recommendation: 'Recommended: 5-question diagnostic practice',
-    estTime: '4 min',
-    reward: '+50 XP',
-  };
+  const activeTopics = (topics && topics.length > 0)
+    ? topics
+    : [
+        {
+          title: 'Real Numbers & Foundations',
+          subject: 'Mathematics',
+          mastery: 0,
+          recommendation: 'Recommended: Diagnostic practice assessment',
+          estTime: '4 min',
+          reward: '+50 XP',
+          status: 'Diagnostic',
+        },
+        {
+          title: 'Chemical Reactions & Equations',
+          subject: 'Science',
+          mastery: 0,
+          status: 'Not started',
+          estTime: '3 min',
+        },
+        {
+          title: 'Grammar & Subject-Verb Agreement',
+          subject: 'English',
+          mastery: 0,
+          status: 'Not started',
+          estTime: '3 min',
+        },
+      ];
 
-  const secondaryTopics = [
-    { title: 'Ray Diagrams for Concave Lenses', subject: 'Science', mastery: 58, status: 'Improving', estTime: '3 min' },
-    { title: 'Subject-Verb Agreement', subject: 'English', mastery: 64, status: 'Strong', estTime: '3 min' },
-  ];
+  const primaryTopic = activeTopics[0];
+  const secondaryTopics = activeTopics.slice(1, 3);
 
   return (
     <div className="surface-card surface-card-hover p-6 space-y-5">

@@ -31,7 +31,7 @@ const tabs = [
 const BadgesPage: React.FC = () => {
   const [tab, setTab] = useState('all');
   const user = useAuthStore((s) => s.user);
-  const studentId = user?.id ? String(user.id) : '20';
+  const studentId = user?.id ? String(user.id) : '';
   const metrics = dataService.getStudentMetrics(studentId);
   const { data: gamification } = useGamificationProfile();
 

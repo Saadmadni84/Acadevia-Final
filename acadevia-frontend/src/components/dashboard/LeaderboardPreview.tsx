@@ -13,9 +13,9 @@ interface LeaderboardPreviewProps {
 }
 
 export const LeaderboardPreview: React.FC<LeaderboardPreviewProps> = ({
-  currentXP = 720,
+  currentXP = 0,
   userId,
-  userName = 'Aarav',
+  userName = 'You',
   userAvatar,
   userRank = 1,
 }) => {
@@ -25,14 +25,13 @@ export const LeaderboardPreview: React.FC<LeaderboardPreviewProps> = ({
     const raw = dataService.getLeaderboard('weekly');
     const sorted = raw.length > 0 ? raw : dataService.getLeaderboard('alltime');
 
-    // Default fallback if no users in dataService yet
     if (!sorted || sorted.length === 0) {
-      return [
-        { rank: 1, name: 'Priya Patel', xp: 1250, badge: '🥇', avatar: '👩‍🎓', isCurrentUser: false },
-        { rank: 2, name: 'Rohan Verma', xp: 980, badge: '🥈', avatar: '👨‍🎓', isCurrentUser: false },
-        { rank: 3, name: 'Ananya Sen', xp: 860, badge: '🥉', avatar: '👩‍💻', isCurrentUser: false },
-        { rank: userRank, name: `${userName} (You)`, xp: currentXP, isCurrentUser: true, badge: `#${userRank}`, avatar: userAvatar || '⚡' },
-      ];
+      if (currentXP > 0) {
+        return [
+          { rank: 1, name: `${userName} (You)`, xp: currentXP, isCurrentUser: true, badge: '🥇', avatar: userAvatar || '⚡' },
+        ];
+      }
+      return [];
     }
 
     // Assign badges
@@ -106,15 +105,21 @@ export const LeaderboardPreview: React.FC<LeaderboardPreviewProps> = ({
 
       {/* Roster */}
       <div className="space-y-2">
-        {leaders.map((student) => (
-          <div
-            key={student.rank}
-            className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between gap-3 transition-all ${
-              student.isCurrentUser
-                ? 'bg-purple-50/80 dark:bg-purple-950/40 border-primary/30 text-primary dark:text-purple-300 shadow-2xs'
-                : 'bg-slate-50/40 dark:bg-slate-900/30 border-slate-100 dark:border-white/[0.06] text-slate-700 dark:text-slate-300 hover:border-slate-200'
-            }`}
-          >
+        {leaders.length === 0 ? (
+          <div className="py-6 px-4 text-center flex flex-col items-center justify-center space-y-1">
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Leaderboard Standings Updating</p>
+            <p className="text-[11px] text-slate-400">Complete quizzes and lessons to rank on the weekly leaderboard.</p>
+          </div>
+        ) : (
+          leaders.map((student) => (
+            <div
+              key={student.rank}
+              className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between gap-3 transition-all ${
+                student.isCurrentUser
+                  ? 'bg-purple-50/80 dark:bg-purple-950/40 border-primary/30 text-primary dark:text-purple-300 shadow-2xs'
+                  : 'bg-slate-50/40 dark:bg-slate-900/30 border-slate-100 dark:border-white/[0.06] text-slate-700 dark:text-slate-300 hover:border-slate-200'
+              }`}
+            >
             <div className="flex items-center gap-2.5 min-w-0">
               <span className="w-6 text-center font-bold text-sm">
                 {student.badge || `#${student.rank}`}
@@ -149,7 +154,8 @@ export const LeaderboardPreview: React.FC<LeaderboardPreviewProps> = ({
               {student.xp.toLocaleString()} XP
             </span>
           </div>
-        ))}
+        ))
+      )}
       </div>
 
       {/* Multiplayer Arena Battle Pass Card */}

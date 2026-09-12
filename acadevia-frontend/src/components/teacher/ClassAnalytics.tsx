@@ -74,7 +74,7 @@ const ClassAnalytics: React.FC = () => {
     let mounted = true;
     const loadAnalytics = async () => {
       try {
-        const res = await fetch(`/api/v1/teacher/analytics?classGrade=${selectedClass}&subject=${encodeURIComponent(selectedSubject)}`);
+        const res = await fetch(`/api/v1/teacher/analytics?classGrade=${selectedClass}&subject=${encodeURIComponent(selectedSubject)}&period=${dateRange}`);
         if (res.ok) {
           const json = await res.json();
           if (mounted && json?.success && json.data) {
@@ -91,24 +91,32 @@ const ClassAnalytics: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [selectedClass, selectedSubject, version]);
+  }, [selectedClass, selectedSubject, dateRange, version]);
 
   // Compute 100% data-driven analytics directly from live API or persistent data store
   const analytics: ClassAnalyticsData = useMemo(() => {
-    if (apiAnalytics && Number(apiAnalytics.classGrade) === Number(selectedClass) && apiAnalytics.subject === selectedSubject) {
+    if (
+      apiAnalytics &&
+      Number(apiAnalytics.classGrade) === Number(selectedClass) &&
+      apiAnalytics.subject === selectedSubject &&
+      (!apiAnalytics.period || apiAnalytics.period === dateRange)
+    ) {
       return apiAnalytics;
     }
     return dataService.getClassAnalytics({
       teacherId,
       classGrade: selectedClass,
       subject: selectedSubject,
+      period: dateRange,
     });
-  }, [apiAnalytics, teacherId, selectedClass, selectedSubject]);
+  }, [apiAnalytics, teacherId, selectedClass, selectedSubject, dateRange]);
 
   // 1. KPI Metric Calculations
   const totalStudents = analytics.totalStudents || 0;
   const completedCount = analytics.completionData?.find((c) => c.name === 'Completed')?.count || 0;
-  const completionRate = totalStudents > 0 ? Math.round((completedCount / totalStudents) * 100) : 0;
+  const completionRate = analytics.completionRate !== undefined
+    ? analytics.completionRate
+    : (totalStudents > 0 ? Math.round((completedCount / totalStudents) * 100) : 0);
   
   const classAvg = analytics.classAverage !== undefined
     ? analytics.classAverage
@@ -134,18 +142,15 @@ const ClassAnalytics: React.FC = () => {
     return raw;
   }, [analytics.engagementTrend, dateRange]);
 
-  // Transform timeline with simulated mastery trajectory matching submissions
+  // Transform timeline using real assessment submissions and actual mastery scores
   const timelineData = useMemo(() => {
-    return filteredTimeline.map((d, index) => {
-      // Calculate realistic rolling mastery or daily submissions
-      const rollingAvg = classAvg > 0
-        ? Math.min(100, Math.max(30, classAvg + Math.round(Math.sin(index / 2) * 4)))
-        : 0;
+    return filteredTimeline.map((d) => {
+      const dayScore = d.score !== undefined && d.score !== null ? d.score : (d.engagement > 0 ? classAvg : 0);
       return {
         day: d.day,
         date: d.date,
         submissions: d.engagement,
-        score: d.engagement > 0 ? rollingAvg : (classAvg > 0 ? classAvg : 0),
+        score: d.engagement > 0 ? dayScore : 0,
       };
     });
   }, [filteredTimeline, classAvg]);

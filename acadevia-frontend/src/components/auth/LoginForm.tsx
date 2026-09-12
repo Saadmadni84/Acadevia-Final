@@ -58,8 +58,8 @@ const LoginForm: React.FC = () => {
     setLoading(true);
     try {
       let userRecord: any;
-      let accessToken = 'demo-token';
-      let refreshToken = 'demo-refresh-token';
+      let accessToken = '';
+      let refreshToken = '';
 
       const normalizedEmail = credentials.email.includes('@')
         ? credentials.email.trim()
@@ -90,30 +90,20 @@ const LoginForm: React.FC = () => {
         };
         accessToken = d.accessToken;
         refreshToken = d.refreshToken;
-      } catch (apiErr) {
-        console.warn('Backend API login fallback:', apiErr);
+      } catch (apiErr: any) {
+        console.warn('Backend API login failed, checking persistent database user lookup:', apiErr);
         const storedUser = dataService.getUserByEmail(credentials.email) || dataService.getUserByEmail(normalizedEmail);
         if (storedUser) {
-          userRecord = {
-            id: storedUser.id,
-            email: storedUser.email,
-            fullName: storedUser.fullName,
-            role: storedUser.role,
-            avatarUrl: storedUser.avatarUrl,
-            phone: storedUser.phone || storedUser.phoneNumber || undefined,
-            phoneNumber: storedUser.phone || storedUser.phoneNumber || undefined,
-            schoolName: storedUser.schoolName,
-            stateName: storedUser.stateName,
-            cityName: storedUser.cityName,
-            pinCode: storedUser.pinCode || storedUser.pincode || undefined,
-            pincode: storedUser.pinCode || storedUser.pincode || undefined,
-            classGrade: storedUser.classGrade,
-            className: storedUser.classGrade ? `Class ${storedUser.classGrade}` : undefined,
-            languagePreference: 'en',
-          };
+          userRecord = storedUser;
+          accessToken = 'demo-token';
+          refreshToken = 'demo-refresh-token';
         } else {
           throw apiErr;
         }
+      }
+
+      if (!accessToken) {
+        throw new Error('No access token received from authentication server.');
       }
 
       if (typeof (dataService as any)?.setCurrentUser === 'function') {
@@ -128,7 +118,11 @@ const LoginForm: React.FC = () => {
       navigate(targetRoute, { replace: true });
     } catch (err: any) {
       console.error('Login process error:', err);
-      setError(err?.response?.data?.message || err?.message || 'Invalid credentials. Please try again.');
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.toLowerCase().includes('timeout');
+      const errorMessage = isTimeout
+        ? 'Login request timed out. Please check your network connection and try again.'
+        : err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Invalid credentials. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

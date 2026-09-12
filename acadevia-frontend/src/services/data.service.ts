@@ -131,6 +131,11 @@ export interface ClassAnalyticsData {
   subject: string;
   availableSubjects: string[];
   totalStudents: number;
+  period?: string;
+  classAverage?: number;
+  totalSubmissions?: number;
+  activeStudentsInPeriod?: number;
+  completionRate?: number;
   quizScores: {
     id: string;
     name: string;
@@ -148,6 +153,7 @@ export interface ClassAnalyticsData {
     day: string;
     date: string;
     engagement: number;
+    score?: number;
   }[];
   topPerformers: {
     id: string;
@@ -167,6 +173,9 @@ export interface ClassAnalyticsData {
     score: number;
     submissions: number;
   }[];
+  detailedQuizzes?: any[];
+  studentRoster?: any[];
+  actionableInsights?: any[];
 }
 
 interface DataState {
@@ -903,6 +912,86 @@ export function calculateStreakFromDates(dates: string[]): {
 }
 
 /* ------------------------------------------------------------------ */
+/*  OFFICIAL ACADEVIA LEVEL PROGRESSION (V13)                         */
+/* ------------------------------------------------------------------ */
+
+export interface LevelThreshold {
+  level: number;
+  name: string;
+  minXp: number;
+  maxXp: number;
+  nextThreshold: number;
+}
+
+export const LEVEL_THRESHOLDS: LevelThreshold[] = [
+  { level: 1,  name: 'Newcomer',     minXp: 0,     maxXp: 99,        nextThreshold: 100 },
+  { level: 2,  name: 'Beginner',     minXp: 100,   maxXp: 249,       nextThreshold: 250 },
+  { level: 3,  name: 'Learner',      minXp: 250,   maxXp: 449,       nextThreshold: 450 },
+  { level: 4,  name: 'Explorer',     minXp: 450,   maxXp: 699,       nextThreshold: 700 },
+  { level: 5,  name: 'Achiever',     minXp: 700,   maxXp: 999,       nextThreshold: 1000 },
+  { level: 6,  name: 'Scholar',      minXp: 1000,  maxXp: 1349,      nextThreshold: 1350 },
+  { level: 7,  name: 'Expert',       minXp: 1350,  maxXp: 1749,      nextThreshold: 1750 },
+  { level: 8,  name: 'Master',       minXp: 1750,  maxXp: 2199,      nextThreshold: 2200 },
+  { level: 9,  name: 'Champion',     minXp: 2200,  maxXp: 2699,      nextThreshold: 2700 },
+  { level: 10, name: 'Legend',       minXp: 2700,  maxXp: 3249,      nextThreshold: 3250 },
+  { level: 11, name: 'Grandmaster',  minXp: 3250,  maxXp: 3849,      nextThreshold: 3850 },
+  { level: 12, name: 'Mythic',       minXp: 3850,  maxXp: 4499,      nextThreshold: 4500 },
+  { level: 13, name: 'Immortal',     minXp: 4500,  maxXp: 5199,      nextThreshold: 5200 },
+  { level: 14, name: 'Transcendent', minXp: 5200,  maxXp: 999999999, nextThreshold: 5200 },
+];
+
+export interface LevelProgressInfo {
+  level: number;
+  levelTitle: string;
+  totalXp: number;
+  minXp: number;
+  nextThreshold: number;
+  currentLevelXp: number;
+  levelSpan: number;
+  xpNeeded: number;
+  progressPercent: number;
+  highestLevel: number;
+  isMaxLevel: boolean;
+}
+
+export function calculateLevelAndProgress(totalXp: number): LevelProgressInfo {
+  const xp = Math.max(0, Math.floor(Number(totalXp) || 0));
+  let matched = LEVEL_THRESHOLDS[0];
+  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (xp >= LEVEL_THRESHOLDS[i].minXp) {
+      matched = LEVEL_THRESHOLDS[i];
+      break;
+    }
+  }
+
+  const level = matched.level;
+  const levelTitle = matched.name;
+  const minXp = matched.minXp;
+  const isMaxLevel = level >= LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1].level;
+  const nextThreshold = isMaxLevel ? minXp : matched.nextThreshold;
+  const currentLevelXp = xp - minXp;
+  const levelSpan = isMaxLevel ? 0 : Math.max(1, nextThreshold - minXp);
+  const xpNeeded = isMaxLevel ? 0 : Math.max(0, nextThreshold - xp);
+  const progressPercent = isMaxLevel
+    ? 100
+    : Number(Math.min(100, Math.max(0, (currentLevelXp / levelSpan) * 100)).toFixed(2));
+
+  return {
+    level,
+    levelTitle,
+    totalXp: xp,
+    minXp,
+    nextThreshold,
+    currentLevelXp,
+    levelSpan,
+    xpNeeded,
+    progressPercent,
+    highestLevel: level,
+    isMaxLevel,
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  STORAGE ENGINE                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -912,10 +1001,23 @@ let isSyncInProgress = false;
 
 function loadState(): DataState {
   if (!memoryState) {
+    let cachedResults: QuizResultRecord[] = [];
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('acadevia_data_results');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            cachedResults = parsed;
+          }
+        }
+      } catch {}
+    }
+
     memoryState = {
       users: JSON.parse(JSON.stringify(INITIAL_USERS)),
       quizzes: JSON.parse(JSON.stringify(INITIAL_QUIZZES)),
-      results: JSON.parse(JSON.stringify(INITIAL_RESULTS)),
+      results: cachedResults.length > 0 ? cachedResults : JSON.parse(JSON.stringify(INITIAL_RESULTS)),
       activities: JSON.parse(JSON.stringify(INITIAL_ACTIVITIES)),
     };
   }
@@ -950,6 +1052,11 @@ function notifySubscribers() {
 function saveState(state: DataState): void {
   memoryState = state;
   if (typeof window !== 'undefined') {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('acadevia_data_results', JSON.stringify(state.results));
+      }
+    } catch {}
     window.dispatchEvent(new CustomEvent('acadevia_data_updated'));
   }
   notifySubscribers();
@@ -1273,6 +1380,36 @@ export const dataService = {
   /*  QUIZ RESULTS & SUBMISSIONS                                      */
   /* ---------------------------------------------------------------- */
 
+  /** Fetch all results submitted by a student from backend and sync */
+  async fetchStudentQuizResults(studentId: string): Promise<QuizResultRecord[]> {
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch(getApiUrl('/api/v1/attempts'));
+        if (res.ok) {
+          const json = await res.json();
+          const attempts = json?.data || json;
+          if (Array.isArray(attempts)) {
+            const state = loadState();
+            attempts.forEach((apiR: any) => {
+              const idx = state.results.findIndex(
+                (r) => String(r.id) === String(apiR.id) || (String(r.studentId) === String(apiR.studentId) && String(r.quizId) === String(apiR.quizId))
+              );
+              if (idx >= 0) {
+                state.results[idx] = { ...state.results[idx], ...apiR };
+              } else {
+                state.results.push(apiR);
+              }
+            });
+            saveState(state);
+          }
+        }
+      } catch (err) {
+        console.warn('[dataService] fetchStudentQuizResults error:', err);
+      }
+    }
+    return this.getStudentQuizResults(studentId);
+  },
+
   /** Get all results submitted by a student */
   getStudentQuizResults(studentId: string): QuizResultRecord[] {
     return loadState().results.filter((r) => String(r.studentId) === String(studentId));
@@ -1386,9 +1523,24 @@ export const dataService = {
 
     // Persist to MySQL Backend API
     if (typeof window !== 'undefined') {
+      let authHeader: Record<string, string> = {};
+      try {
+        const storedAuth = localStorage.getItem('acadevia_auth');
+        if (storedAuth) {
+          const parsed = JSON.parse(storedAuth);
+          if (parsed?.accessToken) {
+            authHeader['Authorization'] = `Bearer ${parsed.accessToken}`;
+          }
+        }
+      } catch {}
+
       fetch(getApiUrl('/api/v1/attempts'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': String(params.studentId),
+          ...authHeader,
+        },
         body: JSON.stringify({
           quizId: params.quizId,
           studentId: params.studentId,
@@ -1400,6 +1552,7 @@ export const dataService = {
         .then((r) => r.json())
         .then((res) => {
           if (res?.data?.stateVersion) lastKnownVersion = Number(res.data.stateVersion);
+          dataService.syncFromBackend(true).catch(() => {});
         })
         .catch((err) => {
           console.warn('[dataService] Backend attempt sync failed:', err);
@@ -1503,7 +1656,8 @@ export const dataService = {
 
     // Real XP from authoritative user account
     const totalXP = student?.totalXP ?? 0;
-    const level = Math.floor(totalXP / 500) + 1;
+    const levelInfo = calculateLevelAndProgress(totalXP);
+    const level = levelInfo.level;
 
     // Real streak calculation from dates
     const activityDates = results.map((r) => r.completedAt).filter(Boolean);
@@ -1536,7 +1690,16 @@ export const dataService = {
       student,
       teacher,
       totalXP,
-      level,
+      totalXp: totalXP,
+      xp: totalXP,
+      level: levelInfo.level,
+      levelTitle: levelInfo.levelTitle,
+      currentLevelXp: levelInfo.currentLevelXp,
+      nextLevelXp: levelInfo.nextThreshold,
+      requiredXP: levelInfo.nextThreshold,
+      xpNeeded: levelInfo.xpNeeded,
+      xpProgress: levelInfo.progressPercent,
+      highestLevel: levelInfo.highestLevel,
       streak: currentStreak,
       longestStreak,
       quizzesCompleted: quizCount,
@@ -1550,6 +1713,49 @@ export const dataService = {
       overallProgress,
       subjectProgress,
     };
+  },
+
+  /**
+   * Fetch real calculated student progress and statistics from backend.
+   */
+  async fetchStudentProgress(studentId?: string): Promise<any> {
+    try {
+      const url = studentId ? `/api/v1/student/progress?studentId=${encodeURIComponent(studentId)}` : '/api/v1/student/progress';
+      const res = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(studentId ? { 'X-User-Id': studentId } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      return json.data || json;
+    } catch (e) {
+      console.warn('fetchStudentProgress error, falling back to local state:', e);
+      return studentId ? this.getStudentMetrics(studentId) : null;
+    }
+  },
+
+  /**
+   * Fetch real student XP transactions and history from backend.
+   */
+  async fetchStudentXpHistory(studentId?: string): Promise<any[]> {
+    try {
+      const url = studentId ? `/api/v1/gamification/xp-history?studentId=${encodeURIComponent(studentId)}` : '/api/v1/gamification/xp-history';
+      const res = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(studentId ? { 'X-User-Id': studentId } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const content = json.data?.content || json.data || [];
+      return Array.isArray(content) ? content : [];
+    } catch (e) {
+      console.warn('fetchStudentXpHistory error:', e);
+      return [];
+    }
   },
 
   /**
@@ -1652,9 +1858,10 @@ export const dataService = {
   },
 
   /** Calculate real data-driven analytics for a teacher and class */
-  getClassAnalytics(params: { teacherId: string; classGrade?: number; subject?: string }): ClassAnalyticsData {
+  getClassAnalytics(params: { teacherId: string; classGrade?: number; subject?: string; period?: string }): ClassAnalyticsData {
     const state = loadState();
     const teacher = this.getUserById(params.teacherId);
+    const safePeriod = String(params.period || '30').toLowerCase();
 
     // 1. Available Classes & Subjects
     const availableClasses = teacher?.classesTaught && teacher.classesTaught.length > 0
@@ -1691,9 +1898,9 @@ export const dataService = {
       return matchClass && matchSubject;
     });
 
-    // 4. Submissions matching these quizzes
+    // 4. Submissions matching these quizzes and optional period
     const classQuizIds = new Set(classQuizzes.map((q) => q.id));
-    const relevantResults = state.results.filter((r) => {
+    const allResults = state.results.filter((r) => {
       const matchQuiz = classQuizIds.has(r.quizId);
       const matchClass = Number(r.classGrade) === Number(selectedClass);
       const matchTeacher = !params.teacherId || String(r.teacherId) === String(params.teacherId);
@@ -1701,6 +1908,21 @@ export const dataService = {
         ? (params.teacherId ? matchTeacher : true)
         : r.subject.toLowerCase() === selectedSubject.toLowerCase();
       return matchQuiz || (matchClass && matchSubject);
+    });
+
+    // Filter by period
+    const cutoffTime = safePeriod === '7'
+      ? Date.now() - 7 * 86400000
+      : safePeriod === '90'
+      ? Date.now() - 90 * 86400000
+      : safePeriod === 'all'
+      ? 0
+      : Date.now() - 30 * 86400000;
+
+    const relevantResults = allResults.filter((r) => {
+      if (cutoffTime === 0 || !r.completedAt) return true;
+      const t = new Date(r.completedAt).getTime();
+      return isNaN(t) || t >= cutoffTime;
     });
 
     // 5. Average Score by Quiz
@@ -1732,10 +1954,18 @@ export const dataService = {
       { name: 'Not Started', value: notStartedPct, count: notStartedCount, color: '#ef4444' },
     ];
 
+    // Aggregate metrics
+    const totalSubmissions = relevantResults.length;
+    const classAverage = totalSubmissions > 0
+      ? Math.round(relevantResults.reduce((sum, r) => sum + r.percentage, 0) / totalSubmissions)
+      : 0;
+    const activeStudentsInPeriod = completedCount;
+
     // 7. Engagement Trend (Last 30 Days)
+    const trendDays = safePeriod === '7' ? 7 : safePeriod === '90' ? 90 : 30;
     const now = new Date();
-    const engagementTrend: { day: string; date: string; engagement: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
+    const engagementTrend: { day: string; date: string; engagement: number; score?: number }[] = [];
+    for (let i = trendDays - 1; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
@@ -1746,10 +1976,15 @@ export const dataService = {
         return rDate === dateStr;
       });
 
+      const dayScore = dayResults.length > 0
+        ? Math.round(dayResults.reduce((sum, r) => sum + r.percentage, 0) / dayResults.length)
+        : (classAverage > 0 ? classAverage : 0);
+
       engagementTrend.push({
         day: dayLabel,
         date: dateStr,
         engagement: dayResults.length,
+        score: dayScore,
       });
     }
 
@@ -1813,7 +2048,12 @@ export const dataService = {
       availableClasses,
       subject: selectedSubject,
       availableSubjects,
+      period: safePeriod,
       totalStudents,
+      classAverage,
+      totalSubmissions,
+      activeStudentsInPeriod,
+      completionRate: completedPct,
       quizScores,
       completionData,
       engagementTrend,

@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '',
-  timeout: 15000,
+  timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -33,12 +33,12 @@ apiClient.interceptors.response.use(
       refreshToken?.startsWith('demo-') ||
       accessToken === 'demo-token';
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isLoginEndpoint = originalRequest.url?.includes('/api/v1/auth/login');
+    if (error.response?.status === 401 && !originalRequest._retry && !isLoginEndpoint) {
       // Demo accounts operate locally/mocked; never trigger backend refresh or evict demo session
       if (isDemoSession) {
         return Promise.reject(error);
       }
-
       originalRequest._retry = true;
       try {
         if (!refreshToken) throw new Error('No refresh token');

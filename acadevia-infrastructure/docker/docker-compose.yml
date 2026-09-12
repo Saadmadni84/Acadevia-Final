@@ -30,8 +30,8 @@ x-spring-env: &spring-env
   # Resolved inside containers through Docker DNS service names.
   # These feed the ${...} placeholders in each service's application.yml and
   # in the config-server native configuration files.
-  DB_HOST: ${MYSQL_HOST}
-  DB_PORT: ${MYSQL_PORT}
+  DB_HOST: ${MYSQL_HOST:-mysql}
+  DB_PORT: ${MYSQL_PORT:-3306}
   DB_USERNAME: root
   DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
   KAFKA_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
@@ -292,6 +292,15 @@ services:
     environment:
       <<: *spring-env
       JWT_SECRET: ${JWT_SECRET}
+      DB_HOST: mysql
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/acadevia_auth?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      REDIS_HOST: redis
+      SPRING_DATA_REDIS_HOST: redis
+      KAFKA_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      MANAGEMENT_HEALTH_KAFKA_ENABLED: "false"
     depends_on:
       mysql:    {condition: service_healthy}
       redis:    {condition: service_healthy}
@@ -356,8 +365,23 @@ services:
       dockerfile: acadevia-infrastructure/docker/services/content-service/Dockerfile
     image: ${REGISTRY}/content-service:${IMAGE_TAG}
     container_name: acadevia-content-service
+    env_file:
+      - ../.env.r2
     environment:
       <<: [*spring-env, *minio-env]
+      DB_NAME: acadevia_content
+      DB_URL: jdbc:mysql://${MYSQL_HOST:-mysql}:${MYSQL_PORT:-3306}/acadevia_content?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST:-mysql}:${MYSQL_PORT:-3306}/acadevia_content?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      KAFKA_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      MANAGEMENT_HEALTH_KAFKA_ENABLED: "false"
       STORAGE_BUCKET_VIDEOS: ${STORAGE_BUCKET_VIDEOS:-acadevia-videos}
       STORAGE_BUCKET_IMAGES: ${STORAGE_BUCKET_IMAGES:-acadevia-images}
       STORAGE_BUCKET_DOCUMENTS: ${STORAGE_BUCKET_DOCUMENTS:-acadevia-documents}
