@@ -348,14 +348,14 @@ const GamesPage: React.FC = () => {
 
   return (
     <div className="relative w-full max-w-full overflow-x-hidden space-y-10 pb-20">
-      {/* Subtle ambient decorative game elements in the background */}
-      <div className="absolute top-8 left-1/4 w-72 h-72 bg-amber-200/20 dark:bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-96 right-10 w-80 h-80 bg-rose-200/20 dark:bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+      {/* Subtle ambient decorative game elements in the background (hidden in OLED dark mode) */}
+      <div className="absolute top-8 left-1/4 w-72 h-72 bg-amber-200/20 rounded-full blur-3xl dark:hidden pointer-events-none" />
+      <div className="absolute top-96 right-10 w-80 h-80 bg-rose-200/20 rounded-full blur-3xl dark:hidden pointer-events-none" />
 
       {/* 1. BRIGHT, WELCOMING GAME ARENA HEADER (Compact & Cheerful) */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-50 via-orange-50/50 to-rose-50/60 dark:from-gray-900 dark:via-purple-950/40 dark:to-gray-900 border border-amber-200/70 dark:border-purple-800/40 shadow-xs p-5 sm:p-6 text-gray-900 dark:text-white">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-50 via-orange-50/50 to-rose-50/60 dark:bg-[#050505] border border-amber-200/70 dark:border-[#242424] shadow-xs dark:shadow-none p-5 sm:p-6 text-gray-900 dark:text-white">
         {/* Soft decorative elements */}
-        <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-40 h-40 bg-gradient-to-br from-amber-300/20 to-orange-400/20 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-40 h-40 bg-gradient-to-br from-amber-300/20 to-orange-400/20 rounded-full blur-2xl dark:hidden pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
           {/* Welcome Title & Tagline */}

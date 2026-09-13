@@ -57,13 +57,13 @@ const LeaderboardShowcase: React.FC = () => {
                 transition={{ delay: i * 0.1, duration: 0.5 }}
                 className="glass-card p-4 flex items-center gap-4"
               >
-                <div className="p-3 rounded-xl bg-primary/10 text-primary shrink-0">
+                <div className="p-3 rounded-xl bg-primary/10 dark:bg-[#111111] border border-transparent dark:border-[#242424] text-primary dark:text-[#E5E5E5] shrink-0">
                   <stat.icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">{stat.label}</p>
-                  <p className="text-sm font-bold">{stat.value}</p>
-                  <p className="text-xs text-gray-400">{stat.sub}</p>
+                  <p className="text-xs text-gray-500 dark:text-[#8A8A8A]">{stat.label}</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-[#F5F5F5]">{stat.value}</p>
+                  <p className="text-xs text-gray-400 dark:text-[#71717A]">{stat.sub}</p>
                 </div>
               </motion.div>
             ))}
@@ -77,10 +77,10 @@ const LeaderboardShowcase: React.FC = () => {
             className="lg:col-span-3 glass-card overflow-hidden"
           >
             <div className="px-5 py-4 border-b border-gray-200 dark:border-[#242424] flex items-center justify-between">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-primary" /> Weekly Top 5
+              <h3 className="text-sm font-semibold flex items-center gap-2 text-gray-900 dark:text-[#F5F5F5]">
+                <Trophy className="h-4 w-4 text-primary dark:text-[#E5E5E5]" /> Weekly Top 5
               </h3>
-              <span className="text-xs text-gray-500">Updated live</span>
+              <span className="text-xs text-gray-500 dark:text-[#8A8A8A]">Updated live</span>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-[#242424]">
               {leaderboardData.map((player, i) => {
@@ -92,7 +92,7 @@ const LeaderboardShowcase: React.FC = () => {
                     animate={isIntersecting ? { opacity: 1, x: 0 } : {}}
                     transition={{ delay: 0.3 + i * 0.08 }}
                     className={`px-5 py-3.5 flex items-center gap-4 transition-colors hover:bg-primary/5 dark:hover:bg-[#111111] ${
-                      i === 0 ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''
+                      i === 0 ? 'bg-amber-50/50 dark:bg-[#0E0E0E]' : ''
                     }`}
                   >
                     <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -107,14 +107,14 @@ const LeaderboardShowcase: React.FC = () => {
                     <span className="text-lg">{player.avatar}</span>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{player.name}</p>
+                      <p className="text-sm font-semibold truncate text-gray-900 dark:text-[#F5F5F5]">{player.name}</p>
                       <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${badgeColors[player.badge]}`}>
                         {player.badge}
                       </span>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold tabular-nums">{player.xp.toLocaleString()} XP</p>
+                      <p className="text-sm font-bold tabular-nums text-gray-900 dark:text-[#F5F5F5]">{player.xp.toLocaleString()} XP</p>
                       <p className="text-xs text-emerald-500 font-medium flex items-center justify-end gap-0.5">
                         <TrendingUp className="h-3 w-3" /> {player.trend}
                       </p>
@@ -134,7 +134,7 @@ const LeaderboardShowcase: React.FC = () => {
           className="mt-10 text-center"
         >
           <Link to={ROUTES.REGISTER}>
-            <Button variant="gradient" size="lg" rightIcon={<ArrowRight className="h-5 w-5" />}>
+            <Button variant="primary" size="lg" className="bg-[#5B2C6F] hover:bg-[#4A2359] dark:bg-[#5B2C6F] dark:hover:bg-[#6D3484] text-white px-7 py-3.5 rounded-xl font-semibold shadow-none" rightIcon={<ArrowRight className="h-5 w-5" />}>
               Join the Leaderboard
             </Button>
           </Link>

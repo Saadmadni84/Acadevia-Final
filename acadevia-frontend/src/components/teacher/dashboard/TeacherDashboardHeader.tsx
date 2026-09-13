@@ -45,8 +45,8 @@ export const TeacherDashboardHeader: React.FC<TeacherDashboardHeaderProps> = ({
 
   return (
     <header className="relative rounded-3xl bg-[#F8F5EF] dark:bg-[#050505] border border-[#E8E4DA] dark:border-[#242424] p-6 sm:p-8 shadow-xs overflow-hidden transition-colors duration-300">
-      {/* Subtle brand glow background */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#5B2C6F]/10 via-amber-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+      {/* Subtle brand glow background (hidden in dark mode for pure OLED) */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#5B2C6F]/10 via-amber-500/5 to-transparent rounded-full blur-3xl dark:hidden pointer-events-none" />
 
       <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         {/* Left: Teacher Profile & Info */}
@@ -56,7 +56,7 @@ export const TeacherDashboardHeader: React.FC<TeacherDashboardHeaderProps> = ({
               <img
                 src={avatarUrl}
                 alt={teacherName}
-                className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover border-2 border-white dark:border-purple-900/60 shadow-md"
+                className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover border-2 border-white dark:border-[#242424] shadow-md dark:shadow-none"
               />
             ) : (
               <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-[#5B2C6F] to-[#8E44AD] text-white font-bold text-xl sm:text-2xl flex items-center justify-center shadow-md">

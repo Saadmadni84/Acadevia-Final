@@ -117,8 +117,11 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
           {/* ── Brand Column (wider) ── */}
           <div className="lg:col-span-4">
             <Link to="/" className="inline-flex items-center gap-2 group" aria-label="Acadevia home">
-              <GraduationCap className="h-7 w-7 text-[#5B2C6F] dark:text-[#C084FC]" />
-              <span className="text-[20px] font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
+              <div className="relative flex items-center justify-center">
+                <GraduationCap className="h-7 w-7 text-[#5B2C6F] dark:text-white transition-colors" />
+                <span className="hidden dark:block absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary" />
+              </div>
+              <span className="text-[20px] font-bold text-[#0F172A] dark:text-[#F5F5F5] tracking-tight">
                 Acadevia
               </span>
             </Link>

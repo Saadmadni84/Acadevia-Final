@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { ShieldCheck, BookOpen, Sparkles } from 'lucide-react';
+import { ShieldCheck, BookOpen } from 'lucide-react';
 import { LanguageSelector } from '@/components/common/LanguageSelector';
 
 const AuthLayout: React.FC = () => {
@@ -17,10 +17,10 @@ const AuthLayout: React.FC = () => {
         }}
       />
 
-      {/* Organic ambient light blooms */}
-      <div className="absolute -top-36 -left-36 w-[38rem] h-[38rem] bg-[#F2ECE0]/80 dark:bg-purple-950/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/3 -right-36 w-[40rem] h-[40rem] bg-[#EFE7D8]/70 dark:bg-purple-950/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-36 left-1/4 w-[34rem] h-[34rem] bg-[#F4EFE6]/80 dark:bg-purple-950/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Organic ambient light blooms (kept for warm cream light mode, hidden in OLED dark mode) */}
+      <div className="absolute -top-36 -left-36 w-[38rem] h-[38rem] bg-[#F2ECE0]/80 rounded-full blur-3xl dark:hidden pointer-events-none" />
+      <div className="absolute top-1/3 -right-36 w-[40rem] h-[40rem] bg-[#EFE7D8]/70 rounded-full blur-3xl dark:hidden pointer-events-none" />
+      <div className="absolute -bottom-36 left-1/4 w-[34rem] h-[34rem] bg-[#F4EFE6]/80 rounded-full blur-3xl dark:hidden pointer-events-none" />
 
       {/* Top Header Bar */}
       <header className="relative z-10 w-full max-w-5xl mx-auto px-6 pt-7 pb-4 flex items-center justify-between">

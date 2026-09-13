@@ -137,30 +137,30 @@ const CourseCard: React.FC<{ course: Course; index: number; visible: boolean }> 
       }}
       role="link"
       tabIndex={0}
-      className="group relative flex flex-col bg-white dark:bg-[#050505] rounded-2xl border border-[#E8E5DF] dark:border-[#242424] hover:border-[#5B2C6F]/30 dark:hover:border-[#A855F7]/30 hover:shadow-[0_12px_40px_-12px_rgba(91,44,111,0.12)] transition-all duration-300 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B2C6F] focus-visible:ring-offset-2 overflow-hidden"
+      className="group relative flex flex-col bg-white dark:bg-[#050505] rounded-2xl border border-[#E8E5DF] dark:border-[#242424] hover:border-[#5B2C6F]/30 dark:hover:border-[#333333] hover:shadow-[0_12px_40px_-12px_rgba(91,44,111,0.12)] dark:hover:shadow-none dark:hover:bg-[#0A0A0A] transition-all duration-300 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#5B2C6F] focus-visible:ring-offset-2 overflow-hidden"
     >
       {/* ---- Top: Subject & Level ---- */}
       <div className="px-6 pt-5 pb-0 flex items-center justify-between">
-        <span className="text-[11px] font-semibold tracking-wide uppercase text-[#64748B] dark:text-[#94A3B8]">
+        <span className="text-[11px] font-semibold tracking-wide uppercase text-[#64748B] dark:text-[#A1A1AA]">
           {course.subject}
         </span>
-        <span className="text-[11px] font-medium text-[#64748B] dark:text-[#94A3B8]">
+        <span className="text-[11px] font-medium text-[#64748B] dark:text-[#8A8A8A]">
           {course.level}
         </span>
       </div>
 
       {/* ---- Body ---- */}
       <div className="flex-1 px-6 pt-3 pb-5 flex flex-col">
-        <h3 className="text-[17px] font-semibold text-[#0F172A] dark:text-[#F8FAFC] leading-snug mb-2 group-hover:text-[#5B2C6F] dark:group-hover:text-[#C084FC] transition-colors">
+        <h3 className="text-[17px] font-semibold text-[#0F172A] dark:text-[#F8FAFC] leading-snug mb-2 group-hover:text-[#5B2C6F] dark:group-hover:text-white transition-colors">
           {course.name}
         </h3>
 
-        <p className="text-[13px] leading-[1.6] text-[#64748B] dark:text-[#94A3B8] mb-5 line-clamp-2">
+        <p className="text-[13px] leading-[1.6] text-[#64748B] dark:text-[#A1A1AA] mb-5 line-clamp-2">
           {course.description}
         </p>
 
         {/* Meta row */}
-        <div className="flex items-center gap-4 text-[12px] text-[#64748B] dark:text-[#94A3B8] mb-5">
+        <div className="flex items-center gap-4 text-[12px] text-[#64748B] dark:text-[#8A8A8A] mb-5">
           <span className="inline-flex items-center gap-1">
             <BookOpen className="h-3.5 w-3.5" />
             {course.lessons} lessons
@@ -193,7 +193,7 @@ const CourseCard: React.FC<{ course: Course; index: number; visible: boolean }> 
           </div>
 
           {/* Arrow */}
-          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#F8F5EF] dark:bg-[#111111] group-hover:bg-[#5B2C6F] group-hover:text-white text-[#5B2C6F] dark:text-[#C084FC] transition-all duration-200">
+          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#F8F5EF] dark:bg-[#111111] border border-transparent dark:border-[#242424] group-hover:bg-[#5B2C6F] group-hover:text-white dark:group-hover:bg-[#242424] dark:group-hover:text-white text-[#5B2C6F] dark:text-[#D4D4D4] transition-all duration-200">
             <ArrowRight className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" />
           </span>
         </div>
@@ -207,7 +207,6 @@ const CourseCard: React.FC<{ course: Course; index: number; visible: boolean }> 
 /* ------------------------------------------------------------------ */
 
 const PopularCourses: React.FC = () => {
-  const navigate = useNavigate();
   const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.08 });
 
   return (
@@ -219,7 +218,7 @@ const PopularCourses: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* ---- Header ---- */}
         <div className="max-w-2xl mb-14">
-          <p className="text-[13px] font-semibold tracking-wide uppercase text-[#5B2C6F] dark:text-[#C084FC] mb-3">
+          <p className="text-[13px] font-semibold tracking-wide uppercase text-[#5B2C6F] dark:text-[#A1A1AA] mb-3">
             Courses
           </p>
           <h2

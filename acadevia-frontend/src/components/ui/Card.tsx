@@ -12,13 +12,13 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
     return (
       <motion.div
         ref={ref}
-        whileHover={hoverable ? { y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' } : undefined}
+        whileHover={hoverable ? { y: -4 } : undefined}
         className={cn(
           'rounded-2xl p-6',
           glass
-            ? 'bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg'
-            : 'bg-white dark:bg-card-dark shadow-md border border-gray-100 dark:border-gray-800',
-          hoverable && 'cursor-pointer transition-shadow',
+            ? 'bg-white/70 dark:bg-[#050505] backdrop-blur-xl border border-white/20 dark:border-[#242424] shadow-lg dark:shadow-none'
+            : 'bg-white dark:bg-[#050505] shadow-md dark:shadow-none border border-gray-100 dark:border-[#242424]',
+          hoverable && 'cursor-pointer transition-all dark:hover:border-[#333333]',
           className
         )}
         {...props}

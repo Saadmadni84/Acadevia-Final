@@ -104,10 +104,10 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
             {/* XP Status Pill (Opens XP History Modal) */}
             <button
               onClick={() => setShowXPModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-primary/25 text-primary dark:text-purple-300 text-xs font-black shadow-2xs hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-[#111111] border border-primary/25 dark:border-[#2A2A2A] text-primary dark:text-[#F5F5F5] text-xs font-black shadow-2xs hover:bg-purple-100 dark:hover:bg-[#1A1A1A] transition-all hover:scale-105 active:scale-95 cursor-pointer"
               title="View XP & Progression History"
             >
-              <Zap className="h-3.5 w-3.5 fill-current" />
+              <Zap className="h-3.5 w-3.5 text-primary dark:text-[#A855F7] fill-current" />
               <span>{resolvedXP} XP</span>
             </button>
 
