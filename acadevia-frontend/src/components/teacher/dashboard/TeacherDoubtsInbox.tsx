@@ -88,10 +88,10 @@ export const TeacherDoubtsInbox: React.FC<TeacherDoubtsInboxProps> = ({
   const pendingCount = doubts.filter((d) => !d.isResolved && (!d.replies || d.replies.length === 0)).length;
 
   return (
-    <div className="rounded-3xl bg-white dark:bg-[#1A1222] border border-[#E8E4DA] dark:border-[#2D1B36] p-6 sm:p-7 shadow-xs flex flex-col justify-between h-full">
+    <div className="rounded-3xl bg-white dark:bg-[#050505] border border-[#E8E4DA] dark:border-[#242424] p-6 sm:p-7 shadow-xs flex flex-col justify-between h-full">
       <div>
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E8E4DA]/80 dark:border-[#2D1B36]">
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E8E4DA]/80 dark:border-[#242424]">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-[#5B2C6F]/10 dark:bg-[#C084FC]/15 text-[#5B2C6F] dark:text-[#C084FC] flex items-center justify-center">
               <MessageSquare className="w-4 h-4" />
@@ -150,7 +150,7 @@ export const TeacherDoubtsInbox: React.FC<TeacherDoubtsInboxProps> = ({
                   </div>
 
                   {/* Doubt Text */}
-                  <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed bg-white dark:bg-[#150D1C] p-2.5 rounded-xl border border-gray-100 dark:border-gray-800">
+                  <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed bg-white dark:bg-[#0A0A0A] p-2.5 rounded-xl border border-gray-100 dark:border-gray-800">
                     &ldquo;{doubt.commentText}&rdquo;
                   </p>
 
@@ -179,7 +179,7 @@ export const TeacherDoubtsInbox: React.FC<TeacherDoubtsInboxProps> = ({
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSendReply(doubt.id)}
-                            className="flex-1 text-xs px-3 py-1.5 rounded-xl bg-white dark:bg-[#150D1C] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-hidden focus:border-[#5B2C6F]"
+                            className="flex-1 text-xs px-3 py-1.5 rounded-xl bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-hidden focus:border-[#5B2C6F]"
                           />
                           <button
                             type="button"

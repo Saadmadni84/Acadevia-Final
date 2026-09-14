@@ -7,12 +7,15 @@
 :root {
   --acadevia-bg: #F8F7F4;
   --acadevia-surface: #FFFFFF;
+  --acadevia-surface-elevated: #FFFFFF;
+  --acadevia-surface-hover: #F1EFE9;
   --acadevia-primary: #5B2C6F;
   --acadevia-primary-dark: #3A1B47;
   --acadevia-primary-soft: #F0E8F4;
   --acadevia-text: #0F172A;
   --acadevia-muted: #64748B;
   --acadevia-border: #E8E5DF;
+  --acadevia-border-subtle: #F0EDE6;
 
   --subject-math: #5B2C6F;
   --subject-science: #0D9488;
@@ -25,14 +28,17 @@
 }
 
 .dark {
-  --acadevia-bg: #0F0914;
-  --acadevia-surface: #1B1124;
+  --acadevia-bg: #000000;
+  --acadevia-surface: #050505;
+  --acadevia-surface-elevated: #0A0A0A;
+  --acadevia-surface-hover: #111111;
   --acadevia-primary: #A855F7;
-  --acadevia-primary-dark: #2A123D;
-  --acadevia-primary-soft: #381A4F;
-  --acadevia-text: #F8FAFC;
-  --acadevia-muted: #94A3B8;
-  --acadevia-border: #2E1B3D;
+  --acadevia-primary-dark: #5B2C6F;
+  --acadevia-primary-soft: rgba(168, 85, 247, 0.12);
+  --acadevia-text: #F5F5F5;
+  --acadevia-muted: #A1A1AA;
+  --acadevia-border: #242424;
+  --acadevia-border-subtle: #181818;
 }
 
 @layer base {
@@ -44,7 +50,7 @@
     -moz-osx-font-smoothing: grayscale;
   }
   body {
-    @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-sans selection:bg-purple-500/20 selection:text-purple-900;
+    @apply bg-background-light dark:bg-black text-slate-900 dark:text-[#F5F5F5] font-sans selection:bg-purple-500/20 selection:text-purple-300;
     background-color: var(--acadevia-bg);
   }
 }
@@ -52,17 +58,46 @@
 @layer components {
   /* Apple & Linear Style Glass & Depth Surfaces */
   .surface-card {
-    @apply bg-white dark:bg-[#1A1124] rounded-2xl border border-black/[0.07] dark:border-white/[0.08] shadow-[0_1px_3px_rgba(0,0,0,0.03),0_6px_16px_-4px_rgba(0,0,0,0.03)] transition-all duration-300;
+    @apply bg-white dark:bg-[#050505] rounded-2xl border border-black/[0.07] dark:border-[#242424] shadow-[0_1px_3px_rgba(0,0,0,0.03),0_6px_16px_-4px_rgba(0,0,0,0.03)] dark:shadow-none transition-all duration-300;
   }
   .surface-card-hover {
-    @apply hover:border-black/[0.14] dark:hover:border-white/[0.16] hover:shadow-[0_4px_12px_rgba(0,0,0,0.05),0_16px_32px_-8px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 active:scale-[0.99];
+    @apply hover:border-black/[0.14] dark:hover:border-[#333333] hover:shadow-[0_4px_12px_rgba(0,0,0,0.05),0_16px_32px_-8px_rgba(0,0,0,0.06)] dark:hover:bg-[#0A0A0A] hover:-translate-y-0.5 active:scale-[0.99];
+  }
+  .glass-card {
+    @apply bg-white dark:bg-[#050505] rounded-2xl border border-black/[0.07] dark:border-[#242424] transition-all duration-300;
   }
   .surface-pill {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border backdrop-blur-md;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-black/[0.07] dark:border-[#242424] bg-white/80 dark:bg-[#0A0A0A] text-gray-800 dark:text-[#D4D4D4] backdrop-blur-md;
   }
   .btn-primary-tactile {
-    @apply bg-gradient-to-b from-[#6B3482] to-[#4A2359] text-white font-semibold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.1),0_4px_14px_rgba(91,44,111,0.3)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.12),0_8px_20px_rgba(91,44,111,0.4)] hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 cursor-pointer;
+    @apply bg-gradient-to-b from-[#6B3482] to-[#4A2359] text-white font-semibold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.1),0_4px_14px_rgba(91,44,111,0.3)] dark:shadow-none hover:shadow-[0_2px_4px_rgba(0,0,0,0.12),0_8px_20px_rgba(91,44,111,0.4)] dark:hover:shadow-none hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 cursor-pointer;
   }
+  .gradient-text {
+    @apply bg-gradient-to-r from-[#5B2C6F] to-[#7B3F95] dark:from-[#F5F5F5] dark:to-[#FFFFFF] bg-clip-text text-transparent;
+  }
+  .gradient-text-white {
+    @apply text-[#0F172A] dark:text-white;
+  }
+}
+
+/* OLED Dark mode styles for KaTeX & Tables */
+.dark .katex {
+  color: #F5F5F5 !important;
+}
+
+.dark table {
+  background-color: #000000;
+}
+.dark th {
+  background-color: #050505;
+  color: #A1A1AA;
+  border-color: #242424;
+}
+.dark td {
+  border-color: #181818;
+}
+.dark tr:hover td {
+  background-color: #0A0A0A;
 }
 
 @layer utilities {

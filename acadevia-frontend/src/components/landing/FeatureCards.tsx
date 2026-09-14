@@ -20,7 +20,7 @@ const FeatureCards: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold">Why Choose <span className="gradient-text">Acadevia</span>?</h2>
-          <p className="mt-3 text-gray-500 max-w-2xl mx-auto">Everything you need for an engaging and effective learning experience.</p>
+          <p className="mt-3 text-gray-500 dark:text-[#A1A1AA] max-w-2xl mx-auto">Everything you need for an engaging and effective learning experience.</p>
         </div>
         <div ref={ref} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((f, i) => (
@@ -29,14 +29,14 @@ const FeatureCards: React.FC = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={isIntersecting ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              whileHover={{ y: -8, boxShadow: '0 0 30px rgba(108,99,255,0.15)' }}
-              className="glass-card p-6 cursor-pointer group"
+              whileHover={{ y: -4 }}
+              className="glass-card p-6 cursor-pointer group hover:border-gray-300 dark:hover:border-[#333333] dark:hover:bg-[#0A0A0A] transition-all"
             >
-              <div className="p-3 rounded-xl bg-primary/10 text-primary inline-block mb-4 group-hover:bg-primary group-hover:text-white transition-colors">
+              <div className="p-3 rounded-xl bg-primary/10 dark:bg-[#111111] border border-transparent dark:border-[#242424] text-primary dark:text-[#E5E5E5] inline-block mb-4 group-hover:bg-primary group-hover:text-white dark:group-hover:bg-[#1A1A1A] dark:group-hover:text-white dark:group-hover:border-[#333333] transition-colors">
                 <f.icon className="h-6 w-6" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
-              <p className="text-sm text-gray-500">{f.desc}</p>
+              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-[#F5F5F5]">{f.title}</h3>
+              <p className="text-sm text-gray-500 dark:text-[#A1A1AA]">{f.desc}</p>
             </motion.div>
           ))}
         </div>

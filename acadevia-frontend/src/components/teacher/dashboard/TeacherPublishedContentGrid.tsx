@@ -29,9 +29,9 @@ export const TeacherPublishedContentGrid: React.FC<TeacherPublishedContentGridPr
   });
 
   return (
-    <div className="rounded-3xl bg-white dark:bg-[#1A1222] border border-[#E8E4DA] dark:border-[#2D1B36] p-6 sm:p-7 shadow-xs space-y-5">
+    <div className="rounded-3xl bg-white dark:bg-[#050505] border border-[#E8E4DA] dark:border-[#242424] p-6 sm:p-7 shadow-xs space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8E4DA]/80 dark:border-[#2D1B36]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8E4DA]/80 dark:border-[#242424]">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-[#5B2C6F]/10 dark:bg-[#C084FC]/15 text-[#5B2C6F] dark:text-[#C084FC] flex items-center justify-center">
             <Video className="w-4 h-4" />

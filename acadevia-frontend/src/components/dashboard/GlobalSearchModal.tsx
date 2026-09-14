@@ -77,10 +77,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           initial={{ opacity: 0, scale: 0.96, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: -10 }}
-          className="relative w-full max-w-xl overflow-hidden rounded-2xl bg-white dark:bg-card-dark border border-[#E8E2D8] dark:border-[#382447] shadow-2xl z-10 flex flex-col max-h-[80vh]"
+          className="relative w-full max-w-xl overflow-hidden rounded-2xl bg-white dark:bg-[#050505] border border-[#E8E2D8] dark:border-[#242424] shadow-2xl z-10 flex flex-col max-h-[80vh]"
         >
           {/* Input Bar */}
-          <div className="flex items-center gap-3 p-4 border-b border-[#E8E2D8] dark:border-[#382447] bg-[#FDFCF9] dark:bg-[#1E1226]">
+          <div className="flex items-center gap-3 p-4 border-b border-[#E8E2D8] dark:border-[#242424] bg-[#FDFCF9] dark:bg-[#0A0A0A]">
             <Search className="h-5 w-5 text-gray-400 shrink-0" />
             <input
               type="text"
@@ -104,10 +104,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           </div>
 
           {/* Results List */}
-          <div className="p-3 overflow-y-auto max-h-[380px] space-y-1">
+          <div className="p-2 overflow-y-auto max-h-96 space-y-1">
             {filtered.length === 0 ? (
-              <div className="py-12 text-center text-gray-400 text-xs">
-                No matching topics or materials found for "{query}".
+              <div className="py-12 text-center text-xs text-gray-400">
+                No matching results found for "{query}". Try searching 'Algebra' or 'Science'.
               </div>
             ) : (
               filtered.map((item) => {
@@ -119,10 +119,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                       onClose();
                       navigate(item.route);
                     }}
-                    className="w-full p-3 rounded-xl hover:bg-purple-50/60 dark:hover:bg-purple-950/20 text-left flex items-center justify-between group transition-colors cursor-pointer"
+                    className="w-full p-3 rounded-xl hover:bg-purple-50/60 dark:hover:bg-[#111111] text-left flex items-center justify-between group transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 group-hover:bg-primary/10 group-hover:text-primary dark:group-hover:text-purple-300 flex items-center justify-center text-gray-500 transition-colors shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#111111] group-hover:bg-primary/10 group-hover:text-primary dark:group-hover:text-purple-300 flex items-center justify-center text-gray-500 transition-colors shrink-0">
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
@@ -130,7 +130,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                           <span className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary dark:group-hover:text-purple-300 transition-colors truncate">
                             {item.title}
                           </span>
-                          <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 shrink-0">
+                          <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#181818] text-gray-500 shrink-0">
                             {item.category}
                           </span>
                         </div>
@@ -146,7 +146,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           </div>
 
           {/* Palette Footer */}
-          <div className="p-3 border-t border-[#E8E2D8] dark:border-[#382447] bg-[#FDFCF9] dark:bg-[#1E1226] text-[11px] text-gray-400 flex items-center justify-between">
+          <div className="p-3 border-t border-[#E8E2D8] dark:border-[#242424] bg-[#FDFCF9] dark:bg-[#0A0A0A] text-[11px] text-gray-400 flex items-center justify-between">
             <span className="flex items-center gap-1">
               <Sparkles className="h-3 w-3 text-primary" />
               Quick command palette for Acadevia syllabus

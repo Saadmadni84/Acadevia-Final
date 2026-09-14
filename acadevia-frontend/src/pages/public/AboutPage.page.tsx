@@ -119,7 +119,7 @@ const AboutPage: React.FC = () => {
 
       {/* Mission Section */}
       <section id="mission" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 md:mt-24">
-        <div className="relative rounded-3xl bg-gradient-to-br from-primary-50 via-purple-50/50 to-white dark:from-[#241530] dark:via-[#1E1128] dark:to-card-dark p-8 md:p-14 border border-primary-100 dark:border-primary-800/40 shadow-sm">
+        <div className="relative rounded-3xl bg-gradient-to-br from-primary-50 via-purple-50/50 to-white dark:bg-[#050505] p-8 md:p-14 border border-primary-100 dark:border-[#242424] shadow-sm dark:shadow-none">
           <div className="max-w-3xl">
             <span className="text-xs font-bold uppercase tracking-wider text-secondary">Our Core Mission</span>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mt-2 mb-4">

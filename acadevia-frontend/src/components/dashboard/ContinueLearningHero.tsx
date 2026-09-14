@@ -38,8 +38,8 @@ export const ContinueLearningHero: React.FC<ContinueLearningHeroProps> = ({
 
   return (
     <div className="surface-card surface-card-hover p-6 sm:p-7 relative overflow-hidden group">
-      {/* Ambient background glow */}
-      <div className="absolute top-0 right-0 -mt-8 -mr-8 w-72 h-72 rounded-full bg-purple-500/5 dark:bg-purple-500/10 blur-3xl pointer-events-none" />
+      {/* Ambient background glow (hidden in dark mode for pure OLED) */}
+      <div className="absolute top-0 right-0 -mt-8 -mr-8 w-72 h-72 rounded-full bg-purple-500/5 blur-3xl dark:hidden pointer-events-none" />
 
       <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         {/* Left: Metadata, Title, Progress & Actions */}

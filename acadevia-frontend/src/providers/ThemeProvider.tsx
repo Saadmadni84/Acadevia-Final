@@ -10,10 +10,12 @@ const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     const stored = localStorage.getItem('acadevia-theme');
     if (!stored) {
       setDark(prefersDark);
-    } else {
-      document.documentElement.classList.toggle('dark', isDark);
     }
   }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
 
   return <>{children}</>;
 };

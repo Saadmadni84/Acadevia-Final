@@ -75,7 +75,7 @@ const NewsletterForm: React.FC = () => {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@email.com"
           required
-          className="flex-1 min-w-0 px-3.5 py-2 text-[13px] bg-white dark:bg-[#1C1226] border border-[#E8E5DF] dark:border-[#2E1B3D] rounded-l-lg text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] outline-none focus:border-[#5B2C6F] dark:focus:border-[#A855F7] transition-colors"
+          className="flex-1 min-w-0 px-3.5 py-2 text-[13px] bg-white dark:bg-[#050505] border border-[#E8E5DF] dark:border-[#242424] rounded-l-lg text-[#0F172A] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] outline-none focus:border-[#5B2C6F] dark:focus:border-[#A855F7] transition-colors"
           aria-label="Email address"
         />
         <button
@@ -103,7 +103,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
 
   return (
     <footer
-      className={`w-full bg-[#FAF9F6] dark:bg-[#0C0712] border-t border-[#E8E5DF] dark:border-[#1E1228] transition-colors duration-200 ${className}`}
+      className={`w-full bg-[#FAF9F6] dark:bg-black border-t border-[#E8E5DF] dark:border-[#242424] transition-colors duration-200 ${className}`}
       role="contentinfo"
       aria-label="Site footer"
     >
@@ -117,8 +117,11 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
           {/* ── Brand Column (wider) ── */}
           <div className="lg:col-span-4">
             <Link to="/" className="inline-flex items-center gap-2 group" aria-label="Acadevia home">
-              <GraduationCap className="h-7 w-7 text-[#5B2C6F] dark:text-[#C084FC]" />
-              <span className="text-[20px] font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
+              <div className="relative flex items-center justify-center">
+                <GraduationCap className="h-7 w-7 text-[#5B2C6F] dark:text-white transition-colors" />
+                <span className="hidden dark:block absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary" />
+              </div>
+              <span className="text-[20px] font-bold text-[#0F172A] dark:text-[#F5F5F5] tracking-tight">
                 Acadevia
               </span>
             </Link>
@@ -158,7 +161,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         {/* ═══════════════════════════════════════════════════════════ */}
         {/*  Bottom Bar                                                */}
         {/* ═══════════════════════════════════════════════════════════ */}
-        <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 py-6 border-t border-[#E8E5DF] dark:border-[#1E1228]">
+        <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 py-6 border-t border-[#E8E5DF] dark:border-[#242424]">
 
           {/* Left: Copyright */}
           <p className="text-[12px] text-[#94A3B8] dark:text-[#64748B]">
@@ -184,7 +187,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
             </nav>
 
             {/* Divider */}
-            <span className="h-3.5 w-px bg-[#E8E5DF] dark:bg-[#2E1B3D]" aria-hidden="true" />
+            <span className="h-3.5 w-px bg-[#E8E5DF] dark:bg-[#242424]" aria-hidden="true" />
 
             {/* Social icons */}
             <div className="flex items-center gap-2">

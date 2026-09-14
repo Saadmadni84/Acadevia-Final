@@ -48,9 +48,9 @@ export const TeacherClassPerformanceHub: React.FC<TeacherClassPerformanceHubProp
   const navigate = useNavigate();
 
   return (
-    <div className="rounded-3xl bg-white dark:bg-[#1A1222] border border-[#E8E4DA] dark:border-[#2D1B36] p-6 sm:p-7 shadow-xs space-y-6">
+    <div className="rounded-3xl bg-white dark:bg-[#050505] border border-[#E8E4DA] dark:border-[#242424] p-6 sm:p-7 shadow-xs space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8E4DA]/80 dark:border-[#2D1B36]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8E4DA]/80 dark:border-[#242424]">
         <div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-[#5B2C6F]/10 dark:bg-[#C084FC]/15 text-[#5B2C6F] dark:text-[#C084FC] flex items-center justify-center">
@@ -146,7 +146,7 @@ export const TeacherClassPerformanceHub: React.FC<TeacherClassPerformanceHubProp
                     <div
                       key={tp.id}
                       onClick={() => navigate(`${ROUTES.TEACHER_STUDENTS}?studentId=${tp.id}`)}
-                      className="p-2.5 rounded-xl bg-[#F8F5EF] dark:bg-[#150D1C] border border-[#E8E4DA] dark:border-[#2D1B36] hover:border-amber-400/60 dark:hover:border-amber-500/50 hover:shadow-2xs transition-all cursor-pointer flex items-center gap-2.5 group"
+                      className="p-2.5 rounded-xl bg-[#F8F5EF] dark:bg-[#0A0A0A] border border-[#E8E4DA] dark:border-[#242424] hover:border-amber-400/60 dark:hover:border-amber-500/50 hover:shadow-2xs transition-all cursor-pointer flex items-center gap-2.5 group"
                     >
                       <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center justify-center shrink-0">
                         {i === 0 ? <Award className="w-4 h-4 text-amber-500" /> : `#${i + 1}`}
@@ -189,7 +189,7 @@ export const TeacherClassPerformanceHub: React.FC<TeacherClassPerformanceHubProp
                     <div
                       key={st.id}
                       onClick={() => navigate(`${ROUTES.TEACHER_STUDENTS}?studentId=${st.id}`)}
-                      className="p-2.5 rounded-xl bg-white dark:bg-[#1A1222] border border-rose-200/60 dark:border-rose-900/30 hover:border-rose-400 hover:shadow-2xs transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                      className="p-2.5 rounded-xl bg-white dark:bg-[#0A0A0A] border border-rose-200/60 dark:border-rose-900/30 hover:border-rose-400 hover:shadow-2xs transition-all cursor-pointer flex items-center justify-between gap-3 group"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-7 h-7 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0">
@@ -211,7 +211,7 @@ export const TeacherClassPerformanceHub: React.FC<TeacherClassPerformanceHubProp
                     </div>
                   ))
                 ) : (
-                  <div className="p-3 text-center rounded-xl bg-white/60 dark:bg-[#1A1222]/60 text-xs text-emerald-700 dark:text-emerald-400 font-medium">
+                  <div className="p-3 text-center rounded-xl bg-white/60 dark:bg-[#0A0A0A]/60 text-xs text-emerald-700 dark:text-emerald-400 font-medium">
                     All students are currently performing at or above grade benchmarks!
                   </div>
                 )}
@@ -221,7 +221,7 @@ export const TeacherClassPerformanceHub: React.FC<TeacherClassPerformanceHubProp
             <button
               type="button"
               onClick={() => navigate(`${ROUTES.TEACHER_STUDENTS}?classGrade=${selectedClass}`)}
-              className="mt-4 w-full py-2 px-3 rounded-xl bg-white dark:bg-[#1A1222] hover:bg-rose-100/50 dark:hover:bg-rose-900/30 border border-rose-200/80 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 text-xs font-bold transition flex items-center justify-center gap-1.5"
+              className="mt-4 w-full py-2 px-3 rounded-xl bg-white dark:bg-[#0A0A0A] hover:bg-rose-100/50 dark:hover:bg-rose-900/30 border border-rose-200/80 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 text-xs font-bold transition flex items-center justify-center gap-1.5"
             >
               Open Class Roster & Review
               <ArrowRight className="w-3.5 h-3.5" />

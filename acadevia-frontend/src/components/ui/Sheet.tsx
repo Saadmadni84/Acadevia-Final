@@ -108,7 +108,7 @@ const Sheet: React.FC<SheetProps> = ({ open, onClose, children, title, side = 'b
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
           />
 
@@ -125,7 +125,7 @@ const Sheet: React.FC<SheetProps> = ({ open, onClose, children, title, side = 'b
             dragElastic={0.2}
             onDragEnd={handleDragEnd}
             className={cn(
-              'absolute z-10 flex flex-col bg-white dark:bg-gray-900 shadow-2xl',
+              'absolute z-10 flex flex-col bg-white dark:bg-[#050505] border border-transparent dark:border-[#242424] shadow-2xl',
               isBottom
                 ? 'bottom-0 left-0 right-0 max-h-[85vh] rounded-t-2xl'
                 : 'top-0 right-0 bottom-0 w-full max-w-md rounded-l-2xl',
@@ -135,17 +135,17 @@ const Sheet: React.FC<SheetProps> = ({ open, onClose, children, title, side = 'b
             {/* Handle bar (mobile / bottom) */}
             {isBottom && (
               <div className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing">
-                <div className="h-1.5 w-10 rounded-full bg-gray-300 dark:bg-gray-600" />
+                <div className="h-1.5 w-10 rounded-full bg-gray-300 dark:bg-[#242424]" />
               </div>
             )}
 
             {/* Header */}
             {(title || !isBottom) && (
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-[#242424]">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-[#F5F5F5]">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#111111] text-gray-500 dark:text-gray-400 transition-colors"
                   aria-label="Close"
                 >
                   <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />

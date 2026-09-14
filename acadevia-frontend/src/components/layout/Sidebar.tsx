@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import {
   Home, BookOpen, Trophy, User, Settings,
   Download, ChevronLeft, ChevronRight,
-  GraduationCap, BarChart3, Users, Shield, Brain, Swords, Award
+  GraduationCap, BarChart3, Users, Shield, Swords, Award
 } from 'lucide-react';
 
 interface SidebarProps { collapsed: boolean; onToggle: () => void; }
@@ -79,10 +79,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   return (
     <motion.aside
         animate={{ width: collapsed ? 72 : 260 }}
-        className="hidden lg:flex flex-col h-screen bg-[#FDFCF9] dark:bg-card-dark border-r border-[#E7E1D8] dark:border-[#382447] fixed left-0 top-0 z-30"
+        className="hidden lg:flex flex-col h-screen bg-[#FDFCF9] dark:bg-black border-r border-[#E7E1D8] dark:border-[#242424] fixed left-0 top-0 z-30"
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#E7E1D8] dark:border-[#382447]">
+        <div className="flex items-center justify-between p-4 border-b border-[#E7E1D8] dark:border-[#242424]">
           <AnimatePresence>
             {!collapsed && (
               <motion.div
@@ -129,8 +129,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                       className={({ isActive }) => cn(
                         'flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all',
                         isActive
-                          ? 'bg-primary/10 text-primary dark:text-purple-300 font-bold border border-primary/20'
-                          : 'text-[#647084] dark:text-gray-400 hover:text-[#172033] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
+                          ? 'bg-primary/10 text-primary dark:bg-[#111111] dark:text-[#F5F5F5] font-bold border border-primary/20 dark:border-[#242424]'
+                          : 'text-[#647084] dark:text-[#A1A1AA] hover:text-[#172033] dark:hover:text-white hover:bg-black/5 dark:hover:bg-[#111111]'
                       )}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
@@ -156,8 +156,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                   className={({ isActive }) => cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all',
                     isActive
-                      ? 'bg-primary/10 text-primary dark:text-purple-300 font-bold border border-primary/20'
-                      : 'text-[#647084] dark:text-gray-400 hover:text-[#172033] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
+                      ? 'bg-primary/10 text-primary dark:bg-[#111111] dark:text-[#F5F5F5] font-bold border border-primary/20 dark:border-[#242424]'
+                      : 'text-[#647084] dark:text-[#A1A1AA] hover:text-[#172033] dark:hover:text-white hover:bg-black/5 dark:hover:bg-[#111111]'
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />

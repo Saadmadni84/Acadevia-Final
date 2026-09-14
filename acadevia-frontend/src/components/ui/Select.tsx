@@ -120,7 +120,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
           aria-disabled={disabled}
           tabIndex={disabled ? -1 : 0}
           className={cn(
-            'relative flex items-center gap-2 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 cursor-pointer transition-all duration-200',
+            'relative flex items-center gap-2 w-full rounded-xl border border-gray-300 dark:border-[#242424] bg-white dark:bg-[#050505] text-gray-900 dark:text-[#F5F5F5] px-4 py-3 cursor-pointer transition-all duration-200',
             'focus-within:ring-2 focus-within:ring-primary focus-within:border-primary',
             disabled && 'opacity-50 pointer-events-none',
             open && 'ring-2 ring-primary border-primary',
@@ -132,7 +132,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
           {label && (
             <span
               className={cn(
-                'absolute left-3 transition-all duration-200 pointer-events-none bg-white dark:bg-gray-800 px-1',
+                'absolute left-3 transition-all duration-200 pointer-events-none bg-white dark:bg-[#050505] px-1',
                 hasValue || open
                   ? '-top-2.5 text-xs text-primary font-medium'
                   : 'top-1/2 -translate-y-1/2 text-sm text-gray-400',
@@ -154,7 +154,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
             <button
               type="button"
               aria-label="Clear selection"
-              className="p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+              className="p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-[#111111]"
               onClick={(e) => {
                 e.stopPropagation();
                 onChange('');
@@ -179,13 +179,13 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
               exit={{ opacity: 0, y: -8, scale: 0.96 }}
               transition={{ duration: 0.15 }}
               className={cn(
-                'absolute z-50 mt-1 w-full rounded-xl border border-gray-200 dark:border-gray-700',
-                'bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-xl',
+                'absolute z-50 mt-1 w-full rounded-xl border border-gray-200 dark:border-[#242424]',
+                'bg-white dark:bg-[#050505] shadow-xl',
                 'overflow-hidden',
               )}
             >
               {searchable && (
-                <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 px-3 py-2">
+                <div className="flex items-center gap-2 border-b border-gray-200 dark:border-[#242424] px-3 py-2">
                   <Search className="h-4 w-4 text-gray-400 shrink-0" />
                   <input
                     ref={searchRef}
@@ -225,7 +225,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
                           isHighlighted && 'bg-primary/10 dark:bg-primary/20',
                           isSelected && 'text-primary font-medium',
                           option.disabled && 'opacity-40 pointer-events-none',
-                          !isHighlighted && !isSelected && 'hover:bg-gray-100 dark:hover:bg-gray-700/50',
+                          !isHighlighted && !isSelected && 'hover:bg-gray-100 dark:hover:bg-[#111111]',
                         )}
                         onClick={() => {
                           if (!option.disabled) {

@@ -48,13 +48,13 @@ const QuizShowcase: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={isIntersecting ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: i * 0.1, duration: 0.5 }}
-                className="glass-card p-5 group hover:border-primary/30 transition-all"
+                className="glass-card p-5 group hover:border-primary/30 dark:hover:border-[#333333] transition-all"
               >
-                <div className="p-2.5 rounded-xl bg-primary/10 text-primary inline-block mb-3 group-hover:bg-primary group-hover:text-white transition-colors">
+                <div className="p-2.5 rounded-xl bg-primary/10 dark:bg-[#111111] border border-transparent dark:border-[#242424] text-primary dark:text-[#E5E5E5] inline-block mb-3 group-hover:bg-primary group-hover:text-white dark:group-hover:bg-[#1A1A1A] dark:group-hover:text-white dark:group-hover:border-[#333333] transition-colors">
                   <f.icon className="h-5 w-5" />
                 </div>
-                <h3 className="text-sm font-semibold mb-1">{f.title}</h3>
-                <p className="text-xs text-gray-500">{f.desc}</p>
+                <h3 className="text-sm font-semibold mb-1 text-gray-900 dark:text-[#F5F5F5]">{f.title}</h3>
+                <p className="text-xs text-gray-500 dark:text-[#A1A1AA]">{f.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -67,8 +67,8 @@ const QuizShowcase: React.FC = () => {
             className="glass-card p-6 space-y-4"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary">Live Preview</span>
-              <span className="text-xs text-gray-500 flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> 00:30</span>
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary dark:bg-[#111111] dark:border dark:border-[#242424] dark:text-[#E5E5E5]">Live Preview</span>
+              <span className="text-xs text-gray-500 dark:text-[#8A8A8A] flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> 00:30</span>
             </div>
             {sampleQuestions.map((q, qi) => (
               <motion.div
@@ -76,24 +76,24 @@ const QuizShowcase: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={isIntersecting ? { opacity: 1 } : {}}
                 transition={{ delay: 0.4 + qi * 0.15 }}
-                className={`p-4 rounded-xl border transition-all ${qi === 0 ? 'border-primary/30 bg-primary/5' : 'border-gray-200 dark:border-gray-700'}`}
+                className={`p-4 rounded-xl border transition-all ${qi === 0 ? 'border-primary/30 bg-primary/5 dark:bg-[#0A0A0A] dark:border-[#333333]' : 'border-gray-200 dark:border-[#242424] dark:bg-[#050505]'}`}
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                    q.subject === 'Mathematics' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' :
-                    q.subject === 'Science' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' :
-                    'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                    q.subject === 'Mathematics' ? 'bg-blue-100 text-blue-700 dark:bg-[#111111] dark:border dark:border-[#242424] dark:text-[#D4D4D4]' :
+                    q.subject === 'Science' ? 'bg-green-100 text-green-700 dark:bg-[#111111] dark:border dark:border-[#242424] dark:text-[#D4D4D4]' :
+                    'bg-purple-100 text-purple-700 dark:bg-[#111111] dark:border dark:border-[#242424] dark:text-[#D4D4D4]'
                   }`}>{q.subject}</span>
                 </div>
-                <p className="text-sm font-medium mb-2">{q.question}</p>
+                <p className="text-sm font-medium mb-2 text-gray-900 dark:text-[#F5F5F5]">{q.question}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {q.options.map((opt, oi) => (
                     <div
                       key={oi}
                       className={`text-xs py-1.5 px-3 rounded-lg border text-center transition-all ${
                         oi === q.correct
-                          ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-600'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                          ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700'
+                          : 'border-gray-200 dark:border-[#242424] text-gray-600 dark:text-[#A1A1AA] dark:bg-[#0A0A0A]'
                       }`}
                     >
                       {oi === q.correct && <CheckCircle className="inline h-3 w-3 mr-1" />}
@@ -114,7 +114,7 @@ const QuizShowcase: React.FC = () => {
           className="mt-10 text-center"
         >
           <Link to={ROUTES.REGISTER}>
-            <Button variant="gradient" size="lg" rightIcon={<ArrowRight className="h-5 w-5" />}>
+            <Button variant="primary" size="lg" className="bg-[#5B2C6F] hover:bg-[#4A2359] dark:bg-[#5B2C6F] dark:hover:bg-[#6D3484] text-white px-7 py-3.5 rounded-xl font-semibold shadow-none" rightIcon={<ArrowRight className="h-5 w-5" />}>
               Try a Quiz Now
             </Button>
           </Link>
